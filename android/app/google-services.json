@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "435490385420",
+    "project_id": "signin-cd920",
+    "storage_bucket": "signin-cd920.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435490385420:android:27a56d08ab171665fb4829",
+        "android_client_info": {
+          "package_name": "com.sansaheritage"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABjayf8awu7Fu9jZJS7hCkAabEWl7tU_E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
