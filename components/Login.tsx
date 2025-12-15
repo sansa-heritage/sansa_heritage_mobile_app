@@ -10,6 +10,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { registerWithGoogle } from './apiHelper/apiService';
 import { authService } from './apiHelper/AuthService';
 import { RootStackParamList } from './models/types';
+import DeviceInfo from 'react-native-device-info';
 
 GoogleSignin.configure({
   webClientId:
@@ -30,6 +31,8 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [errorMsg, setError] = useState<string | null>(null)
   const [secureText, setSecureText] = useState(true);
+
+  const appVersion = DeviceInfo.getVersion();
 
   const onSignIn = async () => {
     try {
@@ -131,172 +134,251 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.brandLogo} source={require('../assets/images/logo.png')} />
-      <Text style={styles.title}>Log in</Text>
+      <Image
+        style={styles.brandLogo}
+        source={require('../assets/images/logo.png')}
+      />
 
-      <View style={styles.inputContainer}>
-        <FontAwesome name="envelope" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#888"
-        />
-      </View>
+      <View style={styles.card}>
+        <Text style={styles.title}>Welcome Back 👋</Text>
+        <Text style={styles.subtitle}>Login to your account</Text>
 
-      <View style={styles.inputContainer}>
-        <MaterialCommunityIcons name="lock" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry={secureText}
-          value={password}
-          onChangeText={setPassword}
-          placeholderTextColor="#888"
-        />
-
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setSecureText(!secureText)}
-        >
-          <MaterialCommunityIcons
-            name={secureText ? "eye-off" : "eye"}
-            size={24}
-            color="gray"
+        {/* Email */}
+        <View style={styles.inputWrapper}>
+          <FontAwesome name="envelope" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholderTextColor="#999"
           />
+        </View>
+
+        {/* Password */}
+        <View style={styles.inputWrapper}>
+          <MaterialCommunityIcons name="lock-outline" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry={secureText}
+            value={password}
+            onChangeText={setPassword}
+            placeholderTextColor="#999"
+          />
+
+          <TouchableOpacity onPress={() => setSecureText(!secureText)}>
+            <MaterialCommunityIcons
+              name={secureText ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color="#777"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
+
+        {/* Forgot password */}
+        <TouchableOpacity
+          onPress={handleForgotPassword}
+          style={styles.forgotWrapper}
+        >
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </TouchableOpacity>
+
+        {/* Login button */}
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <Text style={styles.loginButtonText}>Log In</Text>
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.orText}>OR</Text>
+          <View style={styles.line} />
+        </View>
+
+        {/* Google login */}
+        <TouchableOpacity style={styles.googleButton} onPress={onSignIn}>
+          <Image
+            source={require('../assets/images/Google.png')}
+            style={styles.googleIcon}
+          />
+          <Text style={styles.googleText}>Continue with Google</Text>
         </TouchableOpacity>
       </View>
 
-      <View>
-        {errorMsg &&
-          <Text style={styles.error}>{errorMsg}</Text>
-        }
-      </View>
-      <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-        <TouchableOpacity onPress={handleForgotPassword}>
-          <Text style={{ color: '#007AFF', fontWeight: '500' }}>
-            Forgot password?
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Log in</Text>
-      </TouchableOpacity>
-      <Text style={styles.orText}>--------------- Or --------------</Text>
-      <TouchableOpacity style={styles.socialButton} onPress={onSignIn}>
-        <Image
-          source={require('../assets/images/Google.png')}   
-          style={[styles.socialIcon, { width: 20, height: 20 }]}
-        />
-        <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
-      <Text style={styles.signupText} onPress={handleSignUp}>
-        Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
+      {/* Sign up */}
+      <Text style={styles.signupText}>
+        Don’t have an account?{' '}
+        <Text style={styles.signupLink} onPress={handleSignUp}>
+          Sign Up
+        </Text>
+      </Text>
+
+      <Text style={styles.versionText}>
+        Version {appVersion}
       </Text>
     </View>
   );
+
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+  },
+
+  brandLogo: {
+    width: 220,
+    height: 45,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 30,
+  },
+
+  card: {
     backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(149, 12, 33, 0.12)',
   },
+
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111',
+    textAlign: 'center',
   },
-  inputContainer: {
+
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
     marginBottom: 15,
-    position: 'relative',
+    height: 50,
+    backgroundColor: '#FAFAFA',
   },
-  icon: {
-    position: 'absolute',
-    left: 10,
-    zIndex: 1,
 
-  },
-  socialIcon: {
-    marginRight: 10,
-  },
-  error: {
-    color: 'red',
-    padding: 10
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 10,
-    zIndex: 1,
-  },
   input: {
     flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingLeft: 40,
-    paddingRight: 40,
-    borderRadius: 10,
+    paddingHorizontal: 10,
     color: '#000',
+    fontSize: 15,
   },
-  loginButton: {
-  backgroundColor: '#151515',
-  paddingVertical: 15,    
-  paddingHorizontal: 15,  
-  borderRadius: 30,
-  width: '100%',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-  loginButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  orText: {
-    marginTop: 20,
+
+  error: {
+    color: '#E53935',
+    fontSize: 13,
     marginBottom: 10,
   },
-  socialButton: {
-  flexDirection: "row",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#ccc",
-  borderRadius: 30,
-  paddingVertical: 15,     
-  paddingHorizontal: 15,
-  backgroundColor: "#fff",
-  justifyContent: "center",
-  width: '100%',
-  gap: 10,
-},
-  buttonText: {
-    fontSize: 16,
-    color: "#151515",
-    fontWeight: "500",
-    marginRight: 40
-  },
-  signupText: {
-    marginTop: 20,
-  },
-  signupLink: {
-    color: 'blue',
-    textDecorationLine: 'none',
-  },
-  brandLogo: {
-    width: 300,
-    height: 50,
-    resizeMode: "contain",
+
+  forgotWrapper: {
+    alignItems: 'flex-end',
     marginBottom: 20,
   },
+
+  forgotText: {
+    color: '#2563EB',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  loginButton: {
+    backgroundColor: '#151515',
+    height: 50,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+
+  orText: {
+    marginHorizontal: 10,
+    fontSize: 12,
+    color: '#888',
+  },
+
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 30,
+    height: 50,
+    backgroundColor: '#fff',
+  },
+
+  googleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 10,
+  },
+
+  googleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111',
+  },
+
+  signupText: {
+    textAlign: 'center',
+    marginTop: 25,
+    fontSize: 14,
+    color: '#555',
+  },
+
+  signupLink: {
+    color: '#2563EB',
+    fontWeight: '600',
+  },
+
+  versionText: {
+    textAlign: 'center',
+    marginTop: 15,
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
 });
+
 
 export default LoginPage;

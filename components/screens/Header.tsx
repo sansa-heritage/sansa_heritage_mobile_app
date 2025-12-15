@@ -1,17 +1,25 @@
-import React, { useEffect } from "react";
-import { View, Image, TouchableOpacity, StyleSheet, Text } from "react-native";
+import React from "react";
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+} from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { navigationRef, getCurrentRoute } from "../../components/apiHelper/NavigationService";
+import { navigationRef } from "../../components/apiHelper/NavigationService";
 
-const Header = ({ currentRoute }) => {
+interface HeaderProps {
+  currentRoute: string;
+  title?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ currentRoute, title }) => {
   const isDashboard = currentRoute === "Dashboard";
-  useEffect(() => {
-    console.log(currentRoute);
-    
-},[currentRoute])
 
   return (
     <View style={styles.header}>
+      {/* LEFT SECTION */}
       {isDashboard ? (
         <Image
           source={require("../../assets/images/logo.png")}
@@ -19,34 +27,47 @@ const Header = ({ currentRoute }) => {
         />
       ) : (
         <View style={styles.leftRow}>
-          <TouchableOpacity onPress={() => navigationRef.goBack()}>
-            <MaterialIcons name="arrow-back" size={24} color="black" />
+          <TouchableOpacity
+            onPress={() => navigationRef.canGoBack() && navigationRef.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.pageTitle}>{currentRoute}</Text>
+
+          <Text style={styles.pageTitle} numberOfLines={1}>
+            {title}
+          </Text>
         </View>
       )}
 
+      {/* FLEX SPACER */}
       <View style={{ flex: 1 }} />
 
-      <View style={styles.iconRow}>
-        <TouchableOpacity style={{ marginRight: 15 }}>
-          <MaterialIcons name="favorite-border" size={24} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <MaterialIcons name="notifications-none" size={24} />
-        </TouchableOpacity>
-      </View>
+      {/* RIGHT ICONS (ONLY DASHBOARD) */}
+      {isDashboard && (
+        <View style={styles.iconRow}>
+          <TouchableOpacity style={{ marginRight: 15 }}>
+            <MaterialIcons name="favorite-border" size={24} />
+          </TouchableOpacity>
+
+          <TouchableOpacity>
+            <MaterialIcons name="notifications-none" size={24} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
+export default Header;
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 14,
     backgroundColor: "#fff",
     elevation: 3,
     shadowColor: "#000",
@@ -58,6 +79,7 @@ const styles = StyleSheet.create({
   leftRow: {
     flexDirection: "row",
     alignItems: "center",
+    maxWidth: "80%",
   },
 
   pageTitle: {
@@ -78,5 +100,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-
-export default Header;

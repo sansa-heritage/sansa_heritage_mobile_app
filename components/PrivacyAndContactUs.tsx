@@ -1,190 +1,202 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 
-// Generic container
-export const ContentContainer = ({ navigation, title, children }) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        {navigation && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.headerTitle}>{title}</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
-    </View>
-  );
-};
-
-// Privacy Policy Screen
-export const PrivacyPolicyScreen = ({ navigation }) => {
+export const PrivacyPolicyScreen = () => {
   const [showFull, setShowFull] = useState(false);
 
   return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.page}
+    >
+      <View style={styles.card}>
+        <Text style={styles.title}>Privacy Policy</Text>
+        <Text style={styles.muted}>Effective Date: 01 Jan 2025</Text>
 
-    <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
-      <ContentContainer navigation={navigation} title="Privacy Policy – Sansa Heritage Hub">
-        <Text style={styles.title}>Privacy Policy – Sansa Heritage Hub</Text>
-        <Text style={styles.paragraph}>Effective Date: [Insert Date]</Text>
-
-        <Text style={styles.subheading}>🔹 Privacy in a Nutshell</Text>
-        <Text style={styles.subheading}>What We Collect</Text>
-        <Text style={styles.paragraph}>
-          Personal info: Name, email, phone, shipping & payment details{"\n"}
-          Non-personal info: Device type, app usage, cookies
+        <Text style={styles.section}>Privacy at a Glance</Text>
+        <Text style={styles.text}>
+          We respect your privacy and are committed to protecting your personal
+          information while you use Sansa Heritage Hub.
         </Text>
 
-        <Text style={styles.subheading}>Why We Collect It</Text>
-        <Text style={styles.paragraph}>
-          • Process and deliver your orders{"\n"}
-          • Send updates, offers, and customer support messages{"\n"}
-          • Improve and personalize your app experience{"\n"}
-          • Ensure secure payments and prevent fraud
+        <Text style={styles.section}>What We Collect</Text>
+        <Text style={styles.text}>
+          • Name, email & phone number{"\n"}
+          • Shipping and billing address{"\n"}
+          • Payment details (securely processed){"\n"}
+          • Device & usage analytics
         </Text>
 
-        <Text style={styles.subheading}>Who We Share It With</Text>
-        <Text style={styles.paragraph}>
-          • Delivery partners for order fulfillment{"\n"}
-          • Payment gateways for secure transactions{"\n"}
-          • Service providers or analytics tools to improve the app{"\n"}
-          ✅ We do not sell your data
+        <Text style={styles.section}>Why We Collect It</Text>
+        <Text style={styles.text}>
+          • Order processing and delivery{"\n"}
+          • Customer support and notifications{"\n"}
+          • Fraud prevention{"\n"}
+          • Improving app experience
         </Text>
 
-        <Text style={styles.subheading}>Your Rights</Text>
-        <Text style={styles.paragraph}>
-          • View or update your personal info{"\n"}
-          • Request deletion of your account/data{"\n"}
-          • Opt out of promotional messages
+        <Text style={styles.section}>Data Sharing</Text>
+        <Text style={styles.text}>
+          We share information only with trusted delivery partners and payment
+          gateways.{"\n"}
+          <Text style={{ fontWeight: "600" }}>
+            We never sell your personal data.
+          </Text>
         </Text>
 
-        <Text style={styles.subheading}>Data Security</Text>
-        <Text style={styles.paragraph}>
-          We use encryption, secure servers, and restricted access
-        </Text>
-
-        <Text style={styles.subheading}>Cookies & Tracking</Text>
-        <Text style={styles.paragraph}>
-          Used only to enhance your experience and analyze app performance
-        </Text>
-
-        <Text style={styles.subheading}>Children’s Privacy</Text>
-        <Text style={styles.paragraph}>
-          Not intended for children under 18. We do not knowingly collect information from minors.
-        </Text>
-
-        <Text style={styles.subheading}>Questions or Concerns</Text>
-        <Text style={styles.paragraph}>Email: [your email]</Text>
-
-        <TouchableOpacity onPress={() => setShowFull(!showFull)} style={styles.linkButton}>
-          <Text style={styles.linkText}>{showFull ? 'Hide Full Policy' : 'Read Full Policy'}</Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => setShowFull(!showFull)}
+        >
+          <Text style={styles.primaryButtonText}>
+            {showFull ? "Hide Full Policy" : "Read Full Policy"}
+          </Text>
         </TouchableOpacity>
+      </View>
 
-        {showFull && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={styles.subheading}>🔹 Full Privacy Policy</Text>
-            <Text style={styles.paragraph}>
-              1. Applicability & Acceptance – By accessing or using our app, you agree to this Privacy
-              Policy. If you do not agree, please do not use the app.
-            </Text>
-            <Text style={styles.paragraph}>
-              2. Information We Collect – Personal Information (Name, email, phone, shipping address,
-              payment details), Sensitive Information (passwords, payment credentials), Non-Personal
-              Information (device info, app usage, cookies).
-            </Text>
-            <Text style={styles.paragraph}>
-              3. How We Use Your Information – Order processing, support, personalization, fraud
-              prevention.
-            </Text>
-            <Text style={styles.paragraph}>
-              4. Information Sharing & Disclosure – Delivery partners, payment gateways, analytics,
-              mergers/transfers. ✅ We do not sell personal data.
-            </Text>
-            <Text style={styles.paragraph}>
-              5. Data Security – Industry-standard security including encryption, secure servers,
-              restricted access.
-            </Text>
-            <Text style={styles.paragraph}>
-              6. User Rights & Control – Access/update info, request deletion, opt out of marketing.
-            </Text>
-            <Text style={styles.paragraph}>
-              7. Cookies & Tracking Technologies – Used to enhance user experience and analyze app
-              performance.
-            </Text>
-            <Text style={styles.paragraph}>
-              8. Third-Party Services – Governed by their respective privacy policies.
-            </Text>
-            <Text style={styles.paragraph}>
-              9. Children’s Privacy – Not for children under 18; we do not knowingly collect info from
-              minors.
-            </Text>
-            <Text style={styles.paragraph}>
-              10. Changes – Policy updates will be posted in the app. Continued use indicates
-              acceptance.
-            </Text>
-          </View>
-        )}
-      </ContentContainer>
+      {showFull && (
+        <View style={styles.card}>
+          <Text style={styles.section}>Full Privacy Policy</Text>
+
+          <Text style={styles.text}>
+            1. Acceptance – By using the app, you agree to this policy.{"\n\n"}
+            2. Information Collection – Personal & non-personal data.{"\n\n"}
+            3. Usage – Orders, support, personalization.{"\n\n"}
+            4. Security – Industry-standard encryption & secure servers.{"\n\n"}
+            5. User Rights – Access, update, delete your data.{"\n\n"}
+            6. Cookies – Used only for performance & analytics.{"\n\n"}
+            7. Children – Not intended for users under 18.{"\n\n"}
+            8. Updates – Policy changes will be reflected in-app.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 };
 
-// About Us Screen
-export const AboutUsScreen = ({ navigation }) => (
-  <ContentContainer navigation={navigation} title="About Us – Sansa Heritage Hub">
-    <Text style={styles.title}>About Us – Sansa Heritage Hub</Text>
-    <Text style={styles.paragraph}>Where Tradition Meets Style ✨</Text>
-    <Text style={styles.paragraph}>
-      At Sansa Heritage Hub, we design fashion that feels as good as it looks. Our handloom
-      collections are crafted by skilled artisans, blending timeless tradition with modern
-      design—so you enjoy comfort, quality, and elegance every day.
-    </Text>
-    <Text style={styles.paragraph}>
-      From daily wear to office gatherings or life’s grand celebrations, our creations are made to
-      fit every moment beautifully.
-    </Text>
-    <Text style={styles.paragraph}>
-      For us, you’re more than a customer—you’re family. Each piece carries stories of culture and
-      craftsmanship, while giving you the comfort you deserve.
-    </Text>
-    <Text style={styles.paragraph}>
-      With every choice you make, you empower artisans, uplift communities, and help preserve a rich
-      heritage. Our mission is to bring village crafts to the modern market—creating fashion that’s
-      sustainable, stylish, and meaningful.
-    </Text>
-    <Text style={styles.paragraph}>✨ Fashion that feels good, looks good, and does good.</Text>
-  </ContentContainer>
-);
+/* ================== ABOUT US ================== */
 
-export default PrivacyPolicyScreen;
+export const AboutUsScreen = () => {
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.page}
+    >
+      <View style={styles.card}>
+        <Text style={styles.title}>Sansa Heritage Hub</Text>
+        <Text style={styles.tagline}>Where Tradition Meets Style</Text>
+
+        <Text style={styles.text}>
+          Sansa Heritage Hub brings timeless Indian craftsmanship into modern
+          everyday fashion. Each piece is thoughtfully designed by skilled
+          artisans using handloom techniques passed down through generations.
+        </Text>
+
+        <Text style={styles.text}>
+          From daily wear to office elegance and festive occasions, our
+          collections combine comfort, quality, and elegance.
+        </Text>
+
+        <Text style={styles.text}>
+          Every purchase supports artisan communities and helps preserve cultural
+          heritage—making fashion ethical, sustainable, and meaningful.
+        </Text>
+
+        <View style={styles.highlightBox}>
+          <Text style={styles.highlightText}>
+            Fashion that feels good, looks good, and does good.
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+/* ================== STYLES ================== */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
+  page: {
+    padding: 16,
+    paddingBottom: 40,
+    backgroundColor: "#f6f6f6",
   },
-  backButton: { padding: 8 },
-  backText: { color: '#007AFF' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '600' },
-  content: { padding: 20 },
-  title: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
-  subheading: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 6 },
-  paragraph: { fontSize: 14, lineHeight: 20, color: '#333', marginBottom: 8 },
-  linkButton: {
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 6,
+  },
+
+  tagline: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 12,
+  },
+
+  muted: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 12,
+  },
+
+  section: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+    marginTop: 14,
+    marginBottom: 6,
+  },
+
+  text: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  primaryButton: {
     marginTop: 16,
+    backgroundColor: "#000",
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#007AFF',
+    borderRadius: 8,
+    alignItems: "center",
   },
-  linkText: { color: '#007AFF', fontWeight: '600' },
+
+  primaryButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  highlightBox: {
+    marginTop: 16,
+    backgroundColor: "#f0f0f0",
+    padding: 14,
+    borderRadius: 8,
+  },
+
+  highlightText: {
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+  },
 });
+
+
+export default PrivacyPolicyScreen;

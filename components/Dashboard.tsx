@@ -48,6 +48,14 @@ export default function Dashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const isFirstRender = useRef(true);
+
+  const CATEGORIES = [
+    { label: "All", value: "" },
+    { label: "Sarees", value: "Saree" },
+    { label: "Dress Materials", value: "dress" },
+    { label: "Kurta Sets", value: "kurta" },
+    { label: "Dupattas", value: "dupatta" },
+  ];
   useEffect(() => {
     // Determine the mainCategory for each section
     const newArrivalCategory = mainCategory || "New Arrival";
@@ -209,38 +217,58 @@ export default function Dashboard() {
       </View>
     );
   };
+
   const renderProductCard = (item) => (
     <TouchableOpacity
-      style={styles.newArrivalItem}
+      style={styles.productCard}
       onPress={() => redirectToProductDetails(item._id)}
+      activeOpacity={0.8}
     >
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.itemImage} />
-      ) : (
-        <Image source={require("../assets/images/logo.png")} style={styles.itemImage} />
-      )}
+      <View style={styles.imageWrapper}>
+        <Image
+          source={
+            item.image
+              ? { uri: item.image }
+              : require("../assets/images/logo.png")
+          }
+          style={styles.productImage}
+        />
 
-      <TouchableOpacity
-        style={styles.favoriteIcon}
-        onPress={() => addToFavorites(item._id)}
-      >
-        <MaterialIcons name="favorite" size={24} color="red" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.favoriteBtn}
+          onPress={() => addToFavorites(item._id)}
+        >
+          <MaterialIcons name="favorite-border" size={20} color="#000" />
+        </TouchableOpacity>
 
-      <View style={styles.itemContainer}>
-        <Text style={styles.itemTitle}>
-          {item.name.length > 20 ? item.name.substring(0, 15) + "..." : item.name}
+        {item.discount > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountBadgeText}>
+              {item.discount}% OFF
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.productInfo}>
+        <Text numberOfLines={1} style={styles.productTitle}>
+          {item.name}
         </Text>
-        <Text style={styles.itemDescription}>
-          {item?.description?.length > 20
-            ? item?.description?.substring(0, 18) + "..."
-            : item?.description}
-        </Text>
-        {renderPrice(item.price, item.discount)}
-        {item.rating !== undefined && <Rating value={item.rating} />}
+
+        <View style={styles.priceRow}>
+          <Text style={styles.finalPrice}>
+            ₹{(item.price - (item.price * item.discount) / 100).toFixed(0)}
+          </Text>
+          <Text style={styles.strikePrice}>₹{item.price}</Text>
+        </View>
+
+        {item.rating !== undefined && (
+          <Rating value={item.rating} />
+        )}
       </View>
     </TouchableOpacity>
   );
+
 
   return (
     <View style={styles.container}>
@@ -274,22 +302,37 @@ export default function Dashboard() {
           </View>
         ) : null}
 
-        <View style={styles.categoriesSection}>
-          {[
-            { label: "Sarees", value: "Saree" },
-            { label: "Dress Materials", value: "dress" },
-            { label: "Kurta Suit Sets", value: "kurta" },
-            { label: "Dupattas", value: "dupatta" },
-          ].map((category, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.categoryCard}
-              onPress={() => assignFilterItem(category.value)}
-            >
-              <Text style={styles.categoryLabel}>{category.label}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.categoryWrapper}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={CATEGORIES}
+            keyExtractor={(item) => item.label}
+            renderItem={({ item }) => {
+              const isActive = selectedCategory === item.value;
+
+              return (
+                <TouchableOpacity
+                  onPress={() => assignFilterItem(item.value)}
+                  style={[
+                    styles.categoryPill,
+                    isActive && styles.categoryPillActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryPillText,
+                      isActive && styles.categoryPillTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
         </View>
+
 
         <View style={styles.newArrivalSection}>
           <View style={styles.newArrivalHeader}>
@@ -407,26 +450,6 @@ export default function Dashboard() {
   );
 }
 const styles = StyleSheet.create({
-  itemContainer: {
-    padding: 12,
-    marginTop: 8,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-  },
-  itemTitle: {
-    marginTop: 5,
-    fontSize: 16,
-    textAlign: 'left',
-    fontWeight: 'bold',
-    color: '#222',
-  },
-  itemDescription: {
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: '300',
-    textAlign: 'left',
-    color: '#555',
-  },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -463,139 +486,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 25,
-    marginRight: 10,
-    borderColor: '#00A0FF',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  logOut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginTop: 60
-  },
-  menuButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-  },
-  brandLogo: {
-    marginTop: '43%',
-  },
-  locationText: {
-    fontSize: 16,
-    marginHorizontal: 10,
-    flex: 1,
-    textAlign: 'center',
-  },
-  favoriteIcon: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  menuContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 100,
-    height: '100%',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 1,
-  },
+
   columnWrapper: {
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-  newArrivalItem: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 8,
-    marginBottom: 15,
-  },
-  menuContent: {
-    flex: 1,
-    padding: 20,
-  },
-  menuCloseButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 20,
-  },
-  menuItems: {
-    marginTop: 60,
-    padding: 10,
-    width: '100%',
-  },
-  menuItemText: {
-    fontSize: 18,
-    paddingVertical: 10,
-    marginLeft: 20
-  },
-  menuCloseText: {
-    fontSize: 16,
-    color: '#ff6f61',
-    textAlign: 'right'
-  },
+
   container: {
     flex: 1,
     backgroundColor: '#fff',
     paddingHorizontal: 15,
   },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    width: '100%',
-  },
-  rightColumn: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  userDesignation: {
-    fontSize: 14,
-    color: '#666',
-  },
-  actionButton: {
-    padding: 10,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    elevation: 3,
-  },
-  logo: {
-    width: 80,
-    height: 50,
-    resizeMode: "contain",
-  },
+
   titleSection: {
     marginVertical: 10,
   },
@@ -630,38 +532,115 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  categoriesSection: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginVertical: 10,
+  categoryWrapper: {
+    marginVertical: 15,
   },
-  categoryCard: {
-    width: "45%",
-    margin: 8,
-    paddingVertical: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f9f9f9",
+
+  categoryPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    backgroundColor: "#f2f2f2",
+    borderRadius: 25,
+    marginRight: 10,
+  },
+
+  categoryPillActive: {
+    backgroundColor: "#151515",
+  },
+
+  categoryPillText: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+  },
+
+  categoryPillTextActive: {
+    color: "#fff",
+  },
+
+
+
+  productCard: {
+    width: "48%",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: 16,
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
-  categoryLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    textAlign: "center",
+
+  imageWrapper: {
+    position: "relative",
   },
-  categoryItem: {
-    alignItems: 'center',
+
+  productImage: {
+    width: "100%",
+    height: 180,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+
+  favoriteBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 6,
+    elevation: 3,
+  },
+
+  discountBadge: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "#950C21",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+
+  discountBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+
+  productInfo: {
     padding: 10,
   },
+
+  productTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#222",
+  },
+
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+
+  finalPrice: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+    marginRight: 8,
+  },
+
+  strikePrice: {
+    fontSize: 14,
+    color: "#888",
+    textDecorationLine: "line-through",
+  },
+
+
   newArrivalSection: {
-    marginTop: 20,
+    marginTop: 10,
   },
   newArrivalHeader: {
     flexDirection: 'row',

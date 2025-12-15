@@ -32,16 +32,16 @@ export default function AccountPage({ navigation, onLogout }: any) {
 
 
   const menuItems = [
-    { label: 'My Favorites', onPress: () => navigation.navigate('FavoritesPage') },
-    { label: 'Profiles', onPress: () => navigation.navigate('Profile') },
+    // { label: 'My Favorites', onPress: () => navigation.navigate('FavoritesPage') },
+    // { label: 'Profiles', onPress: () => navigation.navigate('Profile') },
     { label: 'About Us', onPress: () => navigation.navigate('AboutUs') },
     { label: 'Privacy Policy', onPress: () => navigation.navigate('PrivacyPolicy') },
     { label: 'Settings', onPress: () => navigation.navigate('SettingsPage') },
     { label: 'Orders', onPress: () => navigation.navigate('OrdersPage') },
     { label: 'Saved Cards', onPress: () => navigation.navigate('CardsScreen') },
     { label: 'Address', onPress: () => navigation.navigate('AddressFormPage') },
-    { label: 'Notifications', onPress: () => navigation.navigate('NotificationScreen') },
-    { label: 'FAQ', onPress: () => navigation.navigate('FAQScreen') },
+    // { label: 'Notifications', onPress: () => navigation.navigate('NotificationScreen') },
+    // { label: 'FAQ', onPress: () => navigation.navigate('FAQScreen') },
     { label: 'Terms & Conditions', onPress: () => navigation.navigate('TermsScreen') },
     { label: 'Returns & Refund policy', onPress: () => navigation.navigate('TermsScreen') },
   ];

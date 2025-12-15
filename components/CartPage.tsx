@@ -1,376 +1,511 @@
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, FlatList, ScrollView, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import config from '../config/config';
-import { addToCart, removeFromCart } from './apiHelper/apiService';
-import { RootStackParamList } from './models/types';
-import eventBus from './apiHelper/eventBus';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  Modal,
+  Alert,
+  ScrollView,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+import config from "../config/config";
+import { addToCart, removeFromCart } from "./apiHelper/apiService";
+import { RootStackParamList } from "./models/types";
+import { Address } from "./models/address";
+
+/* ================= TYPES ================= */
 
 interface CartItem {
   productId: string;
   name: string;
-  price: number;
-  quantity: number;
-  imageUrl: any;
-  discount: number;
+  price: number | string;
+  quantity: number | string;
+  imageUrl: string;
+  discount: number | string;
+  size: string;
+  color: string;
 }
 
-const CartScreen: React.FC = () => {
-  const [token, setToken] = useState<string | null>(null);
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
+/* ================= COMPONENT ================= */
 
-  const reloadPage = () => {
-    navigation.replace('CartPage',{itemId: ''});
-  };
+const CartScreen: React.FC = () => {
+  const navigation =
+    useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  /* ---------------- STATES ---------------- */
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [deliveryAddress, setDeliveryAddress] = useState<Address | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [addressModalVisible, setAddressModalVisible] = useState(false);
+
+  const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [activeProductId, setActiveProductId] = useState<string | null>(null);
+
+  /* ================= FETCH CART ================= */
 
   useEffect(() => {
-    const fetchToken = async () => {
+    const fetchCart = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('authToken');
-        const storedUserId = await AsyncStorage.getItem('userID');
-
-        if (storedToken) setToken(storedToken);
-        if (storedUserId) setUserId(storedUserId);
-
-        if (!storedToken) {
-          console.warn('No token found in AsyncStorage');
-        }
-      } catch (err) {
-        console.error('Error fetching token:', err);
-      }
-    };
-
-    const fetchProductDetails = async () => {
-
-      if (!token) return;
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(`${config.baseURL}api/cart/cartitems`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+        const token = await AsyncStorage.getItem("authToken");
+        const res = await fetch(`${config.baseURL}api/cart/cartitems`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log(data);
-
-        setCartItems(data.items);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load product details');
-        console.error(err);
+        const data = await res.json();
+        setCartItems(data.items || []);
+      } catch (e) {
+        console.log(e);
       } finally {
         setLoading(false);
       }
     };
 
-    const initialize = async () => {
-      await fetchToken();
-      if (token) {
-        fetchProductDetails()
-      }
+    fetchCart();
+  }, []);
+
+  /* ================= FETCH ADDRESS ================= */
+
+  useEffect(() => {
+    const loadAddress = async () => {
+      const token = await AsyncStorage.getItem("authToken");
+
+      const res = await fetch(`${config.baseURL}api/auth/addresses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const json = await res.json();
+      setAddresses(json.addresses || []);
+
+      const saved = await AsyncStorage.getItem("selectedAddress");
+      if (saved) setDeliveryAddress(JSON.parse(saved));
     };
 
-    initialize();
-  }, [token]);
-  const increaseQuantity = async (id: string) => {
-    setCartItems((prevItems) => {
-      const updatedItems = prevItems.map((item) =>
-        item.productId === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      );
-      return updatedItems;
-    });
+    loadAddress();
+  }, []);
 
-    // API call to add item to cart with updated quantity
-    const updatedItem = cartItems.find((item) => item.productId === id);
-    if (updatedItem) {
-      await addToCart(id, 1);
-      reloadPage()
-    }
-  };
+  /* ================= ADDRESS SELECT ================= */
 
-  const decreaseQuantity = async (id: string) => {
-    setCartItems((prevItems) => {
-      const updatedItems = prevItems.map((item) =>
-        item.productId === id && item.quantity > 0
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      );
-      return updatedItems;
-    });
-
-    // API call to remove item from cart with updated quantity
-    const updatedItem = cartItems.find((item) => item.productId === id);
-    if (updatedItem && updatedItem.quantity > 0) {
-      await removeFromCart(id, 1);
-      reloadPage()
-      eventBus.emit("ITEM_REMOVED", { id: 123 });
-    }
-  };
-  const renderPrice = (price, discount) => {
-    const discountedPrice = price - (price * discount / 100);
-    return (
-      <View style={styles.priceContainer}>
-        <Text style={styles.discountedPrice}>₹{discountedPrice?.toFixed(2)}</Text>
-        <Text style={styles.originalPrice}>₹{price?.toFixed(2)}</Text>
-        <Text style={styles.discountPercent}>{discount}% off</Text>
-      </View>
+  const selectAddress = async (address: Address) => {
+    setDeliveryAddress(address);
+    await AsyncStorage.setItem(
+      "selectedAddress",
+      JSON.stringify(address)
     );
+    setAddressModalVisible(false);
   };
 
-  const calculateSubtotal = () => {
-    return cartItems?.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2); // Returns string
+  /* ================= QTY ================= */
+
+  const openQtyModal = (id: string) => {
+    setActiveProductId(id);
+    setQtyModalVisible(true);
   };
 
-  const redirectToCheckout = () => {
-    const subtotalPrice = Number(
-      cartItems?.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)
+  const updateQuantity = async (id: string, qty: number) => {
+    const item = cartItems.find((i) => i.productId === id);
+    if (!item) return;
+
+    const diff = qty - Number(item.quantity || 0);
+
+    setCartItems((prev) =>
+      prev.map((i) =>
+        i.productId === id ? { ...i, quantity: qty } : i
+      )
     );
-    const billingDetails = { subtotalPrice: 0 };
-    billingDetails.subtotalPrice = subtotalPrice
-    navigation.navigate('CheckoutPage', {
-      billingDetails: Number(cartItems?.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2))
-    });
+
+    if (diff > 0) await addToCart(id, diff);
+    if (diff < 0) await removeFromCart(id, Math.abs(diff));
   };
+
+  /* ================= PRICE ================= */
+
+  const bagTotal = cartItems.reduce(
+    (s, i) => s + Number(i.price || 0) * Number(i.quantity || 0),
+    0
+  );
+
+  const savings = cartItems.reduce(
+    (s, i) =>
+      s +
+      (Number(i.price || 0) *
+        Number(i.discount || 0) *
+        Number(i.quantity || 0)) /
+      100,
+    0
+  );
+
+  const deliveryFee = cartItems.length ? 50 : 0;
+  const amountPayable = bagTotal - savings + deliveryFee;
+
+  /* ================= LOADER ================= */
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
-  const renderItem = ({ item }: { item: CartItem }) => (
-    <View style={styles.itemContainer}>
-      <Image
-        source={{ uri: item.imageUrl }}
-        style={styles.itemImage}
-      />
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>${item.price * item.quantity}</Text>
-        <View style={styles.priceSection}>
-          {renderPrice(item?.price, item?.discount || 0)}
-        </View>
-      </View>
-      <View style={styles.quantityControl}>
-        <TouchableOpacity onPress={() => decreaseQuantity(item.productId)} style={styles.button}>
-          <Text style={styles.buttonText}>-</Text>
-        </TouchableOpacity>
-        <Text style={styles.quantity}>{item.quantity}</Text>
-        <TouchableOpacity onPress={() => increaseQuantity(item.productId)} style={styles.button}>
-          <Text style={styles.buttonText}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+
+  /* ================= UI ================= */
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
-      <View 
-        style={[
-          styles.screen,
-          cartItems.length === 0 && { backgroundColor: 'transparent' }
-        ]}
-      >
+    <>
+      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+        <View style={styles.container}>
+          {/* DELIVERY ADDRESS */}
+          <View style={styles.sectionCard}>
+            <View style={styles.addressRow}>
+              <Ionicons name="location-outline" size={18} />
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text style={styles.smallLabel}>Deliver to</Text>
+                <Text style={styles.boldText} numberOfLines={2}>
+                  {deliveryAddress
+                    ? `${deliveryAddress.street}, ${deliveryAddress.city}`
+                    : "Select delivery address"}
+                </Text>
+              </View>
 
-        <Text style={styles.title}>My Cart</Text>
-        {cartItems?.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setAddressModalVisible(true)}
+              >
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* PRODUCTS */}
           <FlatList
             data={cartItems}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.productId.toString()}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.list,
-              { paddingBottom: 100 }
-            ]}
-            ListFooterComponent={
-              <View style={{ marginTop: 20 }}>
-                <View style={styles.subtotalContainer}>
-                  <Text style={styles.subtotalLabel}>Subtotal:</Text>
-                  <Text style={styles.subtotalValue}>${calculateSubtotal()}</Text>
+            keyExtractor={(i) => i.productId}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.image}
+                />
+
+                <View style={styles.info}>
+                  <Text style={styles.name} numberOfLines={2}>
+                    {item.name}
+                  </Text>
+
+                  <View style={styles.priceRow}>
+                    <Text style={styles.price}>
+                      ₹
+                      {(
+                        Number(item.price) -
+                        (Number(item.price) *
+                          Number(item.discount || 0)) /
+                        100
+                      ).toFixed(0)}
+                    </Text>
+                    <Text style={styles.mrp}>₹{item.price}</Text>
+                  </View>
+
+                  <View style={styles.qtyRow}>
+                    <Text>Qty</Text>
+                    <TouchableOpacity
+                      style={styles.qtyDropdown}
+                      onPress={() =>
+                        openQtyModal(item.productId)
+                      }
+                    >
+                      <Text>{item.quantity}</Text>
+                      <Text>▼</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.checkoutButton}
-                  onPress={redirectToCheckout}
-                >
-                  <Text style={styles.checkoutButtonText}>Checkout</Text>
-                </TouchableOpacity>
               </View>
-            }
+            )}
+            scrollEnabled={false}
           />
-        ) : (
-          <View>
-            <Text style={styles.errorMsg}>Add Some Items To Cart</Text>
+
+          {/* ORDER DETAILS */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Order Details</Text>
+
+            <View style={styles.billRow}>
+              <Text>Bag Total</Text>
+              <Text>₹{bagTotal.toFixed(0)}</Text>
+            </View>
+
+            <View style={styles.billRow}>
+              <Text>Savings</Text>
+              <Text style={{ color: "green" }}>
+                -₹{savings.toFixed(0)}
+              </Text>
+            </View>
+
+            <View style={styles.billRow}>
+              <Text>Delivery Fee</Text>
+              <Text>₹{deliveryFee}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.billRow}>
+              <Text style={styles.boldText}>Amount Payable</Text>
+              <Text style={styles.boldText}>
+                ₹{amountPayable.toFixed(0)}
+              </Text>
+            </View>
           </View>
-        )}
+        </View>
+      </ScrollView>
+
+      {/* FOOTER */}
+      <View style={styles.footer}>
+        <Text style={styles.subTotal}>
+          ₹{amountPayable.toFixed(0)}
+        </Text>
+
+        <TouchableOpacity
+          style={styles.checkoutBtn}
+          onPress={() =>
+            navigation.navigate("CheckoutPage", {
+              billingDetails: amountPayable,
+            })
+          }
+        >
+          <Text style={styles.checkoutText}>
+            PROCEED TO BUY
+          </Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      {/* ADDRESS BOTTOM SHEET */}
+      <Modal
+        visible={addressModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddressModalVisible(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          {/* BACKDROP */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setAddressModalVisible(false)}
+          />
+
+          {/* SHEET */}
+          <View style={styles.sheet}>
+            <View style={styles.dragHandle} />
+
+            <Text style={styles.sheetTitle}>
+              Select Delivery Address
+            </Text>
+
+            <FlatList
+              data={addresses}
+              keyExtractor={(i) => i._id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.addressCard,
+                    deliveryAddress?._id === item._id &&
+                    styles.activeAddress,
+                  ]}
+                  onPress={() => selectAddress(item)}
+                >
+                  <Text style={styles.addressTitle}>
+                    {item.street}
+                  </Text>
+                  <Text style={styles.addressText}>
+                    {item.city}, {item.state}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+
+      {/* QTY MODAL */}
+      <Modal visible={qtyModalVisible} transparent>
+        <View style={styles.qtyModalOverlay}>
+          <View style={styles.qtyModal}>
+            {[1, 2, 3, 4, 5].map((q) => (
+              <TouchableOpacity
+                key={q}
+                style={styles.qtyOption}
+                onPress={() => {
+                  updateQuantity(activeProductId!, q);
+                  setQtyModalVisible(false);
+                }}
+              >
+                <Text>{q}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
+export default CartScreen;
+
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginVertical: 20,
-    textAlign: 'center',
-  },
-  list: {
-    paddingBottom: 20,
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  itemPrice: {
-    fontSize: 16,
-    color: '#333',
-  },
-  quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  button: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 5,
-    padding: 5,
-    marginHorizontal: 5,
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  quantity: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  subtotalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10,
-    paddingHorizontal: 10,
-  },
-  subtotalLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  errorMsg: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center'
-  },
-  subtotalValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  checkoutButton: {
-    backgroundColor: '#151515',
-    borderRadius: 30,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  checkoutButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  priceSection: {
+  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { padding: 16, backgroundColor: "#f6f6f6" },
+
+  sectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 10,
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 20,
-    textAlign: 'left',
-    padding: 9,
   },
-  price: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    padding: 9,
+
+  addressRow: { flexDirection: "row", alignItems: "center" },
+
+  smallLabel: { fontSize: 12, color: "#666" },
+  boldText: { fontWeight: "700" },
+  changeText: { color: "#1e88e5", fontWeight: "700" },
+
+  card: {
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
   },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
+
+  image: { width: 90, height: 110, resizeMode: "contain" },
+  info: { flex: 1, marginLeft: 12 },
+
+  name: { fontWeight: "600" },
+
+  priceRow: { flexDirection: "row", alignItems: "center" },
+  price: { fontWeight: "700" },
+  mrp: {
+    textDecorationLine: "line-through",
+    marginLeft: 6,
+    color: "#888",
   },
-  discountedPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginRight: 8,
+
+  qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+
+  qtyDropdown: {
+    marginLeft: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 6,
   },
-  originalPrice: {
-    fontSize: 16,
-    color: '#888',
-    textDecorationLine: 'line-through',
-    marginRight: 8,
+
+  sectionTitle: { fontSize: 16, fontWeight: "700" },
+
+  billRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 4,
   },
-  discountPercent: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'green',
+
+  divider: {
+    height: 1,
+    backgroundColor: "#eee",
+    marginVertical: 8,
   },
-  loadingContainer: {
+
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    padding: 14,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderColor: "#eee",
+  },
+
+  subTotal: { fontSize: 18, fontWeight: "700" },
+
+  checkoutBtn: {
+    backgroundColor: "#000",
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 8,
+  },
+
+  checkoutText: { color: "#fff", fontWeight: "700" },
+
+  /* ADDRESS SHEET */
+  sheetOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+
+  sheet: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: "70%",
+  },
+
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#ccc",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+
+  addressCard: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+    marginBottom: 10,
+  },
+
+  activeAddress: {
+    borderColor: "#000",
+    backgroundColor: "rgba(0,0,0,0.04)",
+  },
+
+  addressTitle: { fontWeight: "700" },
+  addressText: { color: "#555" },
+
+  /* QTY */
+  qtyModalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+
+  qtyModal: {
+    backgroundColor: "#fff",
+    marginHorizontal: 40,
+    borderRadius: 10,
+  },
+
+  qtyOption: {
+    padding: 14,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderColor: "#eee",
   },
 });
-
-export default CartScreen;

@@ -41,6 +41,29 @@ const App = () => {
   const [showIntro, setShowIntro] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<string>("");
 
+  const TAB_ROUTES = [
+    "Dashboard",
+    "Cart",
+    "Favorites",
+    "AccountPage"
+  ];
+
+  const HEADER_TITLES: Record<string, string> = {
+    CartPage: "Cart",
+    ProductDetails: "Product Details",
+    CheckoutPage: "Order Confirmation",
+    PaymentPage: "Payment",
+    OrdersPage: "My Orders",
+    FavoritesPage: "Wishlist",
+    Profile: "My Profile",
+    AccountPage: "My Account",
+    CategoryScreen: "Categories",
+    SettingsPage: "Settings",
+    PrivacyPolicy: "Privacy Policy",
+    FAQScreen: "FAQ",
+    AddressFormPage: "Addresses"
+  };
+
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -56,7 +79,7 @@ const App = () => {
         setLoading(false);
       }
     };
-    
+
     const init = async () => {
       // …do multiple sync or async tasks
     };
@@ -124,7 +147,10 @@ const App = () => {
         </Stack.Navigator>
       ) : (
         <>
-          <Header currentRoute={currentRoute} />
+          <Header
+            currentRoute={currentRoute}
+            title={HEADER_TITLES[currentRoute] || ""}
+          />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Dashboard" component={Dashboard} />
             <Stack.Screen name="ProductDetails" component={ProductDetails} />
@@ -154,7 +180,12 @@ const App = () => {
           </Stack.Navigator>
           <AlertComponent />
 
-          <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} />
+          {TAB_ROUTES.includes(currentRoute) && (
+            <CustomBottomTabs
+              activeRoute={currentRoute as any}
+              onLogout={logout}
+            />
+          )}
         </>
       )}
     </NavigationContainer>
