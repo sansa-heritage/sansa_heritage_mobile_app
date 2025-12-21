@@ -40,36 +40,31 @@ const CartScreen: React.FC = () => {
   const navigation =
     useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  /* ---------------- STATES ---------------- */
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [deliveryAddress, setDeliveryAddress] = useState<Address | null>(null);
-
   const [loading, setLoading] = useState(true);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
-
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
   /* ================= FETCH CART ================= */
 
-  useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const token = await AsyncStorage.getItem("authToken");
-        const res = await fetch(`${config.baseURL}api/cart/cartitems`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setCartItems(data.items || []);
-      } catch (e) {
-        console.log(e);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCart = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      const res = await fetch(`${config.baseURL}api/cart/cartitems`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setCartItems(data.items || []);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
-    fetchCart();
+  useEffect(() => {
+    fetchCart().finally(() => setLoading(false));
   }, []);
 
   /* ================= FETCH ADDRESS ================= */
@@ -92,14 +87,11 @@ const CartScreen: React.FC = () => {
     loadAddress();
   }, []);
 
-  /* ================= ADDRESS SELECT ================= */
+  /* ================= ADDRESS ================= */
 
   const selectAddress = async (address: Address) => {
     setDeliveryAddress(address);
-    await AsyncStorage.setItem(
-      "selectedAddress",
-      JSON.stringify(address)
-    );
+    await AsyncStorage.setItem("selectedAddress", JSON.stringify(address));
     setAddressModalVisible(false);
   };
 
@@ -111,19 +103,43 @@ const CartScreen: React.FC = () => {
   };
 
   const updateQuantity = async (id: string, qty: number) => {
-    const item = cartItems.find((i) => i.productId === id);
-    if (!item) return;
+    try {
+      // Call backend to sync
+      await removeFromCart(id, 999); // force clear (backend safe call)
+      await addToCart(id, qty);
 
-    const diff = qty - Number(item.quantity || 0);
+      // 🔥 FORCE UI UPDATE (ABSOLUTE QTY)
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.productId === id
+            ? { ...item, quantity: qty }
+            : item
+        )
+      );
 
-    setCartItems((prev) =>
-      prev.map((i) =>
-        i.productId === id ? { ...i, quantity: qty } : i
-      )
-    );
+      // Optional: re-fetch later to sync
+      setTimeout(fetchCart, 300);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
-    if (diff > 0) await addToCart(id, diff);
-    if (diff < 0) await removeFromCart(id, Math.abs(diff));
+  /* ================= REMOVE ITEM ================= */
+
+  const removeItem = async (id: string, qty: number) => {
+    Alert.alert("Remove Item", "Remove this item from cart?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await removeFromCart(id, qty);
+          setCartItems((prev) =>
+            prev.filter((i) => i.productId !== id)
+          );
+        },
+      },
+    ]);
   };
 
   /* ================= PRICE ================= */
@@ -156,13 +172,34 @@ const CartScreen: React.FC = () => {
     );
   }
 
+  if (!cartItems.length) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="cart-outline" size={80} color="#bbb" />
+
+        <Text style={styles.emptyTitle}>Your cart is empty</Text>
+
+        <Text style={styles.emptySubtitle}>
+          Looks like you haven’t added anything yet
+        </Text>
+
+        <TouchableOpacity
+          style={styles.shopBtn}
+          onPress={() => navigation.navigate("Dashboard")}
+        >
+          <Text style={styles.shopBtnText}>CONTINUE SHOPPING</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   /* ================= UI ================= */
 
   return (
     <>
-      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 90 }}>
         <View style={styles.container}>
-          {/* DELIVERY ADDRESS */}
+          {/* ADDRESS */}
           <View style={styles.sectionCard}>
             <View style={styles.addressRow}>
               <Ionicons name="location-outline" size={18} />
@@ -174,10 +211,7 @@ const CartScreen: React.FC = () => {
                     : "Select delivery address"}
                 </Text>
               </View>
-
-              <TouchableOpacity
-                onPress={() => setAddressModalVisible(true)}
-              >
+              <TouchableOpacity onPress={() => setAddressModalVisible(true)}>
                 <Text style={styles.changeText}>Change</Text>
               </TouchableOpacity>
             </View>
@@ -187,47 +221,62 @@ const CartScreen: React.FC = () => {
           <FlatList
             data={cartItems}
             keyExtractor={(i) => i.productId}
+            scrollEnabled={false}
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={styles.image}
-                />
+                <Image source={{ uri: item.imageUrl }} style={styles.image} />
 
                 <View style={styles.info}>
-                  <Text style={styles.name} numberOfLines={2}>
-                    {item.name}
-                  </Text>
+                  {/* NAME + TRASH */}
+                  <View style={styles.titleRow}>
+                    <Text style={styles.name} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+
+                    <TouchableOpacity
+                      onPress={() =>
+                        removeItem(item.productId, Number(item.quantity))
+                      }
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={18}
+                        color="#d32f2f"
+                      />
+                    </TouchableOpacity>
+                  </View>
 
                   <View style={styles.priceRow}>
                     <Text style={styles.price}>
                       ₹
                       {(
                         Number(item.price) -
-                        (Number(item.price) *
-                          Number(item.discount || 0)) /
-                        100
+                        (Number(item.price) * Number(item.discount || 0)) / 100
                       ).toFixed(0)}
                     </Text>
                     <Text style={styles.mrp}>₹{item.price}</Text>
                   </View>
 
-                  <View style={styles.qtyRow}>
-                    <Text>Qty</Text>
-                    <TouchableOpacity
-                      style={styles.qtyDropdown}
-                      onPress={() =>
-                        openQtyModal(item.productId)
-                      }
-                    >
-                      <Text>{item.quantity}</Text>
-                      <Text>▼</Text>
-                    </TouchableOpacity>
+                  {/* SIZE + QTY */}
+                  <View style={styles.variantContainer}>
+                    <Text style={styles.sizeText}>
+                      Size: {item.size}
+                    </Text>
+
+                    <View style={styles.qtyRow}>
+                      <Text>Qty</Text>
+                      <TouchableOpacity
+                        style={styles.qtyDropdown}
+                        onPress={() => openQtyModal(item.productId)}
+                      >
+                        <Text>{item.quantity}</Text>
+                        <Ionicons name="chevron-down" size={16} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
             )}
-            scrollEnabled={false}
           />
 
           {/* ORDER DETAILS */}
@@ -241,9 +290,7 @@ const CartScreen: React.FC = () => {
 
             <View style={styles.billRow}>
               <Text>Savings</Text>
-              <Text style={{ color: "green" }}>
-                -₹{savings.toFixed(0)}
-              </Text>
+              <Text style={{ color: "green" }}>-₹{savings.toFixed(0)}</Text>
             </View>
 
             <View style={styles.billRow}>
@@ -260,14 +307,32 @@ const CartScreen: React.FC = () => {
               </Text>
             </View>
           </View>
+
+          {/* RETURN / REFUND POLICY */}
+          <View style={styles.policyCard}>
+            <Text style={styles.policyTitle}>Return/Refund policy</Text>
+
+            <Text style={styles.policyDesc}>
+              In case of return, we ensure quick refunds. Full amount will be refunded
+              excluding convenience fee.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ReturnRefundScreen')}
+            >
+              <Text style={styles.readPolicy}>Read policy</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
       </ScrollView>
 
       {/* FOOTER */}
       <View style={styles.footer}>
-        <Text style={styles.subTotal}>
-          ₹{amountPayable.toFixed(0)}
-        </Text>
+        <View>
+          <Text style={styles.subTotal}>₹ {amountPayable.toFixed(0)}</Text>
+          <Text style={styles.subLabel}>Sub total</Text>
+        </View>
 
         <TouchableOpacity
           style={styles.checkoutBtn}
@@ -277,59 +342,9 @@ const CartScreen: React.FC = () => {
             })
           }
         >
-          <Text style={styles.checkoutText}>
-            PROCEED TO BUY
-          </Text>
+          <Text style={styles.checkoutText}>PROCEED TO BUY</Text>
         </TouchableOpacity>
       </View>
-
-      {/* ADDRESS BOTTOM SHEET */}
-      <Modal
-        visible={addressModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAddressModalVisible(false)}
-      >
-        <View style={styles.sheetOverlay}>
-          {/* BACKDROP */}
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={() => setAddressModalVisible(false)}
-          />
-
-          {/* SHEET */}
-          <View style={styles.sheet}>
-            <View style={styles.dragHandle} />
-
-            <Text style={styles.sheetTitle}>
-              Select Delivery Address
-            </Text>
-
-            <FlatList
-              data={addresses}
-              keyExtractor={(i) => i._id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.addressCard,
-                    deliveryAddress?._id === item._id &&
-                    styles.activeAddress,
-                  ]}
-                  onPress={() => selectAddress(item)}
-                >
-                  <Text style={styles.addressTitle}>
-                    {item.street}
-                  </Text>
-                  <Text style={styles.addressText}>
-                    {item.city}, {item.state}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
 
 
       {/* QTY MODAL */}
@@ -371,7 +386,6 @@ const styles = StyleSheet.create({
   },
 
   addressRow: { flexDirection: "row", alignItems: "center" },
-
   smallLabel: { fontSize: 12, color: "#666" },
   boldText: { fontWeight: "700" },
   changeText: { color: "#1e88e5", fontWeight: "700" },
@@ -387,7 +401,17 @@ const styles = StyleSheet.create({
   image: { width: 90, height: 110, resizeMode: "contain" },
   info: { flex: 1, marginLeft: 12 },
 
-  name: { fontWeight: "600" },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+
+  name: {
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 8,
+  },
 
   priceRow: { flexDirection: "row", alignItems: "center" },
   price: { fontWeight: "700" },
@@ -397,13 +421,29 @@ const styles = StyleSheet.create({
     color: "#888",
   },
 
-  qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  variantContainer: { marginTop: 4 },
+
+  sizeText: {
+    fontSize: 13,
+    color: "#555",
+    fontWeight: "500",
+  },
+
+  qtyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
 
   qtyDropdown: {
-    marginLeft: 10,
+    marginLeft: 6,
     borderWidth: 1,
     paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
 
   sectionTitle: { fontSize: 16, fontWeight: "700" },
@@ -432,7 +472,7 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
   },
 
-  subTotal: { fontSize: 18, fontWeight: "700" },
+  subTotal: { fontSize: 16, fontWeight: "700" },
 
   checkoutBtn: {
     backgroundColor: "#000",
@@ -443,53 +483,6 @@ const styles = StyleSheet.create({
 
   checkoutText: { color: "#fff", fontWeight: "700" },
 
-  /* ADDRESS SHEET */
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
-  },
-
-  sheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    maxHeight: "70%",
-  },
-
-  dragHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#ccc",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 8,
-  },
-
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
-
-  addressCard: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#eee",
-    marginBottom: 10,
-  },
-
-  activeAddress: {
-    borderColor: "#000",
-    backgroundColor: "rgba(0,0,0,0.04)",
-  },
-
-  addressTitle: { fontWeight: "700" },
-  addressText: { color: "#555" },
-
-  /* QTY */
   qtyModalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -508,4 +501,71 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#eee",
   },
+
+  policyCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+
+  policyTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+
+  policyDesc: {
+    fontSize: 13,
+    color: "#555",
+    lineHeight: 18,
+  },
+
+  readPolicy: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1e88e5",
+  },
+
+  subLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#f6f6f6",
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#777",
+    marginTop: 6,
+    textAlign: "center",
+  },
+
+  shopBtn: {
+    marginTop: 20,
+    backgroundColor: "#000",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+
+  shopBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+
 });

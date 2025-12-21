@@ -84,10 +84,10 @@ export const addToFavoritesList = async (productId) => {
       throw new Error(data.message || 'Failed to add to favorites');
     }
 
-    Toast.show('Success', 'Product added to favorites');
+    Toast.show('success', 'Product added to favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('Error', error.message);
+    Toast.show('error', error.message);
   }
 };
 
@@ -140,7 +140,7 @@ export const removeFromFavoritesList = async (productId) => {
     Toast.show('success', 'Product removed from favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('Error', error.message);
+    Toast.show('error', error.message);
   }
 };
 

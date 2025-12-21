@@ -45,11 +45,11 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, title }) => {
       {/* RIGHT ICONS (ONLY DASHBOARD) */}
       {isDashboard && (
         <View style={styles.iconRow}>
-          <TouchableOpacity style={{ marginRight: 15 }}>
+          {/* <TouchableOpacity style={{ marginRight: 15 }}>
             <MaterialIcons name="favorite-border" size={24} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigationRef.navigate('NotificationScreen')}>
             <MaterialIcons name="notifications-none" size={24} />
           </TouchableOpacity>
         </View>

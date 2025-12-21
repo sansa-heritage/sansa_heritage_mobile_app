@@ -1,123 +1,178 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  Modal,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { cancelOrder, getOrders } from './apiHelper/apiService';
 
 type Order = {
   _id: string;
-  userEmail?: string;
   products: {
-    productId: string;
     name: string;
     price: number;
     image: string;
-    _id: string;
   }[];
   createdAt: string;
   status: 'Completed' | 'Cancelled';
 };
 
 const MyOrdersScreen: React.FC = () => {
+  // ✅ Hooks at top level
   const [orders, setOrders] = useState<Order[]>([]);
-  const [activeTab, setActiveTab] = useState<'Completed' | 'Cancelled'>('Completed');
-  const [refreshKey, setRefreshKey] = useState(0); // State to force re-render
+  const [activeTab, setActiveTab] =
+    useState<'Completed' | 'Cancelled'>('Completed');
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchOrders();
-  }, [refreshKey]); // Re-fetch orders when refreshKey changes
+    loadOrders();
+  }, []);
 
-  const handleCancelOrder = async (orderId: string) => {
-    console.log("Cancel clicked", orderId);
-
-    const confirmCancel = Platform.OS === 'web'
-      ? window.confirm('Are you sure you want to cancel this order?')
-      : await new Promise((resolve) => {
-        Alert.alert(
-          'Cancel Order',
-          'Are you sure you want to cancel this order?',
-          [
-            { text: 'No', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Yes', onPress: () => resolve(true) },
-          ]
-        );
-      });
-
-    if (confirmCancel) {
-      const res = await cancelOrder(orderId);
-      if (res) {
-        setRefreshKey(prev => prev + 1); // Trigger re-render to refresh list
-      }
-    }
-  };
-
-  const fetchOrders = async () => {
+  const loadOrders = async () => {
     try {
-      const response = await getOrders();
-      if (!response || !response.orders) throw new Error('Failed to fetch orders');
-      setOrders(response.orders);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to fetch orders');
+      const res = await getOrders();
+      setOrders(res?.orders || []);
+    } catch {
+      setOrders([]);
     }
   };
 
-  // Filter orders based on the selected tab
-  const filteredOrders = orders.filter(order => order.status === activeTab);
+  const openConfirm = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setConfirmVisible(true);
+  };
+
+  const confirmCancel = async () => {
+    if (!selectedOrderId) return;
+    await cancelOrder(selectedOrderId);
+    setConfirmVisible(false);
+    setSelectedOrderId(null);
+    loadOrders();
+  };
+
+  const filteredOrders = orders.filter(o => o.status === activeTab);
 
   const renderItem = ({ item }: { item: Order }) => (
-    <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
-      <View style={styles.orderCard}>
-        {item.products.map((product, index) => (
-          <View key={index} style={styles.productContainer}>
-            {/* Image Section */}
-            {product?.image && <Image source={{ uri: product.image }} style={styles.image} />}
-
-            {/* Product Details */}
-            <View style={styles.infoContainer}>
-              <View style={styles.row}>
-                <Text style={styles.orderName}>{product?.name || 'N/A'}</Text>
-                <Text style={styles.price}>₹{product?.price?.toFixed(2) || '0.00'}</Text>
-              </View>
-              <Text style={styles.date}>{item.createdAt}</Text>
-            </View>
-          </View>
-        ))}
-        {activeTab === 'Completed' && (
-          <TouchableOpacity style={styles.cancelButton} onPress={() => handleCancelOrder(item._id)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-        )}
+    <View style={styles.orderCard}>
+      {/* Date + Status */}
+      <View style={styles.statusRow}>
+        <Text style={styles.date}>
+          {new Date(item.createdAt).toDateString()}
+        </Text>
+        <View
+          style={[
+            styles.statusBadge,
+            item.status === 'Completed'
+              ? styles.completed
+              : styles.cancelled,
+          ]}
+        >
+          <Text style={styles.statusText}>{item.status}</Text>
+        </View>
       </View>
-    </ScrollView>
+
+      {/* Products */}
+      {item.products.map((p, index) => (
+        <View key={index} style={styles.productRow}>
+          <Image source={{ uri: p.image }} style={styles.image} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{p.name}</Text>
+            <Text style={styles.price}>₹{p.price}</Text>
+          </View>
+        </View>
+      ))}
+
+      {/* Cancel */}
+      {item.status === 'Completed' && (
+        <TouchableOpacity
+          style={styles.cancelBtn}
+          onPress={() => openConfirm(item._id)}
+        >
+          <Ionicons
+            name="close-circle-outline"
+            size={18}
+            color="#E53935"
+          />
+          <Text style={styles.cancelText}>Cancel Order</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>My Orders</Text>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
+      {/* Tabs */}
+      <View style={styles.tabRow}>
         {['Completed', 'Cancelled'].map(tab => (
           <TouchableOpacity
             key={tab}
-            style={[styles.tabButton, activeTab === tab ? styles.activeTab : {}]}
-            onPress={() => setActiveTab(tab as 'Completed' | 'Cancelled')}
+            onPress={() => setActiveTab(tab as any)}
+            style={[
+              styles.tabBtn,
+              activeTab === tab && styles.activeTab,
+            ]}
           >
-            <Text style={styles.tabText}>{tab}</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab && styles.activeTabText,
+              ]}
+            >
+              {tab}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-      {filteredOrders.length === 0 && (
-        <Text style={{ textAlign: 'center', marginTop: 20, color: '#888', fontSize: 16 }}>
-          Your orders will appear here shortly.
-        </Text>
-      )}
-      {/* Order List */}
+
+      {/* List */}
       <FlatList
         data={filteredOrders}
         renderItem={renderItem}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.orderList}
+        keyExtractor={item => item._id}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
       />
-      {!orders && <Text>No Orders founds</Text>}
+
+      {/* CONFIRM MODAL */}
+      <Modal visible={confirmVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={48}
+              color="#E53935"
+            />
+            <Text style={styles.modalTitle}>Cancel Order?</Text>
+            <Text style={styles.modalText}>
+              Are you sure you want to cancel this order?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setConfirmVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>No</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalConfirm}
+                onPress={confirmCancel}
+              >
+                <Text style={styles.modalConfirmText}>
+                  Yes, Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -125,39 +180,174 @@ const MyOrdersScreen: React.FC = () => {
 export default MyOrdersScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
-  header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginVertical: 20 },
-  refreshButton: {
-    alignSelf: 'center',
-    backgroundColor: '#007bff',
+  container: {
+    flex: 1,
+    backgroundColor: '#F6F6F6',
+    padding: 16,
+  },
+
+  header: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+
+  /* Tabs */
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  tabBtn: {
     paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginBottom: 10,
+    paddingHorizontal: 24,
   },
-  refreshText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  tabContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
-  tabButton: { marginHorizontal: 16, paddingVertical: 8, borderBottomWidth: 4, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: '#ff0000' },
-  tabText: { fontSize: 16, color: '#000' },
-  orderList: { paddingTop: 10 },
+  activeTab: {
+    borderBottomWidth: 3,
+    borderBottomColor: '#000',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  activeTabText: {
+    color: '#000',
+    fontWeight: '700',
+  },
+
+  /* Order Card */
   orderCard: {
-    backgroundColor: '#F5F5F5',
-    padding: 12,
-    marginBottom: 10,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    elevation: 3,
   },
-  productContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  image: { width: 60, height: 60, borderRadius: 10, marginRight: 12 },
-  infoContainer: { flex: 1 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  orderName: { fontSize: 16, fontWeight: '600', flexShrink: 1 },
-  price: { fontSize: 16, fontWeight: 'bold', color: '#000' },
-  date: { fontSize: 14, color: '#9E9E9E', marginTop: 4 },
-  cancelButton: { backgroundColor: '#ff4d4d', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
-  cancelButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+
+  date: {
+    fontSize: 13,
+    color: '#777',
+  },
+
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+
+  completed: {
+    backgroundColor: '#E8F5E9',
+  },
+
+  cancelled: {
+    backgroundColor: '#FDECEA',
+  },
+
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+
+  name: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  price: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 4,
+  },
+
+  cancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+
+  cancelText: {
+    color: '#E53935',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  modalBox: {
+    backgroundColor: '#FFF',
+    width: '80%',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+
+  modalText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+
+  modalActions: {
+    flexDirection: 'row',
+    marginTop: 16,
+  },
+
+  modalCancel: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginRight: 10,
+  },
+
+  modalCancelText: {
+    fontSize: 14,
+    color: '#555',
+  },
+
+  modalConfirm: {
+    backgroundColor: '#E53935',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+
+  modalConfirmText: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
 });
+

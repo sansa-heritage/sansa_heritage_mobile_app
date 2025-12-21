@@ -1,180 +1,209 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StackActions, useNavigation } from '@react-navigation/native';
 import { authService } from './apiHelper/AuthService';
-import { StackActions } from '@react-navigation/native';
 import { getUserDetails } from './apiHelper/apiService';
+import DeviceInfo from 'react-native-device-info';
 
-const { width } = Dimensions.get('window');
-interface Props {
-  onLogout: () => void;
-}
-export default function AccountPage({ navigation, onLogout }: any) {
-  const [username, setUsername] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-  const [phone, setPhone] = useState<string | null>(null);
+const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
+  const navigation = useNavigation<any>();
 
+  // ✅ Hooks at TOP LEVEL (very important)
+  const [username, setUsername] = useState<string>('Guest');
+  const [email, setEmail] = useState<string>('');
+
+  const APP_VERSION = `Version ${DeviceInfo.getVersion()}`;
+
+  // ✅ useEffect at top level
   useEffect(() => {
     const loadUserData = async () => {
-      const userDetails = await getUserDetails();
-      setUsername(userDetails?.username || "Guest");
-      setEmail(userDetails?.email);
-      // setPhone(ph);
+      try {
+        const user = await getUserDetails();
+        setUsername(user?.username || 'Guest');
+        setEmail(user?.email || '');
+      } catch (error) {
+        console.log('Failed to load user:', error);
+      }
     };
+
     loadUserData();
   }, []);
+
+  // ✅ Normal function (NO hooks inside)
   const handleLogout = async () => {
-    await authService.logout();
-    onLogout()
-    navigation.dispatch(StackActions.replace('Login'));
+    try {
+      await authService.logout();
+      onLogout();
+      navigation.dispatch(StackActions.replace('Login'));
+    } catch (error) {
+      console.log('Logout error:', error);
+    }
   };
 
-
   const menuItems = [
-    // { label: 'My Favorites', onPress: () => navigation.navigate('FavoritesPage') },
-    // { label: 'Profiles', onPress: () => navigation.navigate('Profile') },
-    { label: 'About Us', onPress: () => navigation.navigate('AboutUs') },
-    { label: 'Privacy Policy', onPress: () => navigation.navigate('PrivacyPolicy') },
-    { label: 'Settings', onPress: () => navigation.navigate('SettingsPage') },
-    { label: 'Orders', onPress: () => navigation.navigate('OrdersPage') },
-    { label: 'Saved Cards', onPress: () => navigation.navigate('CardsScreen') },
-    { label: 'Address', onPress: () => navigation.navigate('AddressFormPage') },
-    // { label: 'Notifications', onPress: () => navigation.navigate('NotificationScreen') },
-    // { label: 'FAQ', onPress: () => navigation.navigate('FAQScreen') },
-    { label: 'Terms & Conditions', onPress: () => navigation.navigate('TermsScreen') },
-    { label: 'Returns & Refund policy', onPress: () => navigation.navigate('TermsScreen') },
+    { label: 'Orders', icon: 'receipt-outline', screen: 'OrdersPage' },
+    { label: 'Address', icon: 'location-outline', screen: 'AddressFormPage' },
+    { label: 'Settings', icon: 'settings-outline', screen: 'SettingsPage' },
+    { label: 'Privacy Policy', icon: 'lock-closed-outline', screen: 'PrivacyPolicy' },
+    { label: 'Terms & Conditions', icon: 'document-text-outline', screen: 'TermsScreen' },
+    { label: 'Returns & Refund Policy', icon: 'refresh-outline', screen: 'ReturnRefundScreen' },
+    { label: 'About Us', icon: 'information-circle-outline', screen: 'AboutUs' },
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.profileSection}>
-        <View style={styles.profileCircle}>
-          <Text style={styles.profileInitials}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* PROFILE CARD */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
             {email ? email.charAt(0).toUpperCase() : 'A'}
           </Text>
         </View>
+
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{username}</Text>
-          <Text style={styles.profileEmail}>{email}</Text>
-          <Text style={styles.profilePhone}>{phone}</Text>
+          <Text style={styles.name}>{username}</Text>
+          <Text style={styles.email}>{email}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('UpdateProfileScreen')}>
-          <Text style={styles.editText}>Edit</Text>
+
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={() => navigation.navigate('UpdateProfileScreen')}
+        >
+          <Ionicons name="create-outline" size={18} color="#000" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.menuContainer}>
+      {/* MENU */}
+      <View style={styles.menuCard}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#adadad" />
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(item.screen)}
+          >
+            <Ionicons name={item.icon} size={20} color="#333" />
+            <Text style={styles.menuLabel}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#aaa" />
           </TouchableOpacity>
         ))}
       </View>
 
-      <View style={styles.logoutContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleLogout}>
-          <Text style={styles.buttonText}>Logout</Text>
+      {/* LOGOUT */}
+      <View style={styles.logoutSection}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#E53935" />
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-        <Text style={styles.versionText}>Version 0.0.1 Build 100</Text>
+
+        <Text style={styles.version}>{APP_VERSION}</Text>
       </View>
     </ScrollView>
   );
-}
+};
+
+export default AccountPage;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F6F6F6',
+    paddingHorizontal: 16,
   },
-  profileSection: {
+
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderRadius: 14,
+    marginTop: 16,
+    elevation: 4,
   },
-  profileCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#151515',
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileInitials: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  avatarText: {
+    color: '#FFF',
+    fontSize: 26,
+    fontWeight: '700',
   },
   profileInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
-  profileName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#151515',
+  name: {
+    fontSize: 17,
+    fontWeight: '700',
   },
-  profileEmail: {
+  email: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    color: '#777',
+    marginTop: 4,
   },
-  profilePhone: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+  editBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F1F1',
   },
-  editText: {
-    color: '#007bff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  menuContainer: {
-    marginTop: 16,
+
+  menuCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    marginTop: 20,
+    elevation: 3,
+    overflow: 'hidden',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#EEE',
   },
   menuLabel: {
-    fontSize: 16,
-    color: '#151515',
+    flex: 1,
+    fontSize: 15,
+    marginLeft: 12,
+    color: '#333',
   },
-  menuSubText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  logoutContainer: {
+
+  logoutSection: {
     alignItems: 'center',
     marginTop: 30,
-    marginBottom: 100
+    marginBottom: 60,
   },
-  button: {
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 135,
-    backgroundColor: '#fff',
+    borderColor: '#E53935',
   },
-  buttonText: {
+  logoutText: {
     fontSize: 16,
-    color: '#000',
-    textAlign: 'center',
+    color: '#E53935',
+    fontWeight: '600',
+    marginLeft: 8,
   },
-  versionText: {
-    marginTop: 8,
+  version: {
+    marginTop: 12,
     fontSize: 12,
-    color: '#888',
+    color: '#999',
   },
 });
+

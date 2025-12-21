@@ -12,7 +12,7 @@ import FavoriteScreen from "./components/FavoritsPage";
 import Login from "./components/Login";
 import OrdersPage from "./components/OrdersPage";
 import PaymentPage from "./components/PaymentPage";
-import PrivacyPolicyScreen, { AboutUsScreen } from "./components/PrivacyAndContactUs";
+// import PrivacyPolicyScreen from "./components/PrivacyAndContactUs";
 import ProductDetails from "./components/ProductDetails";
 import Profile from "./components/Profile";
 import ResetPassword from "./components/ResetPassword";
@@ -33,6 +33,9 @@ import UpdateProfileScreen from "./components/UserEditPage";
 import NotificationScreen from "./components/NotificationPage";
 import CardsScreen from "./components/cardsPage";
 import BootSplash from "react-native-bootsplash";
+import { AboutUsScreen } from "./components/AboutUs";
+import PrivacyPolicyScreen from "./components/PrivacyPolicy";
+import ReturnRefundPolicyScreen from "./components/Refund&ReturnPage";
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -54,14 +57,18 @@ const App = () => {
     CheckoutPage: "Order Confirmation",
     PaymentPage: "Payment",
     OrdersPage: "My Orders",
-    FavoritesPage: "Wishlist",
+    FavoritesPage: "My Favorites",
     Profile: "My Profile",
     AccountPage: "My Account",
     CategoryScreen: "Categories",
     SettingsPage: "Settings",
     PrivacyPolicy: "Privacy Policy",
     FAQScreen: "FAQ",
-    AddressFormPage: "Addresses"
+    AddressFormPage: "Addresses",
+    TermsScreen: "Terms & Conditions",
+    AboutUs: "About Us",
+    ReturnRefundScreen: "Return & Refund",
+    NotificationScreen: "Notification"
   };
 
   useEffect(() => {
@@ -173,6 +180,7 @@ const App = () => {
             <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
             <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
             <Stack.Screen name="CardsScreen" component={CardsScreen} />
+            <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
 
             <Stack.Screen name="AccountPage">
               {(props) => <AccountPage {...props} onLogout={logout} />}

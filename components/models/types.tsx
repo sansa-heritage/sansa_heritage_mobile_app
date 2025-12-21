@@ -25,6 +25,6 @@ export type RootStackParamList = {
   UpdateProfileScreen: undefined;
   NotificationScreen: undefined;
   CardsScreen: undefined;
-
+  ReturnRefundScreen: undefined;
   // Add other routes as needed
 };

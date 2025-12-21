@@ -79,82 +79,94 @@ const OrderConfirmationScreen: React.FC = () => {
   /* ================= UI ================= */
 
   return (
-    <>
-      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Order Confirmation</Text>
+    // <>
+    //   <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+    //     <View style={styles.container}>
+    //       <Text style={styles.title}>Order Confirmation</Text>
 
-          {/* DELIVERY ADDRESS (READ ONLY) */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Delivery Address</Text>
+    //       {/* DELIVERY ADDRESS (READ ONLY) */}
+    //       <View style={styles.card}>
+    //         <Text style={styles.cardTitle}>Delivery Address</Text>
 
-            {address ? (
-              <View style={styles.addressRow}>
-                <Ionicons name="location-outline" size={18} />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.addressText}>
-                    {address.street}, {address.city}
-                  </Text>
-                  <Text style={styles.addressSub}>
-                    {address.state}, {address.country}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={styles.addressSub}>
-                No delivery address selected
-              </Text>
-            )}
-          </View>
+    //         {address ? (
+    //           <View style={styles.addressRow}>
+    //             <Ionicons name="location-outline" size={18} />
+    //             <View style={{ marginLeft: 10 }}>
+    //               <Text style={styles.addressText}>
+    //                 {address.street}, {address.city}
+    //               </Text>
+    //               <Text style={styles.addressSub}>
+    //                 {address.state}, {address.country}
+    //               </Text>
+    //             </View>
+    //           </View>
+    //         ) : (
+    //           <Text style={styles.addressSub}>
+    //             No delivery address selected
+    //           </Text>
+    //         )}
+    //       </View>
 
-          {/* AMOUNT PAYABLE */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Amount Payable</Text>
+    //       {/* AMOUNT PAYABLE */}
+    //       <View style={styles.card}>
+    //         <Text style={styles.cardTitle}>Amount Payable</Text>
 
-            <View style={styles.amountRow}>
-              <Text style={styles.amountLabel}>Total</Text>
-              <Text style={styles.amountValue}>
-                ₹{amountPayable.toFixed(0)}
-              </Text>
-            </View>
-          </View>
+    //         <View style={styles.amountRow}>
+    //           <Text style={styles.amountLabel}>Total</Text>
+    //           <Text style={styles.amountValue}>
+    //             ₹{amountPayable.toFixed(0)}
+    //           </Text>
+    //         </View>
+    //       </View>
 
-          {/* PAYMENT OPTIONS */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Payment Options</Text>
+    //       {/* PAYMENT OPTIONS */}
+    //       <View style={styles.card}>
+    //         <Text style={styles.cardTitle}>Payment Options</Text>
 
-            <View style={styles.paymentIcons}>
-              <Image
-                source={require("../assets/images/visa-logo.png")}
-                style={styles.paymentIcon}
-              />
-              <Image
-                source={require("../assets/images/Mastercard.png")}
-                style={styles.paymentIcon}
-              />
-              <Image
-                source={require("../assets/images/PayPal.png")}
-                style={styles.paymentIcon}
-              />
-            </View>
+    //         <View style={styles.paymentIcons}>
+    //           <Image
+    //             source={require("../assets/images/visa-logo.png")}
+    //             style={styles.paymentIcon}
+    //           />
+    //           <Image
+    //             source={require("../assets/images/Mastercard.png")}
+    //             style={styles.paymentIcon}
+    //           />
+    //           <Image
+    //             source={require("../assets/images/PayPal.png")}
+    //             style={styles.paymentIcon}
+    //           />
+    //         </View>
 
-            <Text style={styles.paymentNote}>
-              You’ll choose the payment method on the next screen
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+    //         <Text style={styles.paymentNote}>
+    //           You’ll choose the payment method on the next screen
+    //         </Text>
+    //       </View>
+    //     </View>
+    //   </ScrollView>
 
-      {/* FOOTER */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.payBtn}
-          onPress={proceedToPayment}
-        >
-          <Text style={styles.payText}>PROCEED TO PAYMENT</Text>
-        </TouchableOpacity>
-      </View>
-    </>
+    //   {/* FOOTER */}
+    //   <View style={styles.footer}>
+    //     <TouchableOpacity
+    //       style={styles.payBtn}
+    //       onPress={proceedToPayment}
+    //     >
+    //       <Text style={styles.payText}>PROCEED TO PAYMENT</Text>
+    //     </TouchableOpacity>
+    //   </View>
+    // </>
+
+
+    <View style={styles.devContainer}>
+      <Ionicons name="construct-outline" size={80} color="#999" />
+
+      <Text style={styles.devTitle}>Under Development</Text>
+
+      <Text style={styles.devSub}>
+        This feature is currently being worked on.
+        Please check back later.
+      </Text>
+    </View>
   );
 };
 
@@ -266,4 +278,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+
+  devContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f6f6f6",
+    padding: 20,
+  },
+
+  devTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+
+  devSub: {
+    fontSize: 14,
+    color: "#777",
+    marginTop: 8,
+    textAlign: "center",
+  },
+
 });
