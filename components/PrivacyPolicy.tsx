@@ -7,7 +7,7 @@ const PrivacyPolicyScreen = () => {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      <Text style={styles.muted}>Effective Date: 01 Jan 2025</Text>
+      {/* <Text style={styles.muted}>Effective Date: 01 Jan 2025</Text> */}
 
       <Text style={styles.section}>Introduction</Text>
       <Text style={styles.text}>
