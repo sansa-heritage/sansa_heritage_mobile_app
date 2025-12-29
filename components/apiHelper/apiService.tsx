@@ -315,7 +315,7 @@ export const verifyOtp = async (email: string, otp: string) => {
 
 export const resetPassword = async (newPassword: string, email: string) => {
   try {
-
+  
     const response = await fetch(`${config.baseURL}api/auth/reset`, {
       method: 'POST',
       headers: {

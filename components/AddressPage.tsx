@@ -80,7 +80,7 @@ export default function AddressScreen() {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     fetchAddresses();
-                    Toast.show("Success", "Address removed");
+                    Toast.show("success", "Address removed");
                 },
             },
         ]);
@@ -90,7 +90,7 @@ export default function AddressScreen() {
 
     const saveAddress = async () => {
         if (Object.values(form).some((v) => !v)) {
-            return Toast.show("Error", "All fields required");
+            return Toast.show("error", "All fields required");
         }
 
         const token = await AsyncStorage.getItem("authToken");
@@ -120,6 +120,7 @@ export default function AddressScreen() {
             phone: "",
         });
         fetchAddresses();
+        Toast.show("success", isEditMode ? "Address Updated Successfully" : "Address Saved Successfully")
     };
 
     /* ================= RENDER ================= */
@@ -270,6 +271,7 @@ export default function AddressScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="ZIP"
+                                    maxLength={6}
                                     keyboardType="numeric"
                                     value={form.zipCode}
                                     onChangeText={(t) => setForm({ ...form, zipCode: t })}

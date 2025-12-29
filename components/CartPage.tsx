@@ -57,6 +57,8 @@ const CartScreen: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
+      console.log(data);
+      
       setCartItems(data.items || []);
     } catch (e) {
       console.log(e);
@@ -102,27 +104,33 @@ const CartScreen: React.FC = () => {
     setQtyModalVisible(true);
   };
 
-  const updateQuantity = async (id: string, qty: number) => {
-    try {
-      // Call backend to sync
-      await removeFromCart(id, 999); // force clear (backend safe call)
-      await addToCart(id, qty);
+const updateQuantity = async (id: string, newQty: number) => {
+  const currentItem = cartItems.find(i => i.productId === id);
+  if (!currentItem) return;
 
-      // 🔥 FORCE UI UPDATE (ABSOLUTE QTY)
-      setCartItems((prev) =>
-        prev.map((item) =>
-          item.productId === id
-            ? { ...item, quantity: qty }
-            : item
-        )
-      );
+  const currentQty = Number(currentItem.quantity);
+  const diff = newQty - currentQty;
 
-      // Optional: re-fetch later to sync
-      setTimeout(fetchCart, 300);
-    } catch (e) {
-      console.log(e);
+  try {
+    if (diff > 0) {
+      await addToCart(id, diff);        // increase
+    } else if (diff < 0) {
+      await removeFromCart(id, Math.abs(diff)); // decrease
     }
-  };
+
+    // Update UI immediately
+    setCartItems(prev =>
+      prev.map(item =>
+        item.productId === id
+          ? { ...item, quantity: newQty }
+          : item
+      )
+    );
+  } catch (e) {
+    console.log(e);
+  }
+};
+
 
   /* ================= REMOVE ITEM ================= */
 

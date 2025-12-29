@@ -57,7 +57,9 @@ const ProductPage = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   // image slider & zoom
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
@@ -67,13 +69,19 @@ const ProductPage = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = await AsyncStorage.getItem("authToken");
+        const storedToken = await AsyncStorage.getItem('authToken');
+        const storedUserId = await AsyncStorage.getItem('userID');
+
+        if (storedToken) setToken(storedToken);
+        if (storedUserId) setUserId(storedUserId);
 
         const res = await fetch(
           `${config.baseURL}api/products/${itemId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
+        console.log(data);
+
         setProductDetails(data);
 
         const addr = await getAddresses();
@@ -103,8 +111,8 @@ const ProductPage = () => {
     productDetails.images && productDetails.images.length > 0
       ? productDetails.images
       : productDetails.image
-      ? [productDetails.image]
-      : [];
+        ? [productDetails.image]
+        : [];
 
   const finalPrice =
     productDetails.price -
@@ -112,14 +120,46 @@ const ProductPage = () => {
 
   /* -------------------- ACTIONS -------------------- */
   const handleAddToCart = async () => {
-    if (!selectedColor || !selectedSize) {
-      Alert.alert("Select Options", "Please select size and color");
+    if (!token || !userId) {
+      Alert.alert('Error', 'Token or user ID is missing. Unable to add product to cart.');
       return;
     }
 
-    Toast.show("Success", "Added to cart");
-    eventBus.emit("ITEM_REMOVED", { id: 123 });
-    navigation.navigate("CartPage");
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${config.baseURL}api/cart/add-to-cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          productId: itemId,
+          color: selectedColor,
+          size: selectedSize
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      Toast.show('success', 'Product added to cart successfully!');
+      eventBus.emit("ITEM_REMOVED", { id: 123 });
+      navigation.navigate('CartPage', { itemId: selectedAddress?._id });
+      if (selectedAddress) {
+        await AsyncStorage.setItem("selectedAddress", JSON.stringify(selectedAddress));
+      }
+
+    } catch (err) {
+      setError('Failed to add product to cart. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* -------------------- UI -------------------- */
@@ -264,12 +304,15 @@ const ProductPage = () => {
         {/* DETAILS */}
         <View style={styles.card}>
           <Text style={styles.section}>Product Details</Text>
-          {productDetails.details.map((d, i) => (
+          {productDetails?.details?.map((d, i) => (
             <Text key={i} style={styles.detail}>
               • {d}
             </Text>
           ))}
         </View>
+        {productDetails?.details?.length == 0 &&
+          <Text style={styles.section}>No Details Found</Text>
+        }
       </ScrollView>
 
       {/* FOOTER */}
