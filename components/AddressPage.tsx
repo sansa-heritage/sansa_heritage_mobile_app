@@ -17,6 +17,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import config from "../config/config";
 import { Address } from "./models/address";
 import { Toast } from "./screens/Toast";
+import { deleteAddress } from "./apiHelper/apiService";
 
 export default function AddressScreen() {
     const [addresses, setAddresses] = useState<Address[]>([]);
@@ -33,6 +34,29 @@ export default function AddressScreen() {
         phone: "",
     });
 
+
+    const handleDelete = async (id: string) => {
+    Alert.alert(
+      'Delete Address',
+      'Are you sure you want to delete this address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAddress(id);
+              Toast.show('success', 'address deleted successfully');
+              fetchAddresses();
+            } catch (error) {
+              Toast.show('error', 'Failed to delete address');
+            }
+          },
+        },
+      ]
+    );
+  };
     /* ================= FETCH ================= */
 
     const fetchAddresses = async () => {
@@ -67,24 +91,24 @@ export default function AddressScreen() {
 
     /* ================= DELETE ================= */
 
-    const deleteAddress = (id: string) => {
-        Alert.alert("Delete address?", "This action cannot be undone", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete",
-                style: "destructive",
-                onPress: async () => {
-                    const token = await AsyncStorage.getItem("authToken");
-                    await fetch(`${config.baseURL}api/auth/addresses/${id}`, {
-                        method: "DELETE",
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                    fetchAddresses();
-                    Toast.show("success", "Address removed");
-                },
-            },
-        ]);
-    };
+    // const deleteAddress = (id: string) => {
+    //     Alert.alert("Delete address?", "This action cannot be undone", [
+    //         { text: "Cancel", style: "cancel" },
+    //         {
+    //             text: "Delete",
+    //             style: "destructive",
+    //             onPress: async () => {
+    //                 const token = await AsyncStorage.getItem("authToken");
+    //                 await fetch(`${config.baseURL}api/auth/addresses/${id}`, {
+    //                     method: "DELETE",
+    //                     headers: { Authorization: `Bearer ${token}` },
+    //                 });
+    //                 fetchAddresses();
+    //                 Toast.show("success", "Address removed");
+    //             },
+    //         },
+    //     ]);
+    // };
 
     /* ================= SAVE ================= */
 
@@ -152,7 +176,7 @@ export default function AddressScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            onPress={() => deleteAddress(item._id)}
+                            onPress={() => handleDelete(item._id)}
                             style={{ marginLeft: 14 }}
                         >
                             <Ionicons name="trash-outline" size={20} color="#777" />

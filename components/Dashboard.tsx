@@ -275,7 +275,7 @@ export default function Dashboard() {
       <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
         <View style={styles.titleSection}>
           <Text style={styles.title}>Explore</Text>
-          <Text style={styles.subtitle}>best Outfits for you</Text>
+          <Text style={styles.subtitle}>Best outfits for you</Text>
         </View>
 
         <View style={styles.searchSection}>

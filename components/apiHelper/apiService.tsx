@@ -192,6 +192,33 @@ export const placeOrder = async (orderData) => {
   }
 }
 
+export const deleteAddress = async (addressId) => {
+  try {
+    const storedToken = await AsyncStorage.getItem('authToken');
+
+    const response = await fetch(
+      `${config.baseURL}api/auth/addresses/${addressId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${storedToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Address deleted successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error deleting address:', error);
+    throw error;
+  }
+};
 
 // Function to fetch all favorite products
 export const getOrders = async () => {
