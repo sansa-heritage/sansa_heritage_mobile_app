@@ -43,7 +43,7 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<string>("");
-
+  const [animationCompleted, setAnimationCompleted] = useState(false);
   const TAB_ROUTES = [
     "Dashboard",
     "Cart",
@@ -108,10 +108,20 @@ const App = () => {
     }
   };
 
-  if (loading) {
-    return <SplashScreen onFinish={() => setLoading(false)} />;
-  }
+  // if (loading) {
+  //   return <SplashScreen onFinish={() => setLoading(false)} />;
+  // }
 
+  if (!animationCompleted) {
+    return (
+      <SplashScreen
+        onFinish={async () => {
+          setAnimationCompleted(true);
+          await BootSplash.hide({ fade: true });
+        }}
+      />
+    );
+  }
   return (
     <NavigationContainer ref={navigationRef}
       onReady={() => {

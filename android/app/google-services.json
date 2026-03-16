@@ -12,7 +12,12 @@
           "package_name": "com.sansaheritage"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "435490385420-ns8ltjo6qtson4uqchdf7ji8mi789kpk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyABjayf8awu7Fu9jZJS7hCkAabEWl7tU_E"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "435490385420-ns8ltjo6qtson4uqchdf7ji8mi789kpk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
