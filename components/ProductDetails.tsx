@@ -35,9 +35,9 @@ interface ProductDetails {
   name: string;
   brand: string;
   price: number;
-  discount: number;
-  availableColors: string[];
-  avaialbleSizes: string[];
+  discountPercent: number;
+  colors: string[];
+  sizes: string[];
   details: string[];
   rating: number;
 }
@@ -116,7 +116,7 @@ const ProductPage = () => {
 
   const finalPrice =
     productDetails.price -
-    (productDetails.price * productDetails.discount) / 100;
+    (productDetails.price * productDetails.discountPercent) / 100;
 
   /* -------------------- ACTIONS -------------------- */
   const handleAddToCart = async () => {
@@ -227,7 +227,7 @@ const ProductPage = () => {
           <View style={styles.priceRow}>
             <Text style={styles.finalPrice}>₹{finalPrice.toFixed(0)}</Text>
             <Text style={styles.mrp}>₹{productDetails.price}</Text>
-            <Text style={styles.off}>{productDetails.discount}% OFF</Text>
+            <Text style={styles.off}>{productDetails.discountPercent}% OFF</Text>
           </View>
 
           <Text style={styles.tax}>Inclusive of all taxes</Text>
@@ -237,12 +237,12 @@ const ProductPage = () => {
         <View style={styles.card}>
           <Text style={styles.section}>Color</Text>
           <View style={styles.colorRow}>
-            {productDetails.availableColors.map((c) => (
+            {productDetails.colors.map((c: any) => (
               <TouchableOpacity
-                key={c}
+                key={c?._id}
                 style={[
                   styles.colorDot,
-                  { backgroundColor: c.toLowerCase() },
+                  { backgroundColor: c?.hexCode },
                   selectedColor === c && styles.colorActive,
                 ]}
                 onPress={() => setSelectedColor(c)}
@@ -254,23 +254,24 @@ const ProductPage = () => {
         {/* SIZE */}
         <View style={styles.card}>
           <Text style={styles.section}>Select Size</Text>
+
           <View style={styles.sizeGrid}>
-            {productDetails.avaialbleSizes.map((s) => (
+            {productDetails?.sizes?.map((s: any) => (
               <TouchableOpacity
-                key={s}
+                key={s._id}
                 style={[
                   styles.sizeBox,
-                  selectedSize === s && styles.sizeActive,
+                  selectedSize === s._id && styles.sizeActive,
                 ]}
-                onPress={() => setSelectedSize(s)}
+                onPress={() => setSelectedSize(s._id)}
               >
                 <Text
                   style={[
                     styles.sizeText,
-                    selectedSize === s && styles.sizeTextActive,
+                    selectedSize === s._id && styles.sizeTextActive,
                   ]}
                 >
-                  {s}
+                  {s.label.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -317,7 +318,11 @@ const ProductPage = () => {
 
       {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.buyNow}>
+        <TouchableOpacity style={styles.buyNow}  onPress={() =>
+            navigation.navigate("CheckoutPage", {
+              billingDetails: finalPrice,
+            })
+          }>
           <Text style={styles.buyText}>BUY NOW</Text>
         </TouchableOpacity>
 

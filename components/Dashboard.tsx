@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [mainCategory, setMainCategory] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [distanceRange, setDistanceRange] = useState([500, 2000]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -57,28 +57,19 @@ export default function Dashboard() {
     { label: "Dupattas", value: "dupatta" },
   ];
   useEffect(() => {
-    // Determine the mainCategory for each section
-    const newArrivalCategory = mainCategory || "New Arrival";
-    const trendingCategory = mainCategory || "Trending";
-    console.log(mainCategory);
-
-    // Build dynamic filters for both sections
     const dynamicFilters: any = {};
+
     if (searchText) dynamicFilters.searchText = searchText;
     if (selectedCategory) dynamicFilters.selectedCategory = selectedCategory;
-    if (priceRange?.[0] || priceRange?.[1]) dynamicFilters.priceRange = priceRange;
+    if (priceRange?.[0] !== undefined) dynamicFilters.priceRange = [
+      priceRange[0],
+      priceRange[1]
+    ];
 
-    // Fetch sections
-    fetchNewArrivals({
-      mainCategory: newArrivalCategory,
-      ...dynamicFilters
-    });
+    fetchNewArrivals(dynamicFilters);
+    fetchTrending(dynamicFilters);
 
-    fetchTrending({
-      mainCategory: trendingCategory,
-      ...dynamicFilters
-    });
-  }, [mainCategory, searchText, selectedCategory, priceRange, distanceRange]);
+  }, [searchText, selectedCategory, priceRange, distanceRange]);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   function addToFavorites(_id: number | undefined) {
@@ -90,24 +81,23 @@ export default function Dashboard() {
   };
 
   const fetchNewArrivals = async ({
-    mainCategory,
     searchText,
     selectedCategory,
     priceRange
   }: {
-    mainCategory?: string;
     searchText?: string;
     selectedCategory?: string;
     priceRange?: [number, number];
   }) => {
     try {
-      const params: any = {};
-      if (mainCategory) params.mainCategory = mainCategory;
+      const params: any = {
+        isNewArrival: true
+      };
+
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0]) params.minPrice = priceRange[0];
       if (priceRange?.[1]) params.maxPrice = priceRange[1];
-      console.log(params);
 
       const queryString = Object.keys(params)
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -117,33 +107,30 @@ export default function Dashboard() {
 
       const res = await fetch(url);
       const data = await res.json();
-      setLoading(false);
 
       setNewArrivals(data || []);
+      setLoading(false);
     } catch (err) {
       console.error(err);
       setLoading(false);
-
     }
   };
 
 
   const fetchTrending = async ({
-    mainCategory,
     searchText,
     selectedCategory,
     priceRange
   }: {
-    mainCategory?: string;
     searchText?: string;
     selectedCategory?: string;
     priceRange?: [number, number];
   }) => {
     try {
-      setLoading(true);
+      const params: any = {
+        isTrending: true
+      };
 
-      const params: any = {}; // mainCategory fixed
-      if (searchText) params.mainCategory = mainCategory;
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0]) params.minPrice = priceRange[0];
@@ -160,10 +147,9 @@ export default function Dashboard() {
 
       setTrendingItems(data || []);
       setLoading(false);
-
     } catch (err) {
-      setLoading(false);
       console.error(err);
+      setLoading(false);
     }
   };
   if (loading) {
@@ -180,28 +166,31 @@ export default function Dashboard() {
   const handleSearchChange = (text: string) => setSearchText(text);
   const assignFilterItem = (category: string) => {
     setSelectedCategory(category);
-    setMainCategory("");
-  }
-
-  const applyFilter = () => {
-    setModalVisible(false);
-
-    fetchNewArrivals({
-      mainCategory,
-      searchText,
-      selectedCategory,
-      priceRange
-    });
-
-    fetchTrending({
-      mainCategory,
-      searchText,
-      selectedCategory,
-      priceRange
-    });
   };
 
 
+  const applyFilter = async () => {
+    setModalVisible(false);
+    setLoading(true);
+
+    await Promise.all([
+      fetchNewArrivals({ searchText, selectedCategory, priceRange }),
+      fetchTrending({ searchText, selectedCategory, priceRange })
+    ]);
+
+    setLoading(false);
+  };
+
+  const clearFilters = () => {
+    setSearchText("");
+    setSelectedCategory("");
+    setPriceRange([0, 10000]);
+    setDistanceRange([500, 2000]);
+
+    setModalVisible(false);
+    fetchNewArrivals({});
+    fetchTrending({});
+  };
   const navigateToCategory = (category: string) => {
     navigation.navigate("CategoryScreen", { mainCategory: category });
   };
@@ -241,10 +230,10 @@ export default function Dashboard() {
           <MaterialIcons name="favorite-border" size={20} color="#000" />
         </TouchableOpacity>
 
-        {item.discount > 0 && (
+        {item.discountPercent > 0 && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountBadgeText}>
-              {item.discount}% OFF
+              {item.discountPercent}% OFF
             </Text>
           </View>
         )}
@@ -257,9 +246,9 @@ export default function Dashboard() {
 
         <View style={styles.priceRow}>
           <Text style={styles.finalPrice}>
-            ₹{(item.price - (item.price * item.discount) / 100).toFixed(0)}
+            ₹{(item?.price - (item?.price * item?.discountPercent) / 100)?.toFixed(0)}
           </Text>
-          <Text style={styles.strikePrice}>₹{item.price}</Text>
+          <Text style={styles.strikePrice}>₹{item?.price}</Text>
         </View>
 
         {item.rating !== undefined && (
@@ -386,7 +375,7 @@ export default function Dashboard() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity onPress={clearFilters}>
                 <Text style={styles.clearText}>Clear</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Filters</Text>
@@ -410,19 +399,37 @@ export default function Dashboard() {
             </View>
 
             {/* Price Filter */}
-            <Text style={styles.filterSectionTitle}>Pricing</Text>
-            <View style={styles.sliderSection}>
-              <Text style={styles.sliderLabel}>₹{priceRange[0]}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={50}
-                maximumValue={10000}
-                value={priceRange[0]}
-                onValueChange={(value) => setPriceRange([Math.round(value), priceRange[1]])}
-                minimumTrackTintColor="#ff6f61"
-              />
-              <Text style={styles.sliderLabel}>₹{priceRange[1]}</Text>
+            <Text style={styles.filterSectionTitle}>Price Range</Text>
+
+            {/* SHOW SELECTED RANGE */}
+            <View style={styles.priceHeader}>
+              <Text style={styles.priceText}>Min: ₹{priceRange[0]}</Text>
+              <Text style={styles.priceText}>Max: ₹{priceRange[1]}</Text>
             </View>
+
+            {/* MIN PRICE */}
+            <Text style={styles.sliderTitle}>Minimum Price</Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={50}
+              maximumValue={10000}
+              value={priceRange[0]}
+              onValueChange={(value) =>
+                setPriceRange([Math.round(value), priceRange[1]])
+              }
+            />
+
+            {/* MAX PRICE */}
+            <Text style={styles.sliderTitle}>Maximum Price</Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={50}
+              maximumValue={10000}
+              value={priceRange[1]}
+              onValueChange={(value) =>
+                setPriceRange([priceRange[0], Math.round(value)])
+              }
+            />
 
             {/* Distance Filter */}
             <Text style={styles.filterSectionTitle}>Distance</Text>
@@ -699,6 +706,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginVertical: 10,
+  },
+  priceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+
+  priceText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  sliderTitle: {
+    fontSize: 14,
+    marginTop: 10,
+    marginBottom: 5,
+    color: "#555",
   },
   categoryFilter: {
     flexDirection: 'row',

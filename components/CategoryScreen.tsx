@@ -43,35 +43,41 @@ export default function CategoryScreen({ route }) {
         fetchProducts();
     }, [mainCategory, searchText, selectedCategory, priceRange, distanceRange]);
 
-    const fetchProducts = async () => {
-        try {
-            setLoading(true); // Show loader
+  const fetchProducts = async () => {
+    try {
+        setLoading(true);
 
-            const params: any = {};
-
-            if (mainCategory) params.mainCategory = mainCategory;
-            if (searchText) params.search = searchText;
-            if (selectedCategory) params.category = selectedCategory;
-            if (priceRange?.[0]) params.minPrice = priceRange[0];
-            if (priceRange?.[1]) params.maxPrice = priceRange[1];
-
-            const queryString = Object.keys(params)
-                .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-                .join("&");
-
-            const url = `https://ecappbe-sanasaheritages-projects.vercel.app/api/products${queryString ? "?" + queryString : ""}`;
-
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-            const data = await res.json();
-            setProducts(data || []);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false); // Hide loader
+        const params: any = {};
+        if (mainCategory === "Trending") {
+            params.isTrending = true;
+        } else if (mainCategory === "New Arrival") {
+            params.isNewArrival = true;
         }
-    };
+
+        if (searchText) params.search = searchText;
+        if (selectedCategory) params.category = selectedCategory;
+        if (priceRange?.[0]) params.minPrice = priceRange[0];
+        if (priceRange?.[1]) params.maxPrice = priceRange[1];
+
+        const queryString = Object.keys(params)
+            .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+            .join("&");
+
+        const url = `https://ecappbe-sanasaheritages-projects.vercel.app/api/products${queryString ? "?" + queryString : ""}`;
+
+        console.log("CATEGORY API:", url); 
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        const data = await res.json();
+        setProducts(data || []);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setLoading(false);
+    }
+};
 
 
     const renderPrice = (price, discount) => {
@@ -111,7 +117,7 @@ export default function CategoryScreen({ route }) {
                         ? item?.description?.substring(0, 18) + "..."
                         : item?.description}
                 </Text>
-                {renderPrice(item.price, item.discount)}
+                {renderPrice(item.price, item.discountPercent)}
                 {item.rating !== undefined && <Rating value={item.rating} />}
             </View>
         </TouchableOpacity>
@@ -155,7 +161,7 @@ export default function CategoryScreen({ route }) {
                     </View>
                     {/* Products List */}
                     {products.length === 0 ? (
-                        <Text style={styles.seeAllText}>No Records found</Text>
+                        <Text style={styles.seeAllText}>No Records Found</Text>
                     ) : (
                         <FlatList
                             nestedScrollEnabled

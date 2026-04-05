@@ -14,7 +14,7 @@ import DeviceInfo from 'react-native-device-info';
 
 GoogleSignin.configure({
   webClientId:
-    '147593176805-qsl4i8ctc9uejohoqhgdcio8spi1b4nt.apps.googleusercontent.com',
+    '147593176805-juct46c8fbbmp5sdl3rdthe2753gj3il.apps.googleusercontent.com',
   iosClientId:
     '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
   offlineAccess: false,
