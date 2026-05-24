@@ -1,19 +1,21 @@
-import React, { useEffect } from "react";
-import { View, Image, StyleSheet } from "react-native";
+import React, { FunctionComponent } from "react";
+import { View, StyleSheet } from "react-native";
+import LottieView from "lottie-react-native";
 
-const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFinish();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [onFinish]);
+interface Props {
+  onFinish: (param: boolean) => void;
+}
 
+const SplashScreen: FunctionComponent<Props> = ({ onFinish }) => {
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../../assets/images/sansa_splash_screen.gif")} 
-        style={styles.logo}
+      <LottieView
+        source={require("../../assets/lottie-animation.json")}
+        autoPlay
+        loop={false}
+        resizeMode="cover"
+        onAnimationFinish={() => onFinish(true)}
+        style={styles.animation}
       />
     </View>
   );
@@ -22,13 +24,11 @@ const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
   },
-  logo: {
-    width: 200,
-    height: 200,
+  animation: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
   },
 });
 

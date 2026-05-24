@@ -1,67 +1,110 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
 
-const AboutUs = () => {
+export const AboutUsScreen = () => {
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>About Excom</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.page}
+    >
+      {/* BRAND HEADER */}
+      <View style={styles.header}>
+        <Text style={styles.brand}>Sansa Heritage Hub</Text>
+        <Text style={styles.tagline}>Where Tradition Meets Style</Text>
+      </View>
 
-      <Text style={styles.sectionTitle}>Who We Are</Text>
-      <Text style={styles.text}>
-        Excom is a leading technology company committed to providing innovative solutions that enhance productivity and efficiency. 
-        We specialize in delivering high-quality software applications tailored to meet our customers' needs.
-      </Text>
+      {/* MAIN CONTENT */}
+      <View style={styles.card}>
+        <Text style={styles.text}>
+          Sansa Heritage Hub brings timeless Indian craftsmanship into modern
+          everyday fashion. Each piece is thoughtfully designed by skilled
+          artisans using handloom techniques passed down through generations.
+        </Text>
 
-      <Text style={styles.sectionTitle}>Our Mission</Text>
-      <Text style={styles.text}>
-        Our mission is to empower businesses and individuals with cutting-edge digital tools. We strive to make technology accessible, 
-        user-friendly, and impactful for our users worldwide.
-      </Text>
+        <Text style={styles.text}>
+          From daily wear to office elegance and festive occasions, our
+          collections combine comfort, quality, and elegance.
+        </Text>
 
-      <Text style={styles.sectionTitle}>Our Vision</Text>
-      <Text style={styles.text}>
-        We envision a future where technology seamlessly integrates with daily life, making it easier, more efficient, and more secure.
-      </Text>
+        <Text style={styles.text}>
+          Every purchase supports artisan communities and helps preserve cultural
+          heritage—making fashion ethical, sustainable, and meaningful.
+        </Text>
+      </View>
 
-      <Text style={styles.sectionTitle}>Contact Us</Text>
-      <Text style={styles.text}>
-        📍 Address: 123 Excom Street, Tech City, TX 75001
-      </Text>
-      <Text style={styles.text}>
-        📧 Email: support@excomapp.com
-      </Text>
-      <Text style={styles.text}>
-        📞 Phone: +1 234 567 8901
-      </Text>
+      {/* HIGHLIGHT */}
+      <View style={styles.highlightBox}>
+        <Text style={styles.highlightText}>
+          ✨ Fashion that feels good, looks good, and does good ✨.
+        </Text>
+      </View>
+
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+  page: {
+    padding: 16,
+    paddingBottom: 40,
+    backgroundColor: "#F5F5F5",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    color: '#333',
+
+  header: {
+    alignItems: "center",
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 15,
-    color: '#555',
+
+  brand: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#000",
+    letterSpacing: 0.5,
   },
-  text: {
+
+  tagline: {
     fontSize: 14,
-    lineHeight: 20,
-    marginTop: 5,
-    color: '#666',
+    fontWeight: "600",
+    color: "#777",
+    marginTop: 6,
+  },
+
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 18,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+
+  text: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: "#333",
+    marginBottom: 12,
+  },
+
+  highlightBox: {
+    marginTop: 18,
+    backgroundColor: "#000",
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+
+  highlightText: {
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFF",
+    letterSpacing: 0.3,
   },
 });
-
-export default AboutUs;

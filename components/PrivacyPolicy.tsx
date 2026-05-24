@@ -1,30 +1,77 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, ScrollView, StyleSheet, Linking } from "react-native";
 
-const PrivacyPolicy = () => {
+const PrivacyPolicyScreen = () => {
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Privacy Policy</Text>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.container}
+    >
+      {/* <Text style={styles.muted}>Effective Date: 01 Jan 2025</Text> */}
 
-      <Text style={styles.sectionTitle}>1. Introduction</Text>
+      <Text style={styles.section}>Introduction</Text>
       <Text style={styles.text}>
-        Welcome to our application. Your privacy is important to us. This Privacy Policy explains
-        how we collect, use, and protect your information.
+        Sansa Heritage Hub respects your privacy and is committed to protecting
+        your personal information when you use our application.
       </Text>
 
-      <Text style={styles.sectionTitle}>2. Information We Collect</Text>
+      <Text style={styles.section}>Information We Collect</Text>
       <Text style={styles.text}>
-        We may collect personal information such as name, email, and usage data to improve our services.
+        • Name, email address, and phone number{"\n"}
+        • Shipping and billing address{"\n"}
+        • Payment information (processed securely by third-party gateways){"\n"}
+        • Device and usage analytics
       </Text>
 
-      <Text style={styles.sectionTitle}>3. How We Use Your Information</Text>
+      <Text style={styles.section}>How We Use Your Information</Text>
       <Text style={styles.text}>
-        We use your information to personalize your experience, improve our app, and provide customer support.
+        • To process and deliver orders{"\n"}
+        • To provide customer support and notifications{"\n"}
+        • To prevent fraud and misuse{"\n"}
+        • To improve app performance and user experience
       </Text>
 
-      <Text style={styles.sectionTitle}>4. Contact Us</Text>
+      <Text style={styles.section}>Data Sharing</Text>
       <Text style={styles.text}>
-        If you have any questions about this Privacy Policy, please contact us at support@example.com.
+        We share your information only with trusted payment gateways, delivery
+        partners, and service providers. We do not sell your personal data.
+      </Text>
+
+      <Text style={styles.section}>Data Security</Text>
+      <Text style={styles.text}>
+        We use industry-standard security measures to protect your data.
+        However, no method of transmission over the internet is completely
+        secure.
+      </Text>
+
+      <Text style={styles.section}>User Rights</Text>
+      <Text style={styles.text}>
+        You have the right to access, update, or request deletion of your
+        personal data by contacting us.
+      </Text>
+
+      <Text style={styles.section}>Children’s Privacy</Text>
+      <Text style={styles.text}>
+        This app is not intended for users under the age of 18.
+      </Text>
+
+      <Text style={styles.section}>Policy Updates</Text>
+      <Text style={styles.text}>
+        We may update this Privacy Policy from time to time. Changes will be
+        reflected within the app.
+      </Text>
+
+      <Text style={styles.section}>Contact Us</Text>
+      <Text style={styles.text}>
+        If you have any questions regarding this Privacy Policy, please contact
+        us at:
+        {"\n"}
+        <Text
+          style={styles.link}
+          onPress={() => Linking.openURL('mailto:sansaheritage@gmail.com')}
+        >
+          sansaheritage@gmail.com
+        </Text>
       </Text>
     </ScrollView>
   );
@@ -32,26 +79,36 @@ const PrivacyPolicy = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    padding: 16,
+    paddingBottom: 40,
+    backgroundColor: "#ffffff",
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 6,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 15,
+  muted: {
+    fontSize: 12,
+    color: "#777",
+    marginBottom: 16,
+  },
+  section: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+    marginTop: 4,
+    marginBottom: 6,
   },
   text: {
     fontSize: 14,
-    lineHeight: 20,
-    marginTop: 5,
+    lineHeight: 22,
+    color: "#333",
+  },
+   link: {
+    color: '#1E88E5',
   },
 });
 
-export default PrivacyPolicy;
+export default PrivacyPolicyScreen;

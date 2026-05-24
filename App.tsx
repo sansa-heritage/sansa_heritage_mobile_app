@@ -12,7 +12,7 @@ import FavoriteScreen from "./components/FavoritsPage";
 import Login from "./components/Login";
 import OrdersPage from "./components/OrdersPage";
 import PaymentPage from "./components/PaymentPage";
-import PrivacyPolicyScreen, { AboutUsScreen } from "./components/PrivacyAndContactUs";
+// import PrivacyPolicyScreen from "./components/PrivacyAndContactUs";
 import ProductDetails from "./components/ProductDetails";
 import Profile from "./components/Profile";
 import ResetPassword from "./components/ResetPassword";
@@ -33,6 +33,9 @@ import UpdateProfileScreen from "./components/UserEditPage";
 import NotificationScreen from "./components/NotificationPage";
 import CardsScreen from "./components/cardsPage";
 import BootSplash from "react-native-bootsplash";
+import { AboutUsScreen } from "./components/AboutUs";
+import PrivacyPolicyScreen from "./components/PrivacyPolicy";
+import ReturnRefundPolicyScreen from "./components/Refund&ReturnPage";
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -40,6 +43,33 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<string>("");
+  const [animationCompleted, setAnimationCompleted] = useState(false);
+  const TAB_ROUTES = [
+    "Dashboard",
+    "Cart",
+    "Favorites",
+    "AccountPage"
+  ];
+
+  const HEADER_TITLES: Record<string, string> = {
+    CartPage: "Cart",
+    ProductDetails: "Product Details",
+    CheckoutPage: "Order Confirmation",
+    PaymentPage: "Payment",
+    OrdersPage: "My Orders",
+    FavoritesPage: "My Favorites",
+    Profile: "My Profile",
+    AccountPage: "My Account",
+    CategoryScreen: "Categories",
+    SettingsPage: "Settings",
+    PrivacyPolicy: "Privacy Policy",
+    FAQScreen: "FAQ",
+    AddressFormPage: "Addresses",
+    TermsScreen: "Terms & Conditions",
+    AboutUs: "About Us",
+    ReturnRefundScreen: "Return & Refund",
+    NotificationScreen: "Notification"
+  };
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -56,7 +86,7 @@ const App = () => {
         setLoading(false);
       }
     };
-    
+
     const init = async () => {
       // …do multiple sync or async tasks
     };
@@ -78,10 +108,20 @@ const App = () => {
     }
   };
 
-  if (loading) {
-    return <SplashScreen onFinish={() => setLoading(false)} />;
-  }
+  // if (loading) {
+  //   return <SplashScreen onFinish={() => setLoading(false)} />;
+  // }
 
+  if (!animationCompleted) {
+    return (
+      <SplashScreen
+        onFinish={async () => {
+          setAnimationCompleted(true);
+          await BootSplash.hide({ fade: true });
+        }}
+      />
+    );
+  }
   return (
     <NavigationContainer ref={navigationRef}
       onReady={() => {
@@ -124,7 +164,10 @@ const App = () => {
         </Stack.Navigator>
       ) : (
         <>
-          <Header currentRoute={currentRoute} />
+          <Header
+            currentRoute={currentRoute}
+            title={HEADER_TITLES[currentRoute] || ""}
+          />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Dashboard" component={Dashboard} />
             <Stack.Screen name="ProductDetails" component={ProductDetails} />
@@ -147,6 +190,7 @@ const App = () => {
             <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
             <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
             <Stack.Screen name="CardsScreen" component={CardsScreen} />
+            <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
 
             <Stack.Screen name="AccountPage">
               {(props) => <AccountPage {...props} onLogout={logout} />}
@@ -154,7 +198,12 @@ const App = () => {
           </Stack.Navigator>
           <AlertComponent />
 
-          <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} />
+          {TAB_ROUTES.includes(currentRoute) && (
+            <CustomBottomTabs
+              activeRoute={currentRoute as any}
+              onLogout={logout}
+            />
+          )}
         </>
       )}
     </NavigationContainer>

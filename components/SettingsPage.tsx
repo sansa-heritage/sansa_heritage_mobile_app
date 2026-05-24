@@ -11,11 +11,9 @@ const SettingsScreen = () => {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.header}>Settings</Text>
-
       <TouchableOpacity style={styles.settingItem}>
         <View style={styles.iconTextContainer}>
-          <MaterialIcons name="email" size={24} color="orange" />
+          <MaterialIcons name="email" size={24} color="#950C21" />
           <Text style={styles.itemText}>Email Support</Text>
         </View>
         <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
@@ -23,27 +21,19 @@ const SettingsScreen = () => {
 
       <TouchableOpacity style={styles.settingItem}>
         <View style={styles.iconTextContainer}>
-          <MaterialIcons name="help-outline" size={24} color="orange" />
+          <MaterialIcons name="help-outline" size={24} color="#950C21" />
           <Text style={styles.itemText}>FAQ</Text>
-        </View>
-        <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="lock" size={24} color="orange" />
-          <Text style={styles.itemText}>Privacy Statement</Text>
         </View>
         <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
       </TouchableOpacity>
 
       <View style={styles.settingItem}>
         <View style={styles.iconTextContainer}>
-          <MaterialIcons name="notifications" size={24} color="orange" />
+          <MaterialIcons name="notifications" size={24} color="#950C21" />
           <Text style={styles.itemText}>Notification</Text>
         </View>
         <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
+          trackColor={{ false: '#767577', true: '#950C21' }}
           thumbColor={isNotificationEnabled ? 'white' : '#f4f3f4'}
           onValueChange={toggleNotificationSwitch}
           value={isNotificationEnabled}
@@ -52,11 +42,11 @@ const SettingsScreen = () => {
 
       <View style={styles.settingItem}>
         <View style={styles.iconTextContainer}>
-          <MaterialIcons name="update" size={24} color="orange" />
+          <MaterialIcons name="update" size={24} color="#950C21" />
           <Text style={styles.itemText}>Update</Text>
         </View>
         <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
+          trackColor={{ false: '#767577', true: '#950C21' }}
           thumbColor={isUpdateEnabled ? 'white' : '#f4f3f4'}
           onValueChange={toggleUpdateSwitch}
           value={isUpdateEnabled}

@@ -84,10 +84,10 @@ export const addToFavoritesList = async (productId) => {
       throw new Error(data.message || 'Failed to add to favorites');
     }
 
-    Toast.show('Success', 'Product added to favorites');
+    Toast.show('success', 'Product added to favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('Error', error.message);
+    Toast.show('error', error.message);
   }
 };
 
@@ -140,7 +140,7 @@ export const removeFromFavoritesList = async (productId) => {
     Toast.show('success', 'Product removed from favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('Error', error.message);
+    Toast.show('error', error.message);
   }
 };
 
@@ -192,6 +192,33 @@ export const placeOrder = async (orderData) => {
   }
 }
 
+export const deleteAddress = async (addressId) => {
+  try {
+    const storedToken = await AsyncStorage.getItem('authToken');
+
+    const response = await fetch(
+      `${config.baseURL}api/auth/addresses/${addressId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${storedToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Address deleted successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error deleting address:', error);
+    throw error;
+  }
+};
 
 // Function to fetch all favorite products
 export const getOrders = async () => {
@@ -315,7 +342,7 @@ export const verifyOtp = async (email: string, otp: string) => {
 
 export const resetPassword = async (newPassword: string, email: string) => {
   try {
-
+  
     const response = await fetch(`${config.baseURL}api/auth/reset`, {
       method: 'POST',
       headers: {

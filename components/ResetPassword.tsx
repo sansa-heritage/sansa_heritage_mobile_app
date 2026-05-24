@@ -16,15 +16,16 @@ const ResetPassword = () => {
   type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ResetPassword'>;
   const route = useRoute<ProductDetailsRouteProp>();
   const { email } = route.params;
-const [loading, setLoading] = useState(false);
+  const [errorMsg, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false);
   const handleResetPassword = async () => {
     if (!password || !confirmPassword) {
-      Toast.show("Error", "Please enter and confirm your new password.");
+      Toast.show("error", "Please enter and confirm your new password.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Toast.show("Error", "Passwords do not match.");
+      Toast.show("error", "Passwords do not match.");
       return;
     }
 
@@ -38,10 +39,15 @@ const [loading, setLoading] = useState(false);
         },
       ]);
     } catch (err: any) {
-    Toast.show("Error", err || "Password reset failed.");
-  } finally {
-    setLoading(false); 
-  }
+      const errorMessage =
+       err || err.response?.data?.message || 'Something went wrong';
+      Toast.show("error", errorMessage);
+      console.log(err);
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <View style={styles.container}>
@@ -78,7 +84,11 @@ const [loading, setLoading] = useState(false);
           <Text style={styles.eyeIcon}>{showConfirm ? "🙈" : "👁"}</Text>
         </Pressable>
       </View>
-
+      <View>
+        {errorMsg &&
+          <Text style={styles.error}>{errorMsg}</Text>
+        }
+      </View>
       <TouchableOpacity style={styles.signUpButton} onPress={handleResetPassword}>
         <Text style={styles.signUpText}>Reset Password</Text>
       </TouchableOpacity>
@@ -138,6 +148,10 @@ const styles = StyleSheet.create({
   eyeIcon: {
     fontSize: 18,
     color: '#bbb',
+  },
+  error: {
+    color: 'red',
+    padding: 10
   },
   signUpButton: {
     marginTop: 34,

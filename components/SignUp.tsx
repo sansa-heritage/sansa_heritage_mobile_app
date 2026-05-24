@@ -74,7 +74,9 @@ const SignUpPage = () => {
 
 
   const redirectToLogin = () => {
-    navigation.navigate('Login');
+    // navigation.navigate('Login');
+    navigation.dispatch(StackActions.replace('Login'));
+
   };
 
   return (

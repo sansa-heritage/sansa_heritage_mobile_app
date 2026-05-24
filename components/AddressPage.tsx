@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -7,64 +7,74 @@ import {
     FlatList,
     Modal,
     TextInput,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import config from '../config/config';
-import { Address } from './models/address';
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { Toast } from './screens/Toast';
 
-export default function AddressScreen({ navigation }) {
+import config from "../config/config";
+import { Address } from "./models/address";
+import { Toast } from "./screens/Toast";
+import { deleteAddress } from "./apiHelper/apiService";
+
+export default function AddressScreen() {
     const [addresses, setAddresses] = useState<Address[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [selectedAddress, setSelectedAddress] = useState<any | null>(null);
-    const [noAddressPopup, setNoAddressPopup] = useState(false);
-    const [addressModalVisible, setAddressModalVisible] = useState(false);
+    const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+    const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [newAddress, setNewAddress] = useState({
-        street: '',
-        city: '',
-        state: '',
-        country: '',
-        zipCode: '',
-        phone: ''
+
+    const [form, setForm] = useState({
+        street: "",
+        city: "",
+        state: "",
+        country: "",
+        zipCode: "",
+        phone: "",
     });
 
-    const fetchAddresses = async () => {
-        const token = await AsyncStorage.getItem('authToken');
-        setLoading(true);
 
-        try {
-            const response = await fetch(`${config.baseURL}api/auth/addresses`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            const json = await response.json();
-            const list = json.addresses || [];
-
-            setAddresses(list);
-
-            // POPUP IF NO ADDRESS FOUND
-            if (list.length === 0) {
-                setNoAddressPopup(true);
+    const handleDelete = async (id: string) => {
+    Alert.alert(
+      'Delete Address',
+      'Are you sure you want to delete this address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAddress(id);
+              Toast.show('success', 'address deleted successfully');
+              fetchAddresses();
+            } catch (error) {
+              Toast.show('error', 'Failed to delete address');
             }
-        } catch (err) {
-            console.log('Error fetching addresses', err);
-        } finally {
-            setLoading(false);
+          },
+        },
+      ]
+    );
+  };
+    /* ================= FETCH ================= */
+
+    const fetchAddresses = async () => {
+        try {
+            const token = await AsyncStorage.getItem("authToken");
+            const res = await fetch(`${config.baseURL}api/auth/addresses`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const json = await res.json();
+            setAddresses(json.addresses || []);
+        } catch (e) {
+            console.log(e);
         }
     };
 
     const fetchSelectedAddress = async () => {
-        const saved = await AsyncStorage.getItem('selectedAddress');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            setSelectedAddress(parsed._id);
-        }
+        const saved = await AsyncStorage.getItem("selectedAddress");
+        if (saved) setSelectedAddress(JSON.parse(saved)._id);
     };
 
     useEffect(() => {
@@ -72,382 +82,413 @@ export default function AddressScreen({ navigation }) {
         fetchSelectedAddress();
     }, []);
 
-    const onSelectAddress = async (address) => {
+    /* ================= SELECT ================= */
+
+    const selectAddress = async (address: Address) => {
         setSelectedAddress(address._id);
         await AsyncStorage.setItem("selectedAddress", JSON.stringify(address));
     };
 
+    /* ================= DELETE ================= */
 
-    const goToAddAddress = () => {
-        navigation.navigate("AddAddressScreen");
-    };
+    // const deleteAddress = (id: string) => {
+    //     Alert.alert("Delete address?", "This action cannot be undone", [
+    //         { text: "Cancel", style: "cancel" },
+    //         {
+    //             text: "Delete",
+    //             style: "destructive",
+    //             onPress: async () => {
+    //                 const token = await AsyncStorage.getItem("authToken");
+    //                 await fetch(`${config.baseURL}api/auth/addresses/${id}`, {
+    //                     method: "DELETE",
+    //                     headers: { Authorization: `Bearer ${token}` },
+    //                 });
+    //                 fetchAddresses();
+    //                 Toast.show("success", "Address removed");
+    //             },
+    //         },
+    //     ]);
+    // };
 
-
-    const goToEditAddress = (address) => {
-        navigation.navigate("AddAddressScreen", { editData: address });
-    };
-
+    /* ================= SAVE ================= */
 
     const saveAddress = async () => {
-        const storedToken = await AsyncStorage.getItem("authToken");
-
-        if (!newAddress.street || !newAddress.city || !newAddress.state || !newAddress.country || !newAddress.zipCode || !newAddress.phone) {
-            return Toast.show("Error", "All fields are required.");
+        if (Object.values(form).some((v) => !v)) {
+            return Toast.show("error", "All fields required");
         }
 
-        try {
-            const url = isEditMode
-                ? `${config.baseURL}api/auth/addresses/${selectedAddress?._id}`
-                : `${config.baseURL}api/auth/addresses`;
+        const token = await AsyncStorage.getItem("authToken");
 
-            const method = isEditMode ? "PUT" : "POST";
+        const url = isEditMode
+            ? `${config.baseURL}api/auth/addresses/${selectedAddress}`
+            : `${config.baseURL}api/auth/addresses`;
 
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${storedToken}`,
-                },
-                body: JSON.stringify(newAddress),
-            });
+        const method = isEditMode ? "PUT" : "POST";
 
-            if (response.ok) {
-                await fetchAddresses();
-                setAddressModalVisible(false);
-                setNewAddress({
-                    street: "",
-                    city: "",
-                    state: "",
-                    country: "",
-                    zipCode: "",
-                    phone: "",
-                });
-            } else {
-                Toast.show("Error", isEditMode ? "Update failed" : "Add failed");
-            }
-        } catch (err: any) {
-            Toast.show("Error", err);
-        }
+        await fetch(url, {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(form),
+        });
+
+        setBottomSheetVisible(false);
+        setForm({
+            street: "",
+            city: "",
+            state: "",
+            country: "",
+            zipCode: "",
+            phone: "",
+        });
+        fetchAddresses();
+        Toast.show("success", isEditMode ? "Address Updated Successfully" : "Address Saved Successfully")
     };
+
+    /* ================= RENDER ================= */
+
+    const renderItem = ({ item }: { item: Address }) => {
+        const active = selectedAddress === item._id;
+
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.card,
+                    active && styles.activeCard,
+                ]}
+                onPress={() => selectAddress(item)}
+            >
+                <View style={styles.cardHeader}>
+                    <Text style={styles.street}>{item.street}</Text>
+
+                    <View style={styles.iconRow}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                setIsEditMode(true);
+                                setSelectedAddress(item._id);
+                                setForm(item);
+                                setBottomSheetVisible(true);
+                            }}
+                        >
+                            <Ionicons name="create-outline" size={20} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={() => handleDelete(item._id)}
+                            style={{ marginLeft: 14 }}
+                        >
+                            <Ionicons name="trash-outline" size={20} color="#777" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <Text style={styles.text}>
+                    {item.city}, {item.state}
+                </Text>
+                <Text style={styles.text}>
+                    {item.country} - {item.zipCode}
+                </Text>
+                <Text style={styles.phone}>{item.phone}</Text>
+
+                {active && (
+                    <View style={styles.selectedTag}>
+                        <Text style={styles.selectedText}>Delivering here</Text>
+                    </View>
+                )}
+            </TouchableOpacity>
+        );
+    };
+
+    /* ================= UI ================= */
 
     return (
         <View style={styles.container}>
             <Text style={styles.header}>My Addresses</Text>
-            {addresses.length > 0 && (
-                <FlatList
-                    data={addresses}
-                    keyExtractor={(item) => item._id}
-                    renderItem={({ item }) => (
-                        <View
-                            style={[
-                                styles.addressCard,
-                                selectedAddress === item._id && styles.selectedCard,
-                            ]}
-                        >
-                            <View style={styles.addressRow}>
-                                <TouchableOpacity
-                                    style={{ flex: 1 }}
-                                    onPress={() => onSelectAddress(item)}
-                                >
-                                    <Text style={styles.title}>{item.street}</Text>
-                                    <Text style={styles.text}>{item.street}</Text>
-                                    <Text style={styles.text}>{item.city}, {item.state}</Text>
-                                    <Text style={styles.text}>Phone: {item.phone}</Text>
-                                </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setIsEditMode(true);
-                                        setSelectedAddress(item);
-                                        setNewAddress({
-                                            street: item.street,
-                                            city: item.city,
-                                            state: item.state,
-                                            country: item.country,
-                                            zipCode: item.zipCode,
-                                            phone: item.phone
-                                        });
-                                        setAddressModalVisible(true);
-                                    }}
-                                    style={styles.editButton}
-                                >
-                                    <Ionicons name="pencil" size={22} color="black" />
-                                </TouchableOpacity>
-                            </View>
+            <FlatList
+                data={addresses}
+                keyExtractor={(i) => i._id}
+                renderItem={renderItem}
+                contentContainerStyle={{ paddingBottom: 120 }}
+            />
 
-
-                        </View>
-                    )}
-                />
-            )}
-
-            <TouchableOpacity style={styles.addButton} onPress={() => {
-                setNewAddress({
-                    street: "",
-                    city: "",
-                    state: "",
-                    country: "",
-                    zipCode: "",
-                    phone: "",
-                });
-                setIsEditMode(false)
-                setAddressModalVisible(true);
-            }}>
-                <Text style={styles.addButtonText}>Add New Address</Text>
+            {/* ADD BUTTON */}
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => {
+                    setIsEditMode(false);
+                    setForm({
+                        street: "",
+                        city: "",
+                        state: "",
+                        country: "",
+                        zipCode: "",
+                        phone: "",
+                    });
+                    setBottomSheetVisible(true);
+                }}
+            >
+                <Text style={styles.addText}>+ Add New Address</Text>
             </TouchableOpacity>
-            <Modal visible={addressModalVisible} animationType="slide" transparent>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>{isEditMode ? "Edit Address" : "Add Address"}</Text>
 
-                        <Text style={styles.inputLabel}>Street</Text>
-                        <TextInput style={styles.input} value={newAddress.street}
-                            onChangeText={(t) => setNewAddress({ ...newAddress, street: t })} />
+            {/* BOTTOM SHEET */}
+            <Modal visible={bottomSheetVisible} animationType="slide" transparent>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    style={styles.sheetOverlay}
+                >
+                    <View style={styles.sheet}>
+                        <View style={styles.dragHandle} />
 
-                        <Text style={styles.inputLabel}>City</Text>
-                        <TextInput style={styles.input} value={newAddress.city}
-                            onChangeText={(t) => setNewAddress({ ...newAddress, city: t })} />
-
-                        <Text style={styles.inputLabel}>State</Text>
-                        <TextInput style={styles.input} value={newAddress.state}
-                            onChangeText={(t) => setNewAddress({ ...newAddress, state: t })} />
-
-                        <Text style={styles.inputLabel}>Country</Text>
-                        <TextInput style={styles.input} value={newAddress.country}
-                            onChangeText={(t) => setNewAddress({ ...newAddress, country: t })} />
-
-                        <Text style={styles.inputLabel}>Zip Code</Text>
-                        <TextInput style={styles.input} keyboardType="numeric"
-                            value={newAddress.zipCode}
-                            onChangeText={(t) => setNewAddress({ ...newAddress, zipCode: t })} />
-
-                        <Text style={styles.inputLabel}>Phone</Text>
-                        <View style={styles.phoneRow}>
-                            <Text style={styles.countryCode}>+91</Text>
-                            <TextInput style={[styles.input, { flex: 1 }]} keyboardType="number-pad"
-                                value={newAddress.phone}
-                                onChangeText={(t) => setNewAddress({ ...newAddress, phone: t })} />
-                        </View>
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.actionButton} onPress={saveAddress}>
-                                <Text style={styles.actionText}>{isEditMode ? "Update" : "Save"}</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.actionButton} onPress={() => setAddressModalVisible(false)}>
-                                <Text style={styles.actionText}>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            <Modal visible={noAddressPopup} transparent animationType="fade">
-                <View style={styles.popupContainer}>
-                    <View style={styles.popup}>
-                        <Text style={styles.popupTitle}>No Addresses Found</Text>
-                        <Text style={styles.popupText}>
-                            You don't have any saved addresses. Please add one.
+                        <Text style={styles.sheetTitle}>
+                            {isEditMode ? "Edit Address" : "Add New Address"}
                         </Text>
 
-                        <TouchableOpacity
-                            style={styles.popupButton}
-                            onPress={() => {
-                                setNoAddressPopup(false);
-                                goToAddAddress();
-                            }}
-                        >
-                            <Text style={styles.popupButtonText}>Add Address</Text>
+                        {/* STREET */}
+                        <Text style={styles.label}>Street Address</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="House no, Building, Area"
+                            value={form.street}
+                            onChangeText={(t) => setForm({ ...form, street: t })}
+                        />
+
+                        {/* CITY + STATE */}
+                        <View style={styles.row}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.label}>City</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="City"
+                                    value={form.city}
+                                    onChangeText={(t) => setForm({ ...form, city: t })}
+                                />
+                            </View>
+
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                <Text style={styles.label}>State</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="State"
+                                    value={form.state}
+                                    onChangeText={(t) => setForm({ ...form, state: t })}
+                                />
+                            </View>
+                        </View>
+
+                        {/* COUNTRY + ZIP */}
+                        <View style={styles.row}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.label}>Country</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Country"
+                                    value={form.country}
+                                    onChangeText={(t) => setForm({ ...form, country: t })}
+                                />
+                            </View>
+
+                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                <Text style={styles.label}>ZIP Code</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="ZIP"
+                                    maxLength={6}
+                                    keyboardType="numeric"
+                                    value={form.zipCode}
+                                    onChangeText={(t) => setForm({ ...form, zipCode: t })}
+                                />
+                            </View>
+                        </View>
+
+                        {/* PHONE */}
+                        <Text style={styles.label}>Phone Number</Text>
+                        <View style={styles.phoneRow}>
+                            <Text style={styles.countryCode}>+91</Text>
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="Mobile number"
+                                keyboardType="phone-pad"
+                                maxLength={10}
+                                value={form.phone}
+                                onChangeText={(t) => setForm({ ...form, phone: t })}
+                            />
+                        </View>
+
+                        {/* SAVE BUTTON */}
+                        <TouchableOpacity style={styles.saveBtn} onPress={saveAddress}>
+                            <Text style={styles.saveText}>
+                                {isEditMode ? "Update Address" : "Save Address"}
+                            </Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.cancelBtn}
+                            onPress={() => setBottomSheetVisible(false)}
+                        >
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
 }
 
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-    addressRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 12,
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 10,
-        marginBottom: 12,
-        backgroundColor: "#fff",
-    },
-    editButton: {
-        padding: 8,
-    },
+    container: { flex: 1, backgroundColor: "#f6f6f6", padding: 16 },
 
-    modalContainer: {
-        flex: 1,
-        justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.5)",
+    header: { fontSize: 22, fontWeight: "700", marginBottom: 10 },
+
+    card: {
+        backgroundColor: "#fff",
         padding: 16,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "#eee",
+        marginBottom: 14,
     },
 
-    modalContent: {
-        backgroundColor: "#fff",
-        padding: 20,
+    activeCard: {
+        backgroundColor: "rgba(232, 169, 169, 0.04)",
+    },
+
+    cardHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+
+    street: { fontSize: 16, fontWeight: "700", flex: 1 },
+
+    iconRow: { flexDirection: "row" },
+
+    text: { color: "#555", marginTop: 4 },
+
+    phone: { marginTop: 6, fontWeight: "600" },
+
+    selectedTag: {
+        marginTop: 10,
+        alignSelf: "flex-start",
+        backgroundColor: "#e8f5e9",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+
+    selectedText: {
+        color: "green",
+        fontSize: 12,
+        fontWeight: "600",
+    },
+
+    addButton: {
+        position: "absolute",
+        bottom: 20,
+        left: 16,
+        right: 16,
+        backgroundColor: "#000",
+        paddingVertical: 14,
         borderRadius: 12,
     },
 
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#000",
-        marginBottom: 16,
+    addText: {
+        color: "#fff",
         textAlign: "center",
+        fontSize: 16,
+        fontWeight: "700",
     },
 
-    inputLabel: {
-        fontSize: 14,
-        color: "#000",
-        fontWeight: "500",
-        marginBottom: 4,
+    /* BOTTOM SHEET */
+
+    sheetOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.4)",
+        justifyContent: "flex-end",
+    },
+
+    sheet: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+    },
+
+    dragHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: "#ccc",
+        alignSelf: "center",
+        borderRadius: 2,
+        marginBottom: 10,
+    },
+
+    sheetTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 12,
     },
 
     input: {
         borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 8,
-        padding: 10,
-        fontSize: 15,
-        color: "#000",
-        marginBottom: 12,
+        borderColor: "#ddd",
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 10,
     },
 
-    // Phone Input Row
+    label: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#333",
+        marginBottom: 4,
+        marginTop: 10,
+    },
+
+    row: {
+        flexDirection: "row",
+    },
+
     phoneRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
     },
 
     countryCode: {
+        marginRight: 10,
         fontSize: 15,
-        color: "#000",
-        marginRight: 8,
         fontWeight: "600",
     },
 
-    // Modal Buttons Row
-    modalActions: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 10,
-    },
 
-    actionButton: {
-        flex: 1,
+
+    saveBtn: {
         backgroundColor: "#000",
-        paddingVertical: 12,
-        borderRadius: 8,
-        marginHorizontal: 5,
+        padding: 15,
+        borderRadius: 12,
+        marginTop: 20,
     },
 
-    actionText: {
+    saveText: {
         color: "#fff",
+        fontWeight: "700",
         textAlign: "center",
         fontSize: 16,
+    },
+
+    cancelBtn: {
+        marginTop: 14,
+    },
+
+    cancelText: {
+        textAlign: "center",
+        color: "#666",
         fontWeight: "600",
     },
 
-    addAddressBtn: {
-        backgroundColor: "#000",
-        padding: 12,
-        marginTop: 10,
-        borderRadius: 8,
-        alignItems: "center",
-    },
-
-    addAddressText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        padding: 15,
-    },
-    header: {
-        fontSize: 22,
-        fontWeight: '700',
-        marginBottom: 10,
-        color: '#000',
-    },
-    addressCard: {
-        backgroundColor: '#f9f9f9',
-        padding: 15,
-        marginBottom: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#ddd',
-    },
-    selectedCard: {
-        borderColor: '#000',
-        backgroundColor: '#e8e8e8',
-    },
-    title: {
-        fontSize: 17,
-        fontWeight: '600',
-        color: '#000',
-    },
-    text: {
-        color: '#222',
-        marginTop: 2,
-    },
-
-    editText: {
-        color: '#000',
-        fontWeight: '600',
-    },
-    addButton: {
-        marginTop: 15,
-        backgroundColor: '#000',
-        padding: 14,
-        borderRadius: 10,
-        marginBottom: 50
-    },
-    addButtonText: {
-        textAlign: 'center',
-        color: '#fff',
-        fontWeight: '700',
-    },
-    popupContainer: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    popup: {
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 25,
-    },
-    popupTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#000',
-    },
-    popupText: {
-        marginTop: 10,
-        color: '#333',
-    },
-    popupButton: {
-        marginTop: 20,
-        backgroundColor: '#000',
-        padding: 12,
-        borderRadius: 10,
-    },
-    popupButtonText: {
-        textAlign: 'center',
-        color: '#fff',
-        fontWeight: '700',
-    },
 });
