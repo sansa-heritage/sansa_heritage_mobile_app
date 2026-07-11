@@ -1,44 +1,59 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Button, Alert } from 'react-native';
-import FontAwesome from "react-native-vector-icons/FontAwesome";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { StackActions, useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+} from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { registerWithGoogle } from './apiHelper/apiService';
 import { authService } from './apiHelper/AuthService';
 import { RootStackParamList } from './models/types';
+import DeviceInfo from 'react-native-device-info';
 
+// ✅ Configure Google Sign-In (No TypeScript errors)
 GoogleSignin.configure({
-  webClientId:
-    '147593176805-qsl4i8ctc9uejohoqhgdcio8spi1b4nt.apps.googleusercontent.com',
-  iosClientId:
-    '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
+  webClientId: '796225170157-t701a8g2l8if1ikp82qt4lbu9rp5belo.apps.googleusercontent.com',
+  iosClientId: '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
   offlineAccess: false,
 });
-// 147593176805-tsuet5qaqe17d5hs9melpcal39gbs6km.apps.googleusercontent.com - android
-// 147593176805-qsl4i8ctc9uejohoqhgdcio8spi1b4nt.apps.googleusercontent.com - web
+
 interface LoginProps {
   onLoginSuccess: () => void;
-  navigation: any;
 }
+
 const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const [errorMsg, setError] = useState<string | null>(null)
+  const [errorMsg, setError] = useState<string | null>(null);
   const [secureText, setSecureText] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const appVersion = DeviceInfo.getVersion();
 
   const onSignIn = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    
     try {
       await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      const userInfo = await GoogleSignin.getCurrentUser();
+      const userInfo = await GoogleSignin.signIn();
       console.log('User Info:', userInfo);
 
-      if (!userInfo) throw new Error("Google login failed");
+      if (!userInfo) throw new Error('Google login failed');
 
       const payload = {
         googleId: userInfo.user.id,
@@ -48,14 +63,13 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       const res = await registerWithGoogle(payload);
       if (res) {
-        console.log("Google login response:", res);
+        console.log('Google login response:', res);
 
         const token = res?.token || res?.idToken;
         const username = res?.username || userInfo.user.name;
         const email = res?.email || userInfo.user.email;
         const userId = res?._id || '';
 
-        // Store all required info in AsyncStorage
         await AsyncStorage.multiSet([
           ['authToken', token],
           ['userID', userId],
@@ -63,23 +77,35 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           ['email', email],
         ]);
 
-        // Optional: store in authService if needed
         await authService.login(token, username, email);
 
-        // Navigate after storage
         onLoginSuccess();
-        navigation.dispatch(StackActions.replace('Dashboard'));
       }
     } catch (error: any) {
       console.log('Google Sign-in Error:', error);
-      Alert.alert('Login Failed', error.message || 'Unknown error');
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Cancelled', 'Google Sign-In was cancelled.');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('In Progress', 'Google Sign-In is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services are not available.');
+      } else {
+        Alert.alert('Login Failed', error.message || 'Unknown error');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
     try {
       if (!email || !password) {
-        setError("All fields are required");
+        setError('All fields are required');
+        setIsLoading(false);
         return;
       }
 
@@ -94,10 +120,10 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       if (!response.ok || !data.token) {
         setError(data.message || 'Invalid credentials');
+        setIsLoading(false);
         return;
       }
 
-      // Save all required info
       const token = data.token;
       const username = data.username || '';
       const emailAddr = data.email || '';
@@ -110,92 +136,116 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         ['email', emailAddr],
       ]);
 
-      // Optional: store in authService
       await authService.login(token, username, emailAddr);
 
       setError('');
       onLoginSuccess();
-      navigation.dispatch(StackActions.replace('Dashboard'));
 
     } catch (error) {
       console.error('Error during login:', error);
       setError('Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
   };
+
   const handleSignUp = () => {
     navigation.navigate('SignUp');
   };
+
   const handleForgotPassword = () => {
     navigation.navigate('ForgotPassword');
   };
 
   return (
     <View style={styles.container}>
-      <Image style={styles.brandLogo} source={require('../assets/images/logo.png')} />
-      <Text style={styles.title}>Log in</Text>
+      <Image
+        style={styles.brandLogo}
+        source={require('../assets/images/logo.png')}
+      />
 
-      <View style={styles.inputContainer}>
-        <FontAwesome name="envelope" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#888"
-        />
-      </View>
+      <View style={styles.card}>
+        <Text style={styles.title}>Welcome Back 👋</Text>
+        <Text style={styles.subtitle}>Login to your account</Text>
 
-      <View style={styles.inputContainer}>
-        <MaterialCommunityIcons name="lock" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry={secureText}
-          value={password}
-          onChangeText={setPassword}
-          placeholderTextColor="#888"
-        />
+        <View style={styles.inputWrapper}>
+          <FontAwesome name="envelope" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        <View style={styles.inputWrapper}>
+          <MaterialCommunityIcons name="lock-outline" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry={secureText}
+            value={password}
+            onChangeText={setPassword}
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity onPress={() => setSecureText(!secureText)}>
+            <MaterialCommunityIcons
+              name={secureText ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color="#777"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
 
         <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setSecureText(!secureText)}
+          onPress={handleForgotPassword}
+          style={styles.forgotWrapper}
         >
-          <MaterialCommunityIcons
-            name={secureText ? "eye-off" : "eye"}
-            size={24}
-            color="gray"
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          <Text style={styles.loginButtonText}>
+            {isLoading ? 'Logging in...' : 'Log In'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.orText}>OR</Text>
+          <View style={styles.line} />
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.googleButton, isLoading && styles.googleButtonDisabled]} 
+          onPress={onSignIn}
+          disabled={isLoading}
+        >
+          <Image
+            source={require('../assets/images/Google.png')}
+            style={styles.googleIcon}
           />
+          <Text style={styles.googleText}>Continue with Google</Text>
         </TouchableOpacity>
       </View>
 
-      <View>
-        {errorMsg &&
-          <Text style={styles.error}>{errorMsg}</Text>
-        }
-      </View>
-      <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
-        <TouchableOpacity onPress={handleForgotPassword}>
-          <Text style={{ color: '#007AFF', fontWeight: '500' }}>
-            Forgot password?
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Log in</Text>
-      </TouchableOpacity>
-      <Text style={styles.orText}>--------------- Or --------------</Text>
-      <TouchableOpacity style={styles.socialButton} onPress={onSignIn}>
-        <Image
-          source={require('../assets/images/Google.png')}   
-          style={[styles.socialIcon, { width: 20, height: 20 }]}
-        />
-        <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
-      <Text style={styles.signupText} onPress={handleSignUp}>
-        Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
+      <Text style={styles.signupText}>
+        Don’t have an account?{' '}
+        <Text style={styles.signupLink} onPress={handleSignUp}>
+          Sign Up
+        </Text>
       </Text>
+
+      <Text style={styles.versionText}>Version {appVersion}</Text>
     </View>
   );
 };
@@ -203,99 +253,141 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+  },
+  brandLogo: {
+    width: 220,
+    height: 45,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 30,
+  },
+  card: {
     backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(149, 12, 33, 0.12)',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111',
+    textAlign: 'center',
   },
-  inputContainer: {
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
     marginBottom: 15,
-    position: 'relative',
-  },
-  icon: {
-    position: 'absolute',
-    left: 10,
-    zIndex: 1,
-
-  },
-  socialIcon: {
-    marginRight: 10,
-  },
-  error: {
-    color: 'red',
-    padding: 10
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 10,
-    zIndex: 1,
+    height: 50,
+    backgroundColor: '#FAFAFA',
   },
   input: {
     flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingLeft: 40,
-    paddingRight: 40,
-    borderRadius: 10,
+    paddingHorizontal: 10,
     color: '#000',
+    fontSize: 15,
   },
-  loginButton: {
-  backgroundColor: '#151515',
-  paddingVertical: 15,    
-  paddingHorizontal: 15,  
-  borderRadius: 30,
-  width: '100%',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-  loginButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  orText: {
-    marginTop: 20,
+  error: {
+    color: '#E53935',
+    fontSize: 13,
     marginBottom: 10,
   },
-  socialButton: {
-  flexDirection: "row",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#ccc",
-  borderRadius: 30,
-  paddingVertical: 15,     
-  paddingHorizontal: 15,
-  backgroundColor: "#fff",
-  justifyContent: "center",
-  width: '100%',
-  gap: 10,
-},
-  buttonText: {
+  forgotWrapper: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  forgotText: {
+    color: '#2563EB',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loginButton: {
+    backgroundColor: '#151515',
+    height: 50,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#666',
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: '#fff',
     fontSize: 16,
-    color: "#151515",
-    fontWeight: "500",
-    marginRight: 40
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  orText: {
+    marginHorizontal: 10,
+    fontSize: 12,
+    color: '#888',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 30,
+    height: 50,
+    backgroundColor: '#fff',
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 10,
+  },
+  googleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111',
   },
   signupText: {
-    marginTop: 20,
+    textAlign: 'center',
+    marginTop: 25,
+    fontSize: 14,
+    color: '#555',
   },
   signupLink: {
-    color: 'blue',
-    textDecorationLine: 'none',
+    color: '#2563EB',
+    fontWeight: '600',
   },
-  brandLogo: {
-    width: 300,
-    height: 50,
-    resizeMode: "contain",
-    marginBottom: 20,
+  versionText: {
+    textAlign: 'center',
+    marginTop: 15,
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 });
 
