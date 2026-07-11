@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
-    ScrollView,
     FlatList,
     TouchableOpacity,
     Image,
@@ -21,20 +20,49 @@ const { width } = Dimensions.get("window");
 import { StyleSheet } from "react-native";
 import { RootStackParamList } from "./models/types";
 
+// Base URL for images
+const BASE_URL = 'https://ecappbe-sanasaheritages-projects.vercel.app';
+
+// Helper function to get image source
+const getImageSource = (item: any) => {
+    // Check images array first (API returns images array)
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+        const image = item.images[0];
+        if (image) {
+            if (image.startsWith('data:image')) return { uri: image };
+            if (image.startsWith('http')) return { uri: image };
+            if (image.startsWith('/')) return { uri: `${BASE_URL}${image}` };
+            return { uri: `${BASE_URL}/${image}` };
+        }
+    }
+    // Fallback to single image field
+    if (item.image) {
+        if (item.image.startsWith('data:image')) return { uri: item.image };
+        if (item.image.startsWith('http')) return { uri: item.image };
+        if (item.image.startsWith('/')) return { uri: `${BASE_URL}${item.image}` };
+        return { uri: `${BASE_URL}/${item.image}` };
+    }
+    // Default placeholder
+    return require("../assets/images/logo.png");
+};
+
 export default function CategoryScreen({ route }) {
     const { mainCategory } = route.params;
     const [products, setProducts] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
-    const [priceRange, setPriceRange] = useState([0, 0]);
-    const [distanceRange, setDistanceRange] = useState([0, 0]);
+    const [priceRange, setPriceRange] = useState([0, 5000]);
+    const [distanceRange, setDistanceRange] = useState([500, 2000]);
     const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+    
     function addToFavorites(_id: number | undefined) {
         addToFavoritesList(_id)
     }
+    
     const handleSearchChange = (text: string) => setSearchText(text);
+    
     const redirectToProductDetails = (id) => {
         navigation.navigate('ProductDetails', { itemId: id });
     };
@@ -45,21 +73,30 @@ export default function CategoryScreen({ route }) {
 
     const fetchProducts = async () => {
         try {
-            setLoading(true); // Show loader
+            setLoading(true);
 
             const params: any = {};
+            if (mainCategory === "Trending") {
+                params.isTrending = true;
+            } else if (mainCategory === "New Arrival") {
+                params.isNewArrival = true;
+            } else if (mainCategory === "Sarees" || mainCategory === "Dress Materials" || 
+                       mainCategory === "Kurta Sets" || mainCategory === "Dupattas") {
+                params.category = mainCategory;
+            }
 
-            if (mainCategory) params.mainCategory = mainCategory;
             if (searchText) params.search = searchText;
             if (selectedCategory) params.category = selectedCategory;
-            if (priceRange?.[0]) params.minPrice = priceRange[0];
-            if (priceRange?.[1]) params.maxPrice = priceRange[1];
+            if (priceRange?.[0] && priceRange[0] > 0) params.minPrice = priceRange[0];
+            if (priceRange?.[1] && priceRange[1] > 0) params.maxPrice = priceRange[1];
 
             const queryString = Object.keys(params)
                 .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
                 .join("&");
 
             const url = `https://ecappbe-sanasaheritages-projects.vercel.app/api/products${queryString ? "?" + queryString : ""}`;
+
+            console.log("CATEGORY API:", url); 
 
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -69,10 +106,9 @@ export default function CategoryScreen({ route }) {
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false); // Hide loader
+            setLoading(false);
         }
     };
-
 
     const renderPrice = (price, discount) => {
         const discountedPrice = price - (price * discount / 100);
@@ -86,16 +122,16 @@ export default function CategoryScreen({ route }) {
             </View>
         );
     };
-    const renderProductCard = (item) => (
+
+    const renderProductCard = ({ item }) => (
         <TouchableOpacity
             style={styles.newArrivalItem}
             onPress={() => redirectToProductDetails(item._id)}
         >
-            {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
-            ) : (
-                <Image source={require("../assets/images/logo.png")} style={styles.itemImage} />
-            )}
+            <Image 
+                source={getImageSource(item)} 
+                style={styles.itemImage} 
+            />
             <TouchableOpacity
                 style={styles.favoriteIcon}
                 onPress={() => addToFavorites(item._id)}
@@ -104,14 +140,14 @@ export default function CategoryScreen({ route }) {
             </TouchableOpacity>
             <View style={styles.itemContainer}>
                 <Text style={styles.itemTitle}>
-                    {item.name.length > 20 ? item.name.substring(0, 15) + "..." : item.name}
+                    {item.name?.length > 20 ? item.name.substring(0, 15) + "..." : item.name}
                 </Text>
                 <Text style={styles.itemDescription}>
                     {item?.description?.length > 20
                         ? item?.description?.substring(0, 18) + "..."
                         : item?.description}
                 </Text>
-                {renderPrice(item.price, item.discount)}
+                {renderPrice(item.price, item.discountPercent)}
                 {item.rating !== undefined && <Rating value={item.rating} />}
             </View>
         </TouchableOpacity>
@@ -122,52 +158,70 @@ export default function CategoryScreen({ route }) {
         fetchProducts();
     };
 
+    const clearFilters = () => {
+        setSearchText("");
+        setSelectedCategory("");
+        setPriceRange([0, 5000]);
+        setDistanceRange([500, 2000]);
+        setModalVisible(false);
+        fetchProducts();
+    };
+
+    // Header component for the FlatList
+    const ListHeaderComponent = () => (
+        <>
+            {/* Header */}
+            <View style={styles.header}>
+                <Text style={{ marginLeft: 10, fontSize: 20, fontWeight: "bold" }}>
+                    {mainCategory === "New Arrival" ? "New Arrival" : mainCategory === "Trending" ? "Trending" : mainCategory}
+                </Text>
+            </View>
+
+            {/* Search */}
+            <View style={styles.searchSection}>
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search items..."
+                    value={searchText}
+                    onChangeText={handleSearchChange}
+                />
+                <TouchableOpacity
+                    style={styles.searchIconWrapper}
+                    onPress={() => setModalVisible(true)}
+                >
+                    <MaterialIcons name="filter-list" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+        </>
+    );
+
+    // Empty component when no products
+    const ListEmptyComponent = () => (
+        <Text style={styles.seeAllText}>No Records Found</Text>
+    );
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#000" />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
-            {loading ? (
-                <ActivityIndicator size="large" color="#000" />
-            ) : (
+            <FlatList
+                data={products}
+                keyExtractor={(item, index) => `${item._id}-${index}`}
+                numColumns={2}
+                columnWrapperStyle={styles.columnWrapper}
+                renderItem={renderProductCard}
+                ListHeaderComponent={ListHeaderComponent}
+                ListEmptyComponent={ListEmptyComponent}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContentContainer}
+            />
 
-
-                <ScrollView>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <Text style={{ marginLeft: 10, fontSize: 20, fontWeight: "bold" }}>
-                            {mainCategory === "newArrival" ? "New Arrival" : mainCategory === "trending" ? "Trending" : mainCategory}
-                        </Text>
-                    </View>
-
-                    {/* Search */}
-                    <View style={styles.searchSection}>
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search items..."
-                            value={searchText}
-                            onChangeText={handleSearchChange}
-                        />
-
-                        <TouchableOpacity
-                            style={styles.searchIconWrapper}
-                            onPress={() => setModalVisible(true)}
-                        >
-                            <MaterialIcons name="filter-list" size={24} color="white" />
-                        </TouchableOpacity>
-                    </View>
-                    {/* Products List */}
-                    {products.length === 0 ? (
-                        <Text style={styles.seeAllText}>No Records found</Text>
-                    ) : (
-                        <FlatList
-                            nestedScrollEnabled
-                            data={products}
-                            keyExtractor={(item, index) => index.toString()}
-                            numColumns={2}
-                            columnWrapperStyle={styles.columnWrapper}
-                            renderItem={({ item }) => renderProductCard(item)}
-                        />
-                    )}
-                </ScrollView>
-            )}
             {/* Filter Modal */}
             <Modal
                 animationType="slide"
@@ -177,22 +231,38 @@ export default function CategoryScreen({ route }) {
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Filters</Text>
+                        <View style={styles.modalHeader}>
+                            <TouchableOpacity onPress={clearFilters}>
+                                <Text style={styles.clearText}>Clear</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.modalTitle}>Filters</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <MaterialIcons name="close" size={24} color="black" />
+                            </TouchableOpacity>
+                        </View>
 
                         {/* Price Slider */}
-                        <Text style={styles.filterSectionTitle}>Pricing</Text>
-                        <View style={styles.sliderSection}>
-                            <Text style={styles.sliderLabel}>${priceRange[0]}</Text>
-                            <Slider
-                                style={styles.slider}
-                                minimumValue={50}
-                                maximumValue={200}
-                                value={priceRange[0]}
-                                onValueChange={(value) => setPriceRange([value, priceRange[1]])}
-                                minimumTrackTintColor="#ff6f61"
-                            />
-                            <Text style={styles.sliderLabel}>${priceRange[1]}</Text>
+                        <Text style={styles.filterSectionTitle}>Price Range</Text>
+                        <View style={styles.priceHeader}>
+                            <Text style={styles.priceText}>Min: ₹{priceRange[0]}</Text>
+                            <Text style={styles.priceText}>Max: ₹{priceRange[1]}</Text>
                         </View>
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={10000}
+                            value={priceRange[0]}
+                            onValueChange={(value) => setPriceRange([Math.round(value), priceRange[1]])}
+                            minimumTrackTintColor="#ff6f61"
+                        />
+                        <Slider
+                            style={styles.slider}
+                            minimumValue={0}
+                            maximumValue={10000}
+                            value={priceRange[1]}
+                            onValueChange={(value) => setPriceRange([priceRange[0], Math.round(value)])}
+                            minimumTrackTintColor="#ff6f61"
+                        />
 
                         {/* Distance Slider */}
                         <Text style={styles.filterSectionTitle}>Distance</Text>
@@ -203,7 +273,7 @@ export default function CategoryScreen({ route }) {
                                 minimumValue={500}
                                 maximumValue={2000}
                                 value={distanceRange[0]}
-                                onValueChange={(value) => setDistanceRange([value, distanceRange[1]])}
+                                onValueChange={(value) => setDistanceRange([Math.round(value), distanceRange[1]])}
                                 minimumTrackTintColor="#ff6f61"
                             />
                             <Text style={styles.sliderLabel}>{distanceRange[1]}m</Text>
@@ -224,6 +294,14 @@ export const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
         paddingHorizontal: 10,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    listContentContainer: {
+        paddingBottom: 20,
     },
     header: {
         flexDirection: "row",
@@ -303,6 +381,8 @@ export const styles = StyleSheet.create({
     seeAllText: {
         color: "#ff6f61",
         fontWeight: "bold",
+        textAlign: "center",
+        marginTop: 20,
     },
     columnWrapper: {
         justifyContent: "space-between",
@@ -406,6 +486,15 @@ export const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "bold",
         marginVertical: 5,
+    },
+    priceHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+    },
+    priceText: {
+        fontSize: 14,
+        color: "#666",
     },
     categoryFilter: {
         flexDirection: "row",
