@@ -1,84 +1,3 @@
-// import { useNavigation } from '@react-navigation/native';
-// import { StackNavigationProp } from '@react-navigation/stack';
-// import React from 'react';
-// import { View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-// import { RootStackParamList } from './(tabs)/types';
-
-// const SuccessPage: React.FC = () => {
-//   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-//   const gotToHome = () => {
-//     navigation.navigate('Dashboard');
-//   }
-//   return (
-//     <ScrollView contentContainerStyle={styles.container}>
-//       <View style={styles.successIcon}>
-//         <Image source={require('../assets/images/giphy.gif')} style={styles.image} />
-//       </View>
-//       <Text style={styles.title}>Congratulations!</Text>
-//       <Text style={styles.message}>
-//         Payment is the transfer of money services in exchange product or Payments
-//       </Text>
-//       <TouchableOpacity style={styles.button} onPress={() => { /* Handle get receipt action */ }}>
-//         <Text style={styles.buttonText}>Get your receipt</Text>
-//       </TouchableOpacity>
-//       <TouchableOpacity style={styles.backButton} onPress={gotToHome}>
-//         <Text style={styles.backButtonColor}>Back to Home</Text>
-//       </TouchableOpacity>
-//     </ScrollView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flexGrow: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: '#fff',
-//     paddingVertical: 20, // Add some vertical padding
-//   },
-//   successIcon: {
-//     marginBottom: 32,
-//   },
-//   image: {
-//     width: 100, // Adjust width as needed
-//     height: 100, // Adjust height as needed
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     marginBottom: 16,
-//   },
-//   message: {
-//     fontSize: 16,
-//     marginBottom: 32,
-//     textAlign: 'center',
-//   },
-//   button: {
-//     backgroundColor: '#151515',
-//     padding: 16,
-//     borderRadius: 33,
-//     width: '80%',
-//     alignItems: 'center',
-//     marginTop: 5,
-//   },
-//   backButton: {
-//     backgroundColor: '#FFE9E2',
-//     padding: 16,
-//     borderRadius: 33,
-//     width: '80%',
-//     alignItems: 'center',
-//     marginTop: 10, // Add some space between buttons
-//   },
-//   backButtonColor: {
-//     color: '#F67952',
-//   },
-//   buttonText: {
-//     color: 'white',
-//     fontSize: 18,
-//   },
-// });
-
-// export default SuccessPage;
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -111,6 +30,8 @@ const PaymentPage: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
 
   const {
     amount = 0,
@@ -134,7 +55,7 @@ const PaymentPage: React.FC = () => {
   // STEP 1: Create Razorpay Order using apiService
   const createOrderOnBackend = async (): Promise<string | null> => {
     try {
-      console.log('📦 Creating order for amount:', finalAmount);
+      console.log('📦 Creating order for amount (rupees):', finalAmount);
       
       const result = await createRazorpayOrder(finalAmount);
       console.log('Order response:', result);
@@ -154,13 +75,18 @@ const PaymentPage: React.FC = () => {
     }
   };
 
-  // STEP 2: Open Razorpay Checkout
+  // STEP 2: Open Razorpay Checkout (COMPLETE FIXED VERSION)
   const openRazorpayCheckout = async (razorpayOrderId: string) => {
     const shippingAddress = address || (await getStoredAddress());
 
+    // ✅ Convert rupees to paise (Razorpay expects amount in paise)
+    const amountInPaise = Math.round(finalAmount * 100);
+    console.log('💰 Amount in rupees:', finalAmount);
+    console.log('💰 Amount in paise:', amountInPaise);
+
     const options = {
       key: RAZORPAY_TEST_KEY,
-      amount: finalAmount * 100,
+      amount: amountInPaise, // ✅ Send in paise
       currency: 'INR',
       name: 'Sansa Heritage Hub',
       description: `${productName} - Order Payment`,
@@ -177,44 +103,145 @@ const PaymentPage: React.FC = () => {
           : 'No address',
       },
       theme: { color: '#F67952' },
-      modal: { backdropclose: false },
+      modal: { 
+        backdropclose: false,
+        confirm_close: true,
+      },
     };
 
-    console.log('🚀 Opening Razorpay checkout with order ID:', razorpayOrderId);
+    console.log('🚀 Opening Razorpay checkout with:', {
+      orderId: razorpayOrderId,
+      amount: options.amount,
+      currency: options.currency,
+    });
 
     try {
       const paymentData = await RazorpayCheckout.open(options);
       console.log('Payment success:', paymentData);
 
-      await verifyPaymentOnBackend({
-        orderId: razorpayOrderId,
-        paymentId: paymentData.razorpay_payment_id,
-        signature: paymentData.razorpay_signature,
-      });
+      if (paymentData && paymentData.razorpay_payment_id) {
+        setIsPaymentCompleted(true);
+        await verifyPaymentOnBackend({
+          orderId: razorpayOrderId,
+          paymentId: paymentData.razorpay_payment_id,
+          signature: paymentData.razorpay_signature,
+        });
+      } else {
+        Alert.alert(
+          'Payment Status',
+          'Payment was processed but we are waiting for confirmation.',
+          [{ text: 'OK', onPress: () => navigation.navigate('Dashboard') }]
+        );
+      }
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('Payment error details:', JSON.stringify(error, null, 2));
+      
+      // Comprehensive error parsing
+      let errorCode = '';
+      let errorDescription = '';
+      
+      // Handle different error formats
+      if (typeof error === 'object') {
+        // Check nested error object
+        if (error?.error) {
+          errorCode = error.error.code || error.error.error?.code || '';
+          errorDescription = error.error.description || error.error.message || error.error.error?.description || '';
+        }
+        // Check direct properties
+        if (!errorCode && error?.code) {
+          errorCode = error.code;
+          errorDescription = error.description || error.message || '';
+        }
+        // Check if error is a string inside object
+        if (!errorCode && error?.error && typeof error.error === 'string') {
+          try {
+            const parsed = JSON.parse(error.error);
+            errorCode = parsed?.code || parsed?.error?.code || '';
+            errorDescription = parsed?.description || parsed?.error?.description || '';
+          } catch (e) {
+            errorDescription = error.error;
+          }
+        }
+      }
+      
+      // If error is a string
+      if (typeof error === 'string') {
+        try {
+          const parsed = JSON.parse(error);
+          errorCode = parsed?.code || parsed?.error?.code || '';
+          errorDescription = parsed?.description || parsed?.error?.description || error;
+        } catch (e) {
+          errorDescription = error;
+        }
+      }
 
-      if (error.code === 'PAYMENT_FAILED') {
+      // Check if it's a cancellation
+      const errorString = JSON.stringify(error).toLowerCase();
+      const isCancellation = 
+        errorString.includes('cancel') ||
+        errorString.includes('exit') ||
+        errorString.includes('user_cancelled') ||
+        errorString.includes('user cancelled') ||
+        errorCode === 'USER_CANCELLED' ||
+        errorCode === 'CANCELLED' ||
+        errorCode === 'PAYMENT_CANCELLED' ||
+        errorCode === 'back_pressed';
+
+      console.log('✅ Parsed - Code:', errorCode);
+      console.log('✅ Parsed - Description:', errorDescription);
+      console.log('✅ Is Cancellation:', isCancellation);
+
+      if (isCancellation) {
+        Alert.alert(
+          'Payment Cancelled',
+          'You have cancelled the payment process.',
+          [
+            { 
+              text: 'Go Back', 
+              onPress: () => navigation.goBack(),
+              style: 'cancel'
+            },
+            { 
+              text: 'Retry', 
+              onPress: () => handlePayment() 
+            }
+          ]
+        );
+      } else if (errorCode === 'PAYMENT_FAILED' || errorString.includes('failed')) {
         Alert.alert(
           'Payment Failed',
-          error.description || 'Your payment could not be processed.',
+          errorDescription || 'Your payment could not be processed. Please try again.',
           [
             { text: 'Retry', onPress: () => handlePayment() },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => navigation.goBack(),
-            },
-          ],
+            { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+          ]
         );
-      } else if (error.code === 'USER_CANCELLED') {
-        Alert.alert('Payment Cancelled', 'You cancelled the payment process.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+      } else if (errorCode === 'NETWORK_ERROR' || errorString.includes('network') || errorString.includes('connection')) {
+        Alert.alert(
+          'Network Error',
+          'Please check your internet connection and try again.',
+          [
+            { text: 'Retry', onPress: () => handlePayment() },
+            { text: 'Cancel', style: 'cancel', onPress: () => navigation.goBack() },
+          ]
+        );
+      } else if (errorCode === 'BAD_REQUEST_ERROR' || errorString.includes('bad_request')) {
+        Alert.alert(
+          'Payment Error',
+          errorDescription || 'There was an issue with your payment request. Please try again.',
+          [
+            { text: 'Retry', onPress: () => handlePayment() },
+            { text: 'Go Back', style: 'cancel', onPress: () => navigation.goBack() },
+          ]
+        );
       } else {
         Alert.alert(
           'Payment Error',
-          error.description || 'Something went wrong.',
+          errorDescription || 'Something went wrong. Please try again.',
+          [
+            { text: 'Retry', onPress: () => handlePayment() },
+            { text: 'Go Back', style: 'cancel', onPress: () => navigation.goBack() },
+          ]
         );
       }
     }
@@ -246,7 +273,7 @@ const PaymentPage: React.FC = () => {
         name: shippingAddress.name,
       };
 
-      console.log('🔐 Verifying payment');
+      console.log('🔐 Verifying payment with ID:', data.paymentId);
 
       const result = await verifyRazorpayPayment({
         razorpay_order_id: data.orderId,
@@ -292,6 +319,17 @@ const PaymentPage: React.FC = () => {
 
   // Main payment handler
   const handlePayment = async () => {
+    // Prevent multiple simultaneous payment attempts
+    if (isProcessing) {
+      console.log('⏳ Payment already in progress');
+      return;
+    }
+
+    if (isPaymentCompleted) {
+      console.log('✅ Payment already completed');
+      return;
+    }
+
     if (finalAmount <= 0) {
       Alert.alert('Invalid Amount', 'Please check your order total.');
       return;
@@ -313,6 +351,7 @@ const PaymentPage: React.FC = () => {
       return;
     }
 
+    setIsProcessing(true);
     setLoading(true);
     setRetryCount(prev => prev + 1);
 
@@ -325,6 +364,7 @@ const PaymentPage: React.FC = () => {
       console.error('Payment flow error:', error);
     } finally {
       setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -339,7 +379,7 @@ const PaymentPage: React.FC = () => {
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
-        if (!loading) {
+        if (!loading && !isProcessing && !isPaymentCompleted) {
           Alert.alert('Cancel Payment', 'Are you sure you want to cancel?', [
             { text: 'No', style: 'cancel' },
             {
@@ -354,7 +394,7 @@ const PaymentPage: React.FC = () => {
       },
     );
     return () => backHandler.remove();
-  }, [loading, navigation]);
+  }, [loading, navigation, isProcessing, isPaymentCompleted]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -405,7 +445,7 @@ const PaymentPage: React.FC = () => {
         </View>
       </View>
 
-      {!loading && (
+      {!loading && !isPaymentCompleted && (
         <TouchableOpacity style={styles.retryButton} onPress={handlePayment}>
           <Ionicons name="refresh-outline" size={20} color="#F67952" />
           <Text style={styles.retryButtonText}>Retry Payment</Text>
