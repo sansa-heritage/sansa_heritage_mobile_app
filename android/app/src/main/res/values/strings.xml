@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SansaHeritage</string>
+        <string name="default_notification_channel_id">sansa_notifications</string>
+
 </resources>
