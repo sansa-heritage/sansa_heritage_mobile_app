@@ -1,695 +1,676 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  TextInput,
-  FlatList,
-  ActivityIndicator,
-  Alert,
   ScrollView,
+  ActivityIndicator,
+  Image,
+  Alert,
+  BackHandler,
 } from 'react-native';
-
-import Ionicons from "react-native-vector-icons/Ionicons";
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import config from '../config/config';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image } from 'react-native';
-import { placeOrder } from './apiHelper/apiService';
-import { Address } from './models/address';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
 import { RootStackParamList } from './models/types';
+import { Address } from './models/address';
 
-const CheckoutScreen: React.FC = () => {
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  type ProductCheckoutRouteProp = RouteProp<RootStackParamList, 'CheckoutPage'>;
-  const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
-  const route = useRoute<ProductCheckoutRouteProp>();
-  // Destructure itemId from route.params
-  const { billingDetails } = route.params;
-  const totalPrice = billingDetails.valueOf() + 50;
-  const merchantId = "<<Your merchant Id>>";
-  const [newAddress, setNewAddress] = useState({
-    street: '',
-    city: '',
-    state: '',
-    country: '',
-    zipCode: '',
-    phone: ''
-  });
-  const [selectedAddressData, setSelectedAddressData] = useState<Address | null>(null); // For updating address
-  const [loading, setLoading] = useState(false);
+/* ================= TYPES ================= */
+
+type OrderConfirmRouteProp = RouteProp<RootStackParamList, 'CheckoutPage'>;
+
+/* ================= COMPONENT ================= */
+
+const OrderConfirmationScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const route = useRoute<OrderConfirmRouteProp>();
 
-  // Fetch addresses from API
-  const fetchAddresses = async () => {
-    const storedToken = await AsyncStorage.getItem('authToken');
-    setLoading(true);
-    try {
-      const response = await fetch(`${config.baseURL}api/auth/addresses`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${storedToken}`,
-        },
-      });
+  const [address, setAddress] = useState<Address | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('razorpay');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch addresses');
-      }
+  const amountPayable: number = Number(route.params?.billingDetails ?? 0);
 
-      const data = await response.json();
+  // Calculate final amount
+  const deliveryFee = amountPayable > 0 ? 50 : 0;
+  const gst = (amountPayable + deliveryFee) * 0.05;
+  const finalAmount = amountPayable + deliveryFee + gst;
 
-      setAddresses(data.addresses || []);
-    } catch (error: any) {
-    } finally {
-      setLoading(false);
+  /* ================= GET BUTTON TEXT BASED ON SELECTION ================= */
+  const getButtonText = () => {
+    if (selectedPaymentMethod === 'razorpay') {
+      return 'PROCEED TO PAYMENT';
+    } else if (selectedPaymentMethod === 'cod') {
+      return 'PLACE ORDER';
     }
+    return 'PROCEED TO PAYMENT';
   };
 
-  const addAddress = async () => {
-    const storedToken = await AsyncStorage.getItem('authToken');
-
-    if (
-      newAddress.street &&
-      newAddress.city &&
-      newAddress.state &&
-      newAddress.country &&
-      newAddress.zipCode &&
-      newAddress.phone
-    ) {
-      try {
-        const response = await fetch(`${config.baseURL}api/auth/addresses`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${storedToken}`,
-          },
-          body: JSON.stringify(newAddress),
-        });
-        if (response.ok) {
-          fetchAddresses();
-
-          setNewAddress({ street: '', city: '', state: '', country: '', zipCode: '', phone: '' });
-          setIsModalVisible(false);
-        } else {
-          Alert.alert('Error', 'Failed to add address');
-        }
-      } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to add address');
-      }
-    } else {
-      Alert.alert('Validation Error', 'All fields are required');
+  /* ================= GET BUTTON ICON ================= */
+  const getButtonIcon = () => {
+    if (selectedPaymentMethod === 'razorpay') {
+      return 'arrow-forward';
+    } else if (selectedPaymentMethod === 'cod') {
+      return 'checkmark-circle-outline';
     }
+    return 'arrow-forward';
   };
 
-  const updateAddress = async () => {
-    const storedToken = await AsyncStorage.getItem('authToken');
-
-    if (
-      newAddress.street &&
-      newAddress.city &&
-      newAddress.state &&
-      newAddress.country &&
-      newAddress.zipCode
-    ) {
-      try {
-        // Send a PUT request to the API with the updated address data
-        const response = await fetch(`${config.baseURL}api/auth/addresses/${selectedAddressData?._id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${storedToken}`,
-          },
-          body: JSON.stringify(newAddress),
-        });
-
-        if (response.ok) {
-          fetchAddresses();
-          setNewAddress({ street: '', city: '', state: '', country: '', zipCode: '', phone: '' });
-          setIsUpdateModalVisible(false);
-        } else {
-          Alert.alert('Error', 'Failed to update address');
-        }
-      } catch (error: any) {
-        Alert.alert('Error', error.message || 'Failed to update address');
-      }
-    } else {
-      Alert.alert('Validation Error', 'All fields are required');
-    }
-  };
-
-
-
+  /* ================= LOAD ADDRESS ================= */
 
   useEffect(() => {
-    fetchAddresses();
-    fetchSelectedAddress();
+    const loadSelectedAddress = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('selectedAddress');
+        if (stored) {
+          setAddress(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.log('Address load error', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSelectedAddress();
   }, []);
 
-  useEffect(() => {
-    if (!isModalVisible) {
-      setNewAddress({
-        street: '',
-        city: '',
-        state: '',
-        country: '',
-        zipCode: '',
-        phone: ''
-      });
+  /* ================= BACK BUTTON HANDLER - FIXED ================= */
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          'Leave Checkout',
+          'Are you sure you want to leave? Your cart items will be saved.',
+          [
+            { text: 'Stay', style: 'cancel' },
+            { text: 'Leave', onPress: () => navigation.navigate('Dashboard') }
+          ]
+        );
+        return true;
+      };
+
+      // For React Native 0.65+ (new API)
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      
+      // Cleanup function - using the new API
+      return () => subscription.remove();
+    }, [navigation])
+  );
+
+  /* ================= PROCEED TO PAYMENT ================= */
+
+  const proceedToPayment = () => {
+    // Validate address
+    if (!address) {
+      Alert.alert(
+        'Address Required',
+        'Please add a delivery address before proceeding.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Add Address', onPress: () => navigation.navigate('AddressFormPage') }
+        ]
+      );
+      return;
     }
-  }, [isModalVisible]);
 
-  useEffect(() => {
-    if (!isUpdateModalVisible) {
-      setNewAddress({
-        street: '',
-        city: '',
-        state: '',
-        country: '',
-        zipCode: '',
-        phone: ''
-      });
+    // Validate amount
+    if (finalAmount <= 0) {
+      Alert.alert('Invalid Amount', 'Please add items to your cart before proceeding.');
+      return;
     }
 
-
-  }, [isUpdateModalVisible]);
-  const redirectToConfirmationPage = () => {
-    // navigation.navigate('PaymentPage');
-    handlePayment()
+    if (selectedPaymentMethod === 'razorpay') {
+      // Navigate to Payment Page
+      navigation.navigate('PaymentPage', {
+        amount: Math.round(finalAmount),
+        address: address,
+        orderId: `ORD${Date.now()}`,
+        productName: 'Sansa Heritage Order'
+      });
+    } else if (selectedPaymentMethod === 'cod') {
+      // Cash on Delivery
+      Alert.alert(
+        'Order Confirmed! 🎉',
+        `Your order of ₹${Math.round(finalAmount)} has been placed successfully!\n\nYou will pay cash on delivery.`,
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              // Clear cart after order placement
+              try {
+                const token = await AsyncStorage.getItem('authToken');
+                await fetch('YOUR_API_URL/api/cart/clear', {
+                  method: 'DELETE',
+                  headers: { Authorization: `Bearer ${token}` }
+                });
+              } catch (error) {
+                console.log('Error clearing cart:', error);
+              }
+              navigation.navigate('Dashboard');
+            },
+          },
+        ]
+      );
+    }
   };
 
-  const fetchSelectedAddress = async () => {
+  /* ================= LOADER ================= */
 
-    const storedAddressString = await AsyncStorage.getItem("selectedAddress");
-    console.log("storedAddressString");
-
-    if (storedAddressString) {
-      const storedAddress = JSON.parse(storedAddressString);
-      console.log("address", storedAddress);
-      setSelectedAddress(storedAddress._id);
-    }
-
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
   }
 
-  const handlePayment = async () => {
+  /* ================= UI ================= */
 
-    if (selectedAddress && totalPrice) {
-      const shipingAddress = addresses.filter(item => item._id === selectedAddress)
-      try {
-        const orderDetails = {
-          shippingAddress: shipingAddress,
-          totalPrice: totalPrice,
-        };
-        const orderData = await placeOrder(orderDetails);
-        if (orderData) {
-          navigation.navigate('PaymentPage', { orderId: orderData.order._id });
-        }
-      } catch (error: any) {
-        Alert.alert('Order failed: ' + error.message);
-      }
-    }
-  };
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 70 }}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.container}>
-        <Text style={styles.title}>Checkout</Text>
-        <Text style={styles.sectionTitle}>Delivery Address</Text>
-        {loading ? (
-          <ActivityIndicator size="large" color="orange" />
-        ) : addresses && addresses.length > 0 ? (
-          <FlatList
-            data={addresses}
-            keyExtractor={(item) => item._id.toString()}
-            renderItem={({ item }) => (
+        {/* Title */}
+        <Text style={styles.title}>Order Summary</Text>
 
-              <View>
-                <TouchableOpacity
-                  style={[
-                    styles.addressBox,
-                    selectedAddress === item._id && styles.selectedBox,
-                  ]}
-                  onPress={() => setSelectedAddress(item._id)}
-                >
-                  <View style={styles.row}>
-                    <View style={styles.radioAndTitle}>
-                      <Ionicons
-                        name={
-                          selectedAddress === item._id
-                            ? 'checkmark-circle'
-                            : 'ellipse-outline'
-                        }
-                        size={24}
-                        color={selectedAddress === item._id ? 'orange' : 'grey'}
-                      />
-                      <Text style={styles.addressTitle}>{item.street}</Text>
-                    </View>
-                  </View>
+        {/* DELIVERY ADDRESS */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="location-outline" size={22} color="#000" />
+            <Text style={styles.cardTitle}>Delivery Address</Text>
+          </View>
 
-                  <Text style={styles.addressInfo}>{item.city}</Text>
-                  <Text style={styles.addressInfo}>{item.state}</Text>
-                  <Text style={styles.addressInfo}>{item.country}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-        ) : (
-          <View style={styles.noAddressContainer}>
-            <Text style={styles.noAddressText}>
-              No address found. Please add one.
+          {address ? (
+            <View style={styles.addressContainer}>
+              <Text style={styles.addressName}>
+                {address.name || 'Customer'}
+              </Text>
+              <Text style={styles.addressText}>
+                {address.street}, {address.city}
+              </Text>
+              <Text style={styles.addressText}>
+                {address.state}, {address.country} - {address.zipCode}
+              </Text>
+              <Text style={styles.addressPhone}>
+                Phone: {address.phone || 'Not provided'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.noAddressContainer}>
+              <Ionicons name="location-outline" size={40} color="#ccc" />
+              <Text style={styles.noAddressText}>
+                No delivery address selected
+              </Text>
+              <TouchableOpacity
+                style={styles.addAddressBtn}
+                onPress={() => navigation.navigate('AddressFormPage')}
+              >
+                <Text style={styles.addAddressBtnText}>Add Address</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {address && (
+            <TouchableOpacity
+              style={styles.changeAddressBtn}
+              onPress={() => navigation.navigate('AddressFormPage')}
+            >
+              <Text style={styles.changeAddressText}>Change Address</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ORDER SUMMARY */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="receipt-outline" size={22} color="#000" />
+            <Text style={styles.cardTitle}>Order Summary</Text>
+          </View>
+
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Subtotal</Text>
+            <Text style={styles.billValue}>₹{amountPayable.toFixed(0)}</Text>
+          </View>
+
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>Delivery Fee</Text>
+            <Text style={styles.billValue}>
+              ₹{amountPayable > 0 ? '50' : '0'}
             </Text>
           </View>
-        )}
-        {/* Add Address Button */}
-        <TouchableOpacity style={styles.addButton} onPress={() => {
-          setNewAddress({
-            street: "",
-            city: "",
-            state: "",
-            country: "",
-            zipCode: "",
-            phone: "",
-          });
-          setIsModalVisible(true);
-        }}>
-          <Text style={styles.addButtonText}>+ Add Address</Text>
-        </TouchableOpacity>
 
-        <Modal visible={isModalVisible} animationType="slide" transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add New Address</Text>
-
-              <Text style={styles.inputLabel}>Street</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={100}
-                value={newAddress.street}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, street: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>City</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={20}
-                value={newAddress.city}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, city: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>State</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={20}
-                value={newAddress.state}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, state: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Country</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={20}
-                value={newAddress.country}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, country: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Zip Code</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={6}
-                keyboardType="numeric"
-                value={newAddress.zipCode}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, zipCode: text }))
-                }
-              />
-
-
-              <Text style={styles.inputLabel}>Phone</Text>
-              <View style={styles.phoneRow}>
-                <Text style={styles.countryCode}>+91</Text>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  maxLength={10}
-                  keyboardType="phone-pad"
-                  value={newAddress.phone}
-                  onChangeText={(text) =>
-                    setNewAddress((prev) => ({ ...prev, phone: text }))
-                  }
-                />
-              </View>
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={addAddress}>
-                  <Text style={styles.actionText}>Save</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => setIsModalVisible(false)}
-                >
-                  <Text style={styles.actionText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.billRow}>
+            <Text style={styles.billLabel}>GST (5%)</Text>
+            <Text style={styles.billValue}>
+              ₹{((amountPayable + 50) * 0.05).toFixed(0)}
+            </Text>
           </View>
-        </Modal>
 
-        <Modal visible={isUpdateModalVisible} animationType="slide" transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Update Address</Text>
+          <View style={styles.divider} />
 
-              <Text style={styles.inputLabel}>Street</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={100}
-                value={newAddress.street}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, street: text }))
-                }
-              />
-
-
-              <Text style={styles.inputLabel}>City</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={20}
-                value={newAddress.city}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, city: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>State</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={15}
-                value={newAddress.state}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, state: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Country</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={20}
-                value={newAddress.country}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, country: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Zip Code</Text>
-              <TextInput
-                style={styles.input}
-                maxLength={6}
-                keyboardType="numeric"
-                value={newAddress.zipCode}
-                onChangeText={(text) =>
-                  setNewAddress((prev) => ({ ...prev, zipCode: text }))
-                }
-              />
-
-              <Text style={styles.inputLabel}>Phone</Text>
-              <View style={styles.phoneRow}>
-                <Text style={styles.countryCode}>+91</Text>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  maxLength={10}
-                  keyboardType="phone-pad"
-                  value={newAddress.phone}
-                  onChangeText={(text) =>
-                    setNewAddress((prev) => ({ ...prev, phone: text }))
-                  }
-                />
-              </View>
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.actionButton} onPress={updateAddress}>
-                  <Text style={styles.actionText}>Update</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => setIsUpdateModalVisible(false)}
-                >
-                  <Text style={styles.actionText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-
-        <Text style={styles.sectionTitle}>Billing information</Text>
-        <View style={styles.billingContainer}>
-          <View style={styles.billingRow}>
-            <Text style={styles.billingLabel}>Delivery Fee :</Text>
-            <Text style={styles.billingValue}>₹50</Text>
-          </View>
-          <View style={styles.billingRow}>
-            <Text style={styles.billingLabel}>Subtotal :</Text>
-            <Text style={styles.billingValue}>₹{String(billingDetails)}</Text>
-          </View>
-          <View style={styles.billingRow}>
-            <Text style={styles.billingLabel}>Total :</Text>
-            <Text style={styles.billingValue}>₹{totalPrice}</Text>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalValue}>
+              ₹{Math.round(finalAmount)}
+            </Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        <View style={styles.paymentMethods}>
-          <Image source={require('../assets/images/ApplePay.png')} style={styles.paymentIcon} />
-          <Image source={require('../assets/images/visa-logo.png')} style={styles.paymentIcon} />
-          <Image source={require('../assets/images/Mastercard.png')} style={styles.paymentIcon} />
-          <Image source={require('../assets/images/PayPal.png')} style={styles.paymentIcon} />
+        {/* PAYMENT METHOD - MYNTRA STYLE */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="card-outline" size={22} color="#000" />
+            <Text style={styles.cardTitle}>Select Payment Method</Text>
+          </View>
+
+          {/* Razorpay Option */}
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              selectedPaymentMethod === 'razorpay' && styles.paymentOptionSelected,
+            ]}
+            onPress={() => setSelectedPaymentMethod('razorpay')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.paymentOptionLeft}>
+              <View style={styles.paymentIconContainer}>
+                <Image
+                  source={require('../assets/images/Razorpay.png')}
+                  style={styles.paymentIcon}
+                  defaultSource={require('../assets/images/logo.png')}
+                />
+              </View>
+              <View style={styles.paymentTextContainer}>
+                <Text style={styles.paymentOptionText}>Razorpay</Text>
+                <Text style={styles.paymentOptionSubText}>
+                  Credit/Debit Cards, UPI, NetBanking
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.radioCircle,
+                selectedPaymentMethod === 'razorpay' && styles.radioCircleSelected,
+              ]}
+            >
+              {selectedPaymentMethod === 'razorpay' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
+
+          {/* Cash on Delivery Option */}
+          <TouchableOpacity
+            style={[
+              styles.paymentOption,
+              selectedPaymentMethod === 'cod' && styles.paymentOptionSelected,
+            ]}
+            onPress={() => setSelectedPaymentMethod('cod')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.paymentOptionLeft}>
+              <View style={styles.paymentIconContainer}>
+                <Ionicons name="cash-outline" size={28} color="#333" />
+              </View>
+              <View style={styles.paymentTextContainer}>
+                <Text style={styles.paymentOptionText}>Cash on Delivery</Text>
+                <Text style={styles.paymentOptionSubText}>
+                  Pay when you receive the product
+                </Text>
+              </View>
+            </View>
+            <View
+              style={[
+                styles.radioCircle,
+                selectedPaymentMethod === 'cod' && styles.radioCircleSelected,
+              ]}
+            >
+              {selectedPaymentMethod === 'cod' && <View style={styles.radioInner} />}
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.paymentButton} onPress={redirectToConfirmationPage}>
-          <View style={styles.buttonContent}>
-            <Image source={require('../assets/images/arrow-pointing-to-right-in-a-circle.png')} style={styles.paymentButtonImage} />
-            <Text style={styles.paymentButtonText}>Swipe for Payment</Text>
-          </View>
+        {/* ORDER NOTE */}
+        <View style={styles.noteCard}>
+          <Text style={styles.noteText}>
+            By placing your order, you agree to our{' '}
+            <Text
+              style={styles.linkText}
+              onPress={() => navigation.navigate('TermsScreen')}
+            >
+              Terms & Conditions
+            </Text>{' '}
+            and{' '}
+            <Text
+              style={styles.linkText}
+              onPress={() => navigation.navigate('PrivacyPolicy')}
+            >
+              Privacy Policy
+            </Text>
+          </Text>
+        </View>
+      </View>
+
+      {/* FOOTER BUTTON - DYNAMIC TEXT */}
+      <View style={styles.footer}>
+        <View style={styles.footerLeft}>
+          <Text style={styles.footerAmount}>₹{Math.round(finalAmount)}</Text>
+          <Text style={styles.footerLabel}>Total Amount</Text>
+        </View>
+        <TouchableOpacity style={styles.payBtn} onPress={proceedToPayment}>
+          <Text style={styles.payText}>{getButtonText()}</Text>
+          <Ionicons name={getButtonIcon()} size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 };
 
+export default OrderConfirmationScreen;
+
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f6f6f6',
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 120,
+  },
+
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#f6f6f6',
   },
+
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 10,
-  },
-  addressBox: {
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'gray',
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  selectedBox: {
-    backgroundColor: 'rgba(255, 165, 0, 0.1)',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  radioAndTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pencilIcon: {
-    marginTop: 0,
-  },
-  addressTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  addressInfo: {
-    fontSize: 14,
-    color: 'gray',
-  },
-  addButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#151515',
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '80%',
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  noAddressContainer: {
-    marginTop: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noAddressText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: 'grey',
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingLeft: 8,
-    borderRadius: 4,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  saveButton: {
-    backgroundColor: '#151515',
-    padding: 10,
-    borderRadius: 4,
-    width: '48%',
-  },
-  saveButtonText: {
-    color: 'white',
-    textAlign: 'center',
-  },
-  cancelButton: {
-    backgroundColor: 'gray',
-    padding: 10,
-    borderRadius: 4,
-    width: '48%',
-  },
-  cancelButtonText: {
-    color: 'white',
-    textAlign: 'center',
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#333',
-  },
-  billingContainer: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    padding: 15,
+    fontWeight: '700',
     marginBottom: 20,
+    color: '#000',
   },
-  billingRow: {
+
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 5,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 12,
   },
-  billingLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  billingValue: {
+
+  cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  paymentMethods: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 20,
-  },
-  paymentIcon: {
-    width: 50,
-    height: 30,
-    resizeMode: 'contain',
-  },
-  paymentButton: {
-    backgroundColor: '#151515',
-    borderRadius: 30,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonContent: {
-    flexDirection: 'row', // Align items in a row
-    alignItems: 'center', // Vertically center the image and text
-  },
-  paymentButtonImage: {
-    width: 20, // Set image width
-    height: 20, // Set image height
-    marginRight: 10, // Add some space between image and text
-  },
-  paymentButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  actionButton: {
-    backgroundColor: "black",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginHorizontal: 10,
-    flex: 1,
-    alignItems: "center",
+    color: '#000',
   },
 
-  actionText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-
-  phoneRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  addressContainer: {
     marginBottom: 12,
   },
 
-  countryCode: {
-    marginRight: 10,
+  addressName: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
   },
 
-});
+  addressText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
+    lineHeight: 20,
+  },
 
-export default CheckoutScreen;
+  addressPhone: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 6,
+  },
+
+  noAddressContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+
+  noAddressText: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 12,
+  },
+
+  addAddressBtn: {
+    backgroundColor: '#000',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+
+  addAddressBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+
+  changeAddressBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+
+  changeAddressText: {
+    color: '#1e88e5',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  billRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+
+  billLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  billValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 12,
+  },
+
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+
+  totalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+
+  paymentOptionSelected: {
+    borderColor: '#000',
+    backgroundColor: '#fafafa',
+  },
+
+  paymentOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+
+  paymentIconContainer: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+  },
+
+  paymentIcon: {
+    width: 80,
+    height: 24,
+    resizeMode: 'contain',
+  },
+
+  paymentTextContainer: {
+    flex: 1,
+  },
+
+  paymentOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+
+  paymentOptionSubText: {
+    fontSize: 12,
+    color: '#888',
+  },
+
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  radioCircleSelected: {
+    borderColor: '#000',
+  },
+
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#000',
+  },
+
+  noteCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+
+  noteText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  linkText: {
+    color: '#1e88e5',
+    fontWeight: '500',
+  },
+
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  footerLeft: {
+    alignItems: 'flex-start',
+  },
+
+  footerAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+  },
+
+  footerLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+
+  payBtn: {
+    backgroundColor: '#000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 40,
+  },
+
+  payText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
