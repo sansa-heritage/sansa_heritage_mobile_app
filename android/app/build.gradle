@@ -2,7 +2,10 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply plugin: 'com.google.gms.google-services'
+
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -84,28 +87,36 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
     }
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
+    debug {
+        storeFile file('debug.keystore')
+        storePassword 'android'
+        keyAlias 'androiddebugkey'
+        keyPassword 'android'
     }
+    release {
+        storeFile file(MYAPP_UPLOAD_STORE_FILE)
+        storePassword MYAPP_UPLOAD_STORE_PASSWORD
+        keyAlias MYAPP_UPLOAD_KEY_ALIAS
+        keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+    }
+}
+
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
-        release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-        }
+    debug {
+        signingConfig signingConfigs.debug
     }
+    release {
+        signingConfig signingConfigs.release   
+        minifyEnabled enableProguardInReleaseBuilds
+        proguardFiles getDefaultProguardFile(
+            "proguard-android.txt"
+        ), "proguard-rules.pro"
+    }
+}
+
 }
 
 dependencies {
@@ -116,4 +127,11 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+     implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-auth'
+    
+    // ✅ Add MultiDex support
+    implementation 'androidx.multidex:multidex:2.0.1'
 }
