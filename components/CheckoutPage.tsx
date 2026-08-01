@@ -281,7 +281,7 @@ const OrderConfirmationScreen: React.FC = () => {
             <View style={styles.paymentOptionLeft}>
               <View style={styles.paymentIconContainer}>
                 <Image
-                  source={require('../assets/images/Razorpay.png')}
+                  // source={require('../assets/images/Razorpay.png')}
                   style={styles.paymentIcon}
                   defaultSource={require('../assets/images/logo.png')}
                 />

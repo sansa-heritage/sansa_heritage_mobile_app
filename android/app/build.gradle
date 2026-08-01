@@ -96,12 +96,14 @@ android {
         keyAlias 'androiddebugkey'
         keyPassword 'android'
     }
-    release {
+   release {
+    if (project.hasProperty("MYAPP_UPLOAD_STORE_FILE")) {
         storeFile file(MYAPP_UPLOAD_STORE_FILE)
         storePassword MYAPP_UPLOAD_STORE_PASSWORD
         keyAlias MYAPP_UPLOAD_KEY_ALIAS
         keyPassword MYAPP_UPLOAD_KEY_PASSWORD
     }
+}
 }
 
     buildTypes {
@@ -127,10 +129,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
-     implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-messaging'
-    implementation 'com.google.firebase:firebase-auth'
+    
     
     // ✅ Add MultiDex support
     implementation 'androidx.multidex:multidex:2.0.1'
