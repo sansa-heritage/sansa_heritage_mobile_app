@@ -3,36 +3,37 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import Header from "./components/screens/Header";
-import CartPage from "./components/CartPage";
-import CategoryScreen from "./components/CategoryScreen";
-import CheckoutPage from "./components/CheckoutPage";
-import Dashboard from "./components/Dashboard";
-import FavoriteScreen from "./components/FavoritsPage";
-import Login from "./components/Login";
-import OrdersPage from "./components/OrdersPage";
-import PaymentPage from "./components/PaymentPage";
-import PrivacyPolicyScreen, { AboutUsScreen } from "./components/PrivacyAndContactUs";
-import ProductDetails from "./components/ProductDetails";
-import Profile from "./components/Profile";
-import ResetPassword from "./components/ResetPassword";
-import BasicExample from "./components/screens"; // Intro slides
-import SplashScreen from "./components/screens/SplashScreen";
-import SettingsPage from "./components/SettingsPage";
-import SignUp from "./components/SignUp";
-import WalletsPage from "./components/WalletsPage";
-import OTPLogin from "./components/ForgotPassword";
-import CustomBottomTabs from "./components/screens/BottomTabs";
-import { navigationRef, getCurrentRoute } from "./components/apiHelper/NavigationService";
-import AccountPage from "./components/AccountPage";
-import TermsScreen from "./components/TermsAndCondition";
-import FAQScreen from "./components/FQPage";
-import AddressFormScreen from "./components/AddressPage";
-import { AlertComponent } from "./components/screens/Toast";
-import UpdateProfileScreen from "./components/UserEditPage";
-import NotificationScreen from "./components/NotificationPage";
-import CardsScreen from "./components/cardsPage";
+import Header from "./src/components/common/Header";
+import CartPage from "./src/screens/Cart/CartPage";
+import CategoryScreen from "./src/screens/Home/CategoryScreen";
+import CheckoutPage from "./src/screens/Cart/CheckoutPage";
+import Dashboard from "./src/screens/Home/Dashboard";
+import FavoriteScreen from "./src/screens/Profile/FavoritsPage";
+import Login from "./src/screens/Auth/Login";
+import OrdersPage from "./src/screens/Profile/OrdersPage";
+import PaymentPage from "./src/screens/Cart/PaymentPage";
+import PrivacyPolicyScreen, { AboutUsScreen } from "./src/screens/Info/PrivacyAndContactUs";
+import ProductDetails from "./src/screens/Product/ProductDetails";
+import Profile from "./src/screens/Profile/Profile";
+import ResetPassword from "./src/screens/Auth/ResetPassword";
+import BasicExample from "./src/screens/Onboarding"; 
+import SplashScreen from "./src/screens/Splash/SplashScreen";
+import SettingsPage from "./src/screens/Profile/SettingsPage";
+import SignUp from "./src/screens/Auth/SignUp";
+import WalletsPage from "./src/screens/Profile/WalletsPage";
+import OTPLogin from "./src/screens/Auth/ForgotPassword";
+import CustomBottomTabs from "./src/navigation/BottomTabs";
+import { navigationRef, getCurrentRoute } from "./src/services/NavigationService";
+import AccountPage from "./src/screens/Profile/AccountPage";
+import TermsScreen from "./src/screens/Info/TermsAndCondition";
+import FAQScreen from "./src/screens/Info/FQPage";
+import AddressFormScreen from "./src/screens/Profile/AddressPage";
+import { AlertComponent } from "./src/components/common/Toast";
+import UpdateProfileScreen from "./src/screens/Profile/UserEditPage";
+import NotificationScreen from "./src/screens/Notification/NotificationPage";
+import CardsScreen from "./src/components/cardsPage";
 import BootSplash from "react-native-bootsplash";
+import { Text, View } from "react-native";
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -159,6 +160,10 @@ const App = () => {
       )}
     </NavigationContainer>
   );
+
+
+
 };
+
 
 export default App;
