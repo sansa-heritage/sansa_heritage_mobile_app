@@ -28,6 +28,12 @@ interface SizeInfo {
   stock?: number;
 }
 
+interface ColorInfo {
+  _id: string;
+  name: string;
+  hexCode?: string;
+}
+
 interface CartItem {
   productId: string;
   name: string;
@@ -36,8 +42,7 @@ interface CartItem {
   imageUrl: string;
   discount: number | string;
   size: string | SizeInfo;
-  color: string;
-  // ✅ Add unique identifier for cart item
+  color: string | ColorInfo;
   cartItemId?: string;
 }
 
@@ -64,7 +69,43 @@ const CartScreen: React.FC = () => {
       return size.label.toUpperCase();
     }
 
-    return 'Loading...';
+    if (typeof size === 'string') {
+      return size.toUpperCase();
+    }
+
+    return 'N/A';
+  };
+
+  /* ================= HELPER: Get Color Name ================= */
+  const getColorName = (color: string | ColorInfo): string => {
+    if (!color) return 'N/A';
+
+    // If color is an object with name property
+    if (typeof color === 'object' && color.name) {
+      return color.name;
+    }
+
+    // If color is a string
+    if (typeof color === 'string') {
+      // Check if it looks like an ID (24 character hex string)
+      if (color.match(/^[0-9a-fA-F]{24}$/)) {
+        return 'Color'; // Return generic if it's just an ID
+      }
+      return color;
+    }
+
+    return 'N/A';
+  };
+
+  /* ================= HELPER: Get Color Hex ================= */
+  const getColorHex = (color: string | ColorInfo): string | null => {
+    if (!color) return null;
+
+    if (typeof color === 'object' && color.hexCode) {
+      return color.hexCode;
+    }
+
+    return null;
   };
 
   /* ================= HELPER: Get Image Source ================= */
@@ -147,20 +188,36 @@ const CartScreen: React.FC = () => {
               return { 
                 ...item, 
                 sizeLabel: '', 
+                colorName: getColorName(item.color),
                 imageUrl: item.imageUrl || '',
-                cartItemId: `${item.productId}-${item.color || 'default'}-${item.size || 'default'}-${index}`,
+                cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}-${index}`,
               };
             }
             
             const productData = await productRes.json();
 
+            // Get size label
             let sizeLabel = '';
             if (productData.sizes && Array.isArray(productData.sizes)) {
+              const sizeId = typeof item.size === 'object' ? item.size._id : item.size;
               const foundSize = productData.sizes.find(
-                (s: any) => s._id === item.size,
+                (s: any) => s._id === sizeId,
               );
               if (foundSize && foundSize.label) {
                 sizeLabel = foundSize.label;
+              }
+            }
+
+            // Get color name
+            let colorName = getColorName(item.color);
+            // If color is an ID, try to get name from product data
+            if (colorName === 'Color' && productData.colors && Array.isArray(productData.colors)) {
+              const colorId = typeof item.color === 'object' ? item.color._id : item.color;
+              const foundColor = productData.colors.find(
+                (c: any) => c._id === colorId,
+              );
+              if (foundColor && foundColor.name) {
+                colorName = foundColor.name;
               }
             }
 
@@ -175,17 +232,18 @@ const CartScreen: React.FC = () => {
             return {
               ...item,
               sizeLabel: sizeLabel,
+              colorName: colorName,
               imageUrl: imageUrl,
-              // ✅ Create unique ID based on product + color + size
-              cartItemId: `${item.productId}-${item.color || 'default'}-${item.size || 'default'}`,
+              cartItemId: `${item.productId}-${colorName}-${sizeLabel}`,
             };
           } catch (err) {
             console.log('Error fetching product details:', err);
             return { 
               ...item, 
               sizeLabel: '', 
+              colorName: getColorName(item.color),
               imageUrl: item.imageUrl || '',
-              cartItemId: `${item.productId}-${item.color || 'default'}-${item.size || 'default'}`,
+              cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}`,
             };
           }
         }),
@@ -195,7 +253,6 @@ const CartScreen: React.FC = () => {
       const uniqueItems = enrichedItems.reduce((acc: CartItem[], current: CartItem) => {
         const existing = acc.find(item => item.cartItemId === current.cartItemId);
         if (existing) {
-          // If same item exists, combine quantities
           const newQuantity = Number(existing.quantity) + Number(current.quantity);
           existing.quantity = newQuantity;
           return acc;
@@ -273,10 +330,17 @@ const CartScreen: React.FC = () => {
     const diff = newQty - currentQty;
 
     try {
+      const colorValue = typeof currentItem.color === 'object' 
+        ? currentItem.color._id 
+        : currentItem.color;
+      const sizeValue = typeof currentItem.size === 'object' 
+        ? currentItem.size._id 
+        : currentItem.size;
+
       if (diff > 0) {
-        await addToCart(currentItem.productId, diff, currentItem.color, currentItem.size as string);
+        await addToCart(currentItem.productId, diff, colorValue, sizeValue);
       } else if (diff < 0) {
-        await removeFromCart(currentItem.productId, Math.abs(diff), currentItem.color, currentItem.size as string);
+        await removeFromCart(currentItem.productId, Math.abs(diff), colorValue, sizeValue);
       }
 
       // ✅ Update local state
@@ -306,7 +370,14 @@ const CartScreen: React.FC = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            await removeFromCart(item.productId, Number(item.quantity), item.color, item.size as string);
+            const colorValue = typeof item.color === 'object' 
+              ? item.color._id 
+              : item.color;
+            const sizeValue = typeof item.size === 'object' 
+              ? item.size._id 
+              : item.size;
+            
+            await removeFromCart(item.productId, Number(item.quantity), colorValue, sizeValue);
             setCartItems(prev => prev.filter((_, i) => i !== index));
           } catch (error) {
             console.error('Remove item error:', error);
@@ -379,62 +450,73 @@ const CartScreen: React.FC = () => {
 
   /* ================= UI ================= */
 
-  const renderProductItem = ({ item, index }: { item: any; index: number }) => (
-    <View style={styles.card}>
-      <Image
-        source={getImageSource(item.imageUrl)}
-        style={styles.image}
-        onError={(e) => {
-          console.log('Image load error for:', item.name);
-          // e.currentTarget.source = require('../assets/images/logo.png');
-        }}
-      />
+  const renderProductItem = ({ item, index }: { item: any; index: number }) => {
+    // Get display values
+    const colorDisplay = item.colorName || getColorName(item.color);
+    const sizeDisplay = item.sizeLabel || getSizeLabel(item.size);
+    const colorHex = getColorHex(item.color);
 
-      <View style={styles.info}>
-        <View style={styles.titleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={2}>
-              {item.name}
-            </Text>
-            {/* ✅ Show color and size if available */}
-            {item.color && (
-              <Text style={styles.variantText}>Color: {item.color}</Text>
-            )}
-            {item.size && (
-              <Text style={styles.variantText}>Size: {item.sizeLabel || 'N/A'}</Text>
-            )}
-          </View>
-          <TouchableOpacity onPress={() => removeItem(index)}>
-            <Ionicons name="trash-outline" size={18} color="#d32f2f" />
-          </TouchableOpacity>
-        </View>
+    return (
+      <View style={styles.card}>
+        <Image
+          source={getImageSource(item.imageUrl)}
+          style={styles.image}
+          onError={(e) => {
+            console.log('Image load error for:', item.name);
+          }}
+        />
 
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>
-            ₹
-            {(
-              Number(item.price) -
-              (Number(item.price) * Number(item.discount || 0)) / 100
-            ).toFixed(0)}
-          </Text>
-          <Text style={styles.mrp}>₹{item.price}</Text>
-        </View>
-
-        <View style={styles.variantContainer}>
-          <View style={styles.qtyRow}>
-            <Text>Qty: </Text>
-            <TouchableOpacity
-              style={styles.qtyDropdown}
-              onPress={() => openQtyModal(item.productId, index)}
-            >
-              <Text>{item.quantity}</Text>
-              <Ionicons name="chevron-down" size={16} />
+        <View style={styles.info}>
+          <View style={styles.titleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name} numberOfLines={2}>
+                {item.name}
+              </Text>
+              {/* ✅ Show color with hex dot and name */}
+              <View style={styles.variantRow}>
+                {colorHex && (
+                  <View style={[styles.colorDot, { backgroundColor: colorHex }]} />
+                )}
+                <Text style={styles.variantText}>
+                  Color: {colorDisplay}
+                </Text>
+              </View>
+              {item.size && (
+                <Text style={styles.variantText}>Size: {sizeDisplay}</Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => removeItem(index)}>
+              <Ionicons name="trash-outline" size={18} color="#d32f2f" />
             </TouchableOpacity>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>
+              ₹
+              {(
+                Number(item.price) -
+                (Number(item.price) * Number(item.discount || 0)) / 100
+              ).toFixed(0)}
+            </Text>
+            <Text style={styles.mrp}>₹{item.price}</Text>
+          </View>
+
+          <View style={styles.variantContainer}>
+            <View style={styles.qtyRow}>
+              <Text>Qty: </Text>
+              <TouchableOpacity
+                style={styles.qtyDropdown}
+                onPress={() => openQtyModal(item.productId, index)}
+              >
+                <Text>{item.quantity}</Text>
+                <Ionicons name="chevron-down" size={16} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <>
@@ -490,9 +572,7 @@ const CartScreen: React.FC = () => {
                 In case of return, we ensure quick refunds. Full amount will be
                 refunded excluding convenience fee.
               </Text>
-              <TouchableOpacity
-                // onPress={() => navigation.navigate('ReturnRefundScreen')}
-              >
+              <TouchableOpacity>
                 <Text style={styles.readPolicy}>Read policy</Text>
               </TouchableOpacity>
             </View>
@@ -508,7 +588,7 @@ const CartScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.checkoutBtn}
           onPress={() =>
-            navigation.navigate('CheckoutPage', {
+            navigation.navigate('CheckoutPage' as any, {
               billingDetails: amountPayable,
             })
           }
@@ -608,7 +688,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   name: { fontWeight: '600', flex: 1, marginRight: 8, fontSize: 14 },
-  variantText: { fontSize: 12, color: '#666', marginTop: 2 },
+  variantRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 2 
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  variantText: { fontSize: 12, color: '#666' },
   priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   price: { fontWeight: '700', fontSize: 16 },
   mrp: {

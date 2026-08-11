@@ -26,7 +26,7 @@ import DeviceInfo from 'react-native-device-info';
 
 // ✅ Configure Google Sign-In (No TypeScript errors)
 GoogleSignin.configure({
-  webClientId: '796225170157-t701a8g2l8if1ikp82qt4lbu9rp5belo.apps.googleusercontent.com',
+  webClientId: '782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com',
   iosClientId: '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
   offlineAccess: false,
 });
