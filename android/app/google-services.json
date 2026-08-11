@@ -12,7 +12,28 @@
           "package_name": "com.sansaheritage"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "782904869146-4vjlov3v1t4k5atfhcu5gqad3vhg0hki.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sansaheritage",
+            "certificate_hash": "59da8dcfdf31df8ef290e6429a72aca649c5a5c1"
+          }
+        },
+        {
+          "client_id": "782904869146-d1car7nj4t2bqktbq77ogtmhedhrn8k4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sansaheritage",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "782904869146-39ol74jverru52dhu0hc4hqk1euu5obd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBk7VijKbu_c14DTuTMGBc77DUVa-uR-Kw"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
