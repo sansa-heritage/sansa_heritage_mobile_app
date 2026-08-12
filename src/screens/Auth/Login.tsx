@@ -24,11 +24,14 @@ import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
 
-// ✅ Configure Google Sign-In (No TypeScript errors)
+// ✅ Configure Google Sign-In with account picker support
 GoogleSignin.configure({
   webClientId: '782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com',
   iosClientId: '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
   offlineAccess: false,
+  // ✅ Add this to force account selection
+  hostedDomain: '',
+  forceCodeForRefreshToken: false,
 });
 
 interface LoginProps {
@@ -45,64 +48,78 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   const appVersion = DeviceInfo.getVersion();
 
-const onSignIn = async () => {
-  if (isLoading) return;
-  setIsLoading(true);
+  const onSignIn = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
 
-  try {
-    await GoogleSignin.hasPlayServices();
+    try {
+      await GoogleSignin.hasPlayServices();
 
-    const result = await GoogleSignin.signIn();
+      // ✅ Check if user is already signed in
+      const currentUser = await GoogleSignin.getCurrentUser();
+      
+      // If user is already signed in, sign out to show account picker
+      if (currentUser) {
+        console.log('User already signed in, signing out to show account picker...');
+        await GoogleSignin.signOut();
+      }
 
-    if (!isSuccessResponse(result)) {
-      throw new Error('Google Sign-In was cancelled');
+      // ✅ Sign in - this will show the account picker
+      const result = await GoogleSignin.signIn();
+
+      if (!isSuccessResponse(result)) {
+        throw new Error('Google Sign-In was cancelled');
+      }
+
+      const user = result.data.user;
+
+      console.log('Selected User:', user);
+
+      const payload = {
+        googleId: user.id,
+        email: user.email,
+        username: user.name || user.givenName || user.email.split('@')[0],
+        name: user.name || user.givenName || user.email.split('@')[0],
+      };
+
+      console.log('📤 Sending to backend:', payload);
+
+      const res = await registerWithGoogle(payload);
+
+      if (res && res.success) {
+        const token = res.token;
+        const username = res.username || user.name;
+        const email = res.email || user.email;
+        const userId = res._id || '';
+
+        await AsyncStorage.multiSet([
+          ['authToken', token],
+          ['userID', userId],
+          ['username', username],
+          ['email', email],
+        ]);
+
+        await authService.login(token, username, email);
+        onLoginSuccess();
+      } else {
+        throw new Error(res?.message || 'Registration failed');
+      }
+    } catch (error: any) {
+      console.log('Google Sign-In Error:', error);
+
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Cancelled', 'Google Sign-In was cancelled.');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('In Progress', 'Google Sign-In is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services are not available.');
+      } else {
+        Alert.alert('Login Failed', error.message || 'Something went wrong');
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    const user = result.data.user;
-
-    console.log('User:', user);
-
-    const payload = {
-      googleId: user.id,
-      email: user.email,
-      username: user.name,
-    };
-
-    const res = await registerWithGoogle(payload);
-
-    if (res) {
-      const token = res.token || res.idToken;
-      const username = res.username || user.name;
-      const email = res.email || user.email;
-      const userId = res._id || '';
-
-      await AsyncStorage.multiSet([
-        ['authToken', token],
-        ['userID', userId],
-        ['username', username],
-        ['email', email],
-      ]);
-
-      await authService.login(token, username, email);
-
-      onLoginSuccess();
-    }
-  } catch (error: any) {
-    console.log(error);
-
-    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      Alert.alert('Cancelled', 'Google Sign-In was cancelled.');
-    } else if (error.code === statusCodes.IN_PROGRESS) {
-      Alert.alert('In Progress', 'Google Sign-In is already in progress.');
-    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      Alert.alert('Error', 'Google Play Services are not available.');
-    } else {
-      Alert.alert('Login Failed', error.message);
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleLogin = async () => {
     if (isLoading) return;

@@ -74,7 +74,6 @@
 //   );
 // };
 
-// export default BasicExample;
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -86,7 +85,7 @@ const slides = [
     index: 1,
     title: 'Choose Product',
     text: 'A product is the item offered for sale. A product can be a service or an item. It can be physical or in virtual or cyber form',
-    image: require('../../../assets/images/a.png'), // Add image for slide 1
+    image: require('../../../assets/images/a.png'),
     backgroundColor: 'white',
   },
   {
@@ -110,13 +109,11 @@ interface IntroSlidesProps {
 }
 
 const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Login'>>();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   const handleNext = () => {
     if (currentSlideIndex === slides.length - 1) {
-      // ✅ FIX: Don't navigate manually
-      // Just call onFinishIntro and let the app structure handle it
+      // ✅ Call the callback to finish intro
       onFinishIntro();
     } else {
       setCurrentSlideIndex(currentSlideIndex + 1);
@@ -124,8 +121,7 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   };
 
   const handleSkip = () => {
-    // ✅ FIX: Don't navigate manually
-    // Just call onFinishIntro and let the app structure handle it
+    // ✅ Call the callback to finish intro
     onFinishIntro();
   };
 
@@ -146,6 +142,22 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
         {currentSlide.text}
       </Text>
 
+      {/* Slide indicators */}
+      <View style={{ flexDirection: 'row', marginTop: 20 }}>
+        {slides.map((_, index) => (
+          <View
+            key={index}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc',
+              marginHorizontal: 4,
+            }}
+          />
+        ))}
+      </View>
+
       <View style={{ position: 'absolute', bottom: 50, alignSelf: 'center' }}>
         <TouchableOpacity
           style={{
@@ -163,7 +175,6 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
           </Text>
         </TouchableOpacity>
         
-        {/* Optional: Add Skip button */}
         <TouchableOpacity
           style={{ marginTop: 15 }}
           onPress={handleSkip}
