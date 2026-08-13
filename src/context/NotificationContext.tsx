@@ -1,5 +1,3 @@
-// components/context/NotificationContext.tsx
-
 import React, {
   createContext,
   useContext,
@@ -8,11 +6,9 @@ import React, {
   ReactNode,
   useCallback,
 } from 'react';
-import { notificationService } from '../services/NotificationService';
-import { Notification } from '../models/notification.model';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config/config';
-import messaging from '@react-native-firebase/messaging';
+import { Notification } from '../models/notification.model';
 
 interface NotificationContextType {
   isEnabled: boolean;
@@ -30,16 +26,12 @@ interface NotificationContextType {
   clearAll: () => Promise<void>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined
-);
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error(
-      'useNotifications must be used within NotificationProvider'
-    );
+    throw new Error('useNotifications must be used within NotificationProvider');
   }
   return context;
 };
@@ -48,16 +40,13 @@ interface NotificationProviderProps {
   children: ReactNode;
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({
-  children,
-}) => {
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  // Fetch unread count
   const refreshUnreadCount = useCallback(async (): Promise<void> => {
     try {
       const authToken = await AsyncStorage.getItem('authToken');
@@ -81,7 +70,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   }, []);
 
-  // Fetch notifications
   const fetchNotifications = useCallback(async (): Promise<void> => {
     try {
       const authToken = await AsyncStorage.getItem('authToken');
@@ -96,14 +84,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         },
       });
       const data = await response.json();
-      setNotifications(data.notifications || []);
-      await refreshUnreadCount();
+      if (data.success) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  }, [refreshUnreadCount]);
+  }, []);
 
-  // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string): Promise<void> => {
     try {
       const authToken = await AsyncStorage.getItem('authToken');
@@ -130,7 +119,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   }, [refreshUnreadCount]);
 
-  // Mark all as read
   const markAllAsRead = useCallback(async (): Promise<void> => {
     try {
       const authToken = await AsyncStorage.getItem('authToken');
@@ -152,40 +140,22 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     }
   }, []);
 
-  // Clear all notifications
   const clearAll = useCallback(async (): Promise<void> => {
     setNotifications([]);
     setUnreadCount(0);
   }, []);
 
-  // Request permissions
   const requestPermissions = useCallback(async (): Promise<boolean> => {
-    const status = await notificationService.requestPermission();
-    const enabled =
-      status === messaging.AuthorizationStatus.AUTHORIZED ||
-      status === messaging.AuthorizationStatus.PROVISIONAL;
-    setIsEnabled(enabled);
-    if (enabled) {
-      const token = await notificationService.getDeviceToken();
-      setDeviceToken(token);
-    }
-    return enabled;
+    // Simplified version - you can add FCM here
+    setIsEnabled(true);
+    return true;
   }, []);
 
-  // Refresh token
   const refreshToken = useCallback(async (): Promise<string | null> => {
-    const token = await notificationService.refreshToken();
-    setDeviceToken(token);
-    setIsEnabled(!!token);
-    if (token) {
-      await fetchNotifications();
-    }
-    return token;
-  }, [fetchNotifications]);
+    return null;
+  }, []);
 
-  // Delete token
   const deleteToken = useCallback(async (): Promise<void> => {
-    await notificationService.deleteToken();
     setDeviceToken(null);
     setIsEnabled(false);
     setNotifications([]);
@@ -197,13 +167,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     const init = async () => {
       setLoading(true);
       try {
-        await notificationService.initialize();
-        const token = notificationService.getToken();
-        setDeviceToken(token);
-        setIsEnabled(!!token);
-
         const authToken = await AsyncStorage.getItem('authToken');
-        if (authToken && token) {
+        if (authToken) {
           await fetchNotifications();
         }
       } catch (error) {
@@ -226,7 +191,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         setUnreadCount(0);
       }
     };
-    checkAuth();
+    
+    const interval = setInterval(checkAuth, 5000);
+    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   return (

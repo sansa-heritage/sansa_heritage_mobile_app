@@ -1,5 +1,3 @@
-// components/models/notification.model.ts
-
 export interface Notification {
   _id: string;
   userId: string;
@@ -25,11 +23,13 @@ export interface NotificationPayload {
   };
   type?: 'order' | 'promotion' | 'general' | 'system' | 'payment';
   image?: string;
+  action?: string;
 }
 
 export interface NotificationResponse {
   success: boolean;
   notifications: Notification[];
+  unreadCount: number;
   pagination?: {
     page: number;
     limit: number;

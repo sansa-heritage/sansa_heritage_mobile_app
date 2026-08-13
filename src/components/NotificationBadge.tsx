@@ -1,5 +1,3 @@
-// components/components/NotificationBadge.tsx
-
 import React, { useEffect } from 'react';
 import {
   View,
@@ -11,7 +9,6 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useNotifications } from '../context/NotificationContext';
-import { StackNavigationProp } from '@react-navigation/stack';
 
 interface NotificationBadgeProps {
   size?: number;
@@ -26,27 +23,25 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   style,
   onPress,
 }) => {
-  const navigation = useNavigation<StackNavigationProp<any>>();
+  const navigation = useNavigation();
   const { unreadCount, refreshUnreadCount } = useNotifications();
 
-  // Refresh unread count when component mounts
   useEffect(() => {
     refreshUnreadCount();
-  }, []);
+  }, [refreshUnreadCount]);
 
-  // Refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       refreshUnreadCount();
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshUnreadCount]);
 
   const handlePress = () => {
     if (onPress) {
       onPress();
     } else {
-      navigation.navigate('NotificationScreen');
+      navigation.navigate('NotificationScreen' as never);
     }
   };
 

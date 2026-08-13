@@ -25,7 +25,9 @@ const tabs: Tab[] = [
 ];
 
 interface Props {
-  activeRoute: 'Dashboard' | 'CartPage' | 'FavoritesPage' | 'Profile';
+  // activeRoute: 'Dashboard' | 'CartPage' | 'FavoritesPage' | 'Profile';
+  activeRoute: string;
+
   onLogout: () => void;
 }
 
@@ -37,42 +39,42 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
   const [cartCount, setCartCount] = useState(0);
   const [favoriteCount, setFavoriteCount] = useState(0);
 
- useEffect(() => {
-  const loadUserData = async () => {
-    const name = await AsyncStorage.getItem('name');
-    const mail = await AsyncStorage.getItem('email');
-    setUsername(name);
-    setEmail(mail);
-  };
+  useEffect(() => {
+    const loadUserData = async () => {
+      const name = await AsyncStorage.getItem('name');
+      const mail = await AsyncStorage.getItem('email');
+      setUsername(name);
+      setEmail(mail);
+    };
 
-  const fetchCounts = async () => {
-    try {
-      const cartItems = await getCartItems();
-      setCartCount(cartItems.length || 0);
+    const fetchCounts = async () => {
+      try {
+        const cartItems = await getCartItems();
+        setCartCount(cartItems.length || 0);
 
-      const favItems = await getFavoriteProducts();
-      setFavoriteCount(favItems.length || 0);
+        const favItems = await getFavoriteProducts();
+        setFavoriteCount(favItems.length || 0);
 
-    } catch (err) {
-      console.log("Error fetching counts:", err);
-    }
-  };
+      } catch (err) {
+        console.log("Error fetching counts:", err);
+      }
+    };
 
-  const listener = (data) => {
-    console.log("item removed", data);
-    fetchCounts();    // refresh count after item removed
-  };
+    const listener = (data) => {
+      console.log("item removed", data);
+      fetchCounts();    // refresh count after item removed
+    };
 
-  eventBus.on("ITEM_REMOVED", listener);   // ADD listener
+    eventBus.on("ITEM_REMOVED", listener);   // ADD listener
 
-  fetchCounts();
-  loadUserData();
+    fetchCounts();
+    loadUserData();
 
-  return () => {
-    eventBus.off("ITEM_REMOVED", listener); // REMOVE only on unmount
-  };
+    return () => {
+      eventBus.off("ITEM_REMOVED", listener); // REMOVE only on unmount
+    };
 
-}, []);
+  }, []);
 
 
 

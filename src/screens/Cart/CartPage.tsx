@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +21,8 @@ import config from '../../config/config';
 import { addToCart, removeFromCart } from '../../api/cartApi';
 import { RootStackParamList } from '../../models/types';
 import { Address } from '../../models/address';
+
+const { height } = Dimensions.get('window');
 
 /* ================= TYPES ================= */
 
@@ -80,16 +84,13 @@ const CartScreen: React.FC = () => {
   const getColorName = (color: string | ColorInfo): string => {
     if (!color) return 'N/A';
 
-    // If color is an object with name property
     if (typeof color === 'object' && color.name) {
       return color.name;
     }
 
-    // If color is a string
     if (typeof color === 'string') {
-      // Check if it looks like an ID (24 character hex string)
       if (color.match(/^[0-9a-fA-F]{24}$/)) {
-        return 'Color'; // Return generic if it's just an ID
+        return 'Color';
       }
       return color;
     }
@@ -172,7 +173,6 @@ const CartScreen: React.FC = () => {
 
       const items = data.items || [];
 
-      // ✅ Enrich items with product details and create unique IDs
       const enrichedItems = await Promise.all(
         items.map(async (item: CartItem, index: number) => {
           try {
@@ -196,7 +196,6 @@ const CartScreen: React.FC = () => {
             
             const productData = await productRes.json();
 
-            // Get size label
             let sizeLabel = '';
             if (productData.sizes && Array.isArray(productData.sizes)) {
               const sizeId = typeof item.size === 'object' ? item.size._id : item.size;
@@ -208,9 +207,7 @@ const CartScreen: React.FC = () => {
               }
             }
 
-            // Get color name
             let colorName = getColorName(item.color);
-            // If color is an ID, try to get name from product data
             if (colorName === 'Color' && productData.colors && Array.isArray(productData.colors)) {
               const colorId = typeof item.color === 'object' ? item.color._id : item.color;
               const foundColor = productData.colors.find(
@@ -249,7 +246,6 @@ const CartScreen: React.FC = () => {
         }),
       );
 
-      // ✅ Remove duplicates based on cartItemId (keep the one with highest quantity)
       const uniqueItems = enrichedItems.reduce((acc: CartItem[], current: CartItem) => {
         const existing = acc.find(item => item.cartItemId === current.cartItemId);
         if (existing) {
@@ -343,7 +339,6 @@ const CartScreen: React.FC = () => {
         await removeFromCart(currentItem.productId, Math.abs(diff), colorValue, sizeValue);
       }
 
-      // ✅ Update local state
       setCartItems(prev =>
         prev.map((item, index) =>
           index === activeItemIndex ? { ...item, quantity: newQty } : item,
@@ -451,7 +446,6 @@ const CartScreen: React.FC = () => {
   /* ================= UI ================= */
 
   const renderProductItem = ({ item, index }: { item: any; index: number }) => {
-    // Get display values
     const colorDisplay = item.colorName || getColorName(item.color);
     const sizeDisplay = item.sizeLabel || getSizeLabel(item.size);
     const colorHex = getColorHex(item.color);
@@ -472,7 +466,6 @@ const CartScreen: React.FC = () => {
               <Text style={styles.name} numberOfLines={2}>
                 {item.name}
               </Text>
-              {/* ✅ Show color with hex dot and name */}
               <View style={styles.variantRow}>
                 {colorHex && (
                   <View style={[styles.colorDot, { backgroundColor: colorHex }]} />
@@ -519,148 +512,168 @@ const CartScreen: React.FC = () => {
   };
 
   return (
-    <>
-      <FlatList
-        data={cartItems}
-        keyExtractor={(item, index) => item.cartItemId || `${item.productId}-${index}`}
-        renderItem={renderProductItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 90 }}
-        ListHeaderComponent={
-          <View style={styles.sectionCard}>
-            <View style={styles.addressRow}>
-              <Ionicons name="location-outline" size={18} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.smallLabel}>Deliver to</Text>
-                <Text style={styles.boldText} numberOfLines={2}>
-                  {deliveryAddress
-                    ? `${deliveryAddress.street}, ${deliveryAddress.city}`
-                    : 'Select delivery address'}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => setAddressModalVisible(true)}>
-                <Text style={styles.changeText}>Change</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          <>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <FlatList
+          data={cartItems}
+          keyExtractor={(item, index) => item.cartItemId || `${item.productId}-${index}`}
+          renderItem={renderProductItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.flatListContent}
+          ListHeaderComponent={
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Order Details</Text>
-              <View style={styles.billRow}>
-                <Text>Bag Total</Text>
-                <Text>₹{bagTotal.toFixed(0)}</Text>
-              </View>
-              <View style={styles.billRow}>
-                <Text>Savings</Text>
-                <Text style={{ color: 'green' }}>-₹{savings.toFixed(0)}</Text>
-              </View>
-              <View style={styles.billRow}>
-                <Text>Delivery Fee</Text>
-                <Text>₹{deliveryFee}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.billRow}>
-                <Text style={styles.boldText}>Amount Payable</Text>
-                <Text style={styles.boldText}>₹{amountPayable.toFixed(0)}</Text>
+              <View style={styles.addressRow}>
+                <Ionicons name="location-outline" size={18} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.smallLabel}>Deliver to</Text>
+                  <Text style={styles.boldText} numberOfLines={2}>
+                    {deliveryAddress
+                      ? `${deliveryAddress.street}, ${deliveryAddress.city}`
+                      : 'Select delivery address'}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setAddressModalVisible(true)}>
+                  <Text style={styles.changeText}>Change</Text>
+                </TouchableOpacity>
               </View>
             </View>
-            <View style={styles.policyCard}>
-              <Text style={styles.policyTitle}>Return/Refund policy</Text>
-              <Text style={styles.policyDesc}>
-                In case of return, we ensure quick refunds. Full amount will be
-                refunded excluding convenience fee.
-              </Text>
-              <TouchableOpacity>
-                <Text style={styles.readPolicy}>Read policy</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        }
-      />
-
-      <View style={styles.footer}>
-        <View>
-          <Text style={styles.subTotal}>₹ {amountPayable.toFixed(0)}</Text>
-          <Text style={styles.subLabel}>Total amount</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.checkoutBtn}
-          onPress={() =>
-            navigation.navigate('CheckoutPage' as any, {
-              billingDetails: amountPayable,
-            })
           }
-        >
-          <Text style={styles.checkoutText}>PROCEED TO BUY</Text>
-        </TouchableOpacity>
+          ListFooterComponent={
+            <>
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>Order Details</Text>
+                <View style={styles.billRow}>
+                  <Text>Bag Total</Text>
+                  <Text>₹{bagTotal.toFixed(0)}</Text>
+                </View>
+                <View style={styles.billRow}>
+                  <Text>Savings</Text>
+                  <Text style={{ color: 'green' }}>-₹{savings.toFixed(0)}</Text>
+                </View>
+                <View style={styles.billRow}>
+                  <Text>Delivery Fee</Text>
+                  <Text>₹{deliveryFee}</Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.billRow}>
+                  <Text style={styles.boldText}>Amount Payable</Text>
+                  <Text style={styles.boldText}>₹{amountPayable.toFixed(0)}</Text>
+                </View>
+              </View>
+              <View style={styles.policyCard}>
+                <Text style={styles.policyTitle}>Return/Refund policy</Text>
+                <Text style={styles.policyDesc}>
+                  In case of return, we ensure quick refunds. Full amount will be
+                  refunded excluding convenience fee.
+                </Text>
+                <TouchableOpacity>
+                  <Text style={styles.readPolicy}>Read policy</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Bottom spacer for footer + tabs */}
+              <View style={styles.footerSpacer} />
+            </>
+          }
+        />
+
+        {/* FOOTER - PROCEED TO BUY BUTTON */}
+        <View style={styles.footer}>
+          <View>
+            <Text style={styles.subTotal}>₹ {amountPayable.toFixed(0)}</Text>
+            <Text style={styles.subLabel}>Total amount</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.checkoutBtn}
+            onPress={() =>
+              navigation.navigate('CheckoutPage' as any, {
+                billingDetails: amountPayable,
+              })
+            }
+          >
+            <Text style={styles.checkoutText}>PROCEED TO BUY</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ADDRESS MODAL */}
+        <Modal visible={addressModalVisible} transparent>
+          <View style={styles.qtyModalOverlay}>
+            <View style={styles.qtyModal}>
+              <Text style={styles.modalTitle}>Select Delivery Address</Text>
+              {addresses.map((addr, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.qtyOption}
+                  onPress={() => selectAddress(addr)}
+                >
+                  <Text>
+                    {addr.street}, {addr.city}
+                  </Text>
+                  <Text style={styles.addressSub}>
+                    {addr.state} - {addr.zipCode}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.qtyOption, styles.cancelButton]}
+                onPress={() => setAddressModalVisible(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* QTY MODAL */}
+        <Modal visible={qtyModalVisible} transparent>
+          <View style={styles.qtyModalOverlay}>
+            <View style={styles.qtyModal}>
+              <Text style={styles.modalTitle}>Select Quantity</Text>
+              {[1, 2, 3, 4, 5].map(q => (
+                <TouchableOpacity
+                  key={q}
+                  style={styles.qtyOption}
+                  onPress={() => updateQuantity(q)}
+                >
+                  <Text>{q}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.qtyOption, styles.cancelButton]}
+                onPress={() => {
+                  setQtyModalVisible(false);
+                  setActiveItemIndex(-1);
+                }}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
-
-      {/* ADDRESS MODAL */}
-      <Modal visible={addressModalVisible} transparent>
-        <View style={styles.qtyModalOverlay}>
-          <View style={styles.qtyModal}>
-            <Text style={styles.modalTitle}>Select Delivery Address</Text>
-            {addresses.map((addr, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.qtyOption}
-                onPress={() => selectAddress(addr)}
-              >
-                <Text>
-                  {addr.street}, {addr.city}
-                </Text>
-                <Text style={styles.addressSub}>
-                  {addr.state} - {addr.zipCode}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.qtyOption, styles.cancelButton]}
-              onPress={() => setAddressModalVisible(false)}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* QTY MODAL */}
-      <Modal visible={qtyModalVisible} transparent>
-        <View style={styles.qtyModalOverlay}>
-          <View style={styles.qtyModal}>
-            <Text style={styles.modalTitle}>Select Quantity</Text>
-            {[1, 2, 3, 4, 5].map(q => (
-              <TouchableOpacity
-                key={q}
-                style={styles.qtyOption}
-                onPress={() => updateQuantity(q)}
-              >
-                <Text>{q}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.qtyOption, styles.cancelButton]}
-              onPress={() => {
-                setQtyModalVisible(false);
-                setActiveItemIndex(-1);
-              }}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </>
+    </SafeAreaView>
   );
 };
 
 export default CartScreen;
 
 const styles = StyleSheet.create({
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { padding: 16, backgroundColor: '#f6f6f6' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f6f6f6',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f6f6f6',
+  },
+  loader: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  flatListContent: {
+    paddingBottom: 140, // Increased to account for footer + tabs
+  },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -668,10 +681,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  addressRow: { flexDirection: 'row', alignItems: 'center' },
-  smallLabel: { fontSize: 12, color: '#666' },
-  boldText: { fontWeight: '700' },
-  changeText: { color: '#1e88e5', fontWeight: '700' },
+  addressRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  smallLabel: { 
+    fontSize: 12, 
+    color: '#666' 
+  },
+  boldText: { 
+    fontWeight: '700' 
+  },
+  changeText: { 
+    color: '#1e88e5', 
+    fontWeight: '700' 
+  },
   card: {
     backgroundColor: '#fff',
     flexDirection: 'row',
@@ -680,14 +704,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  image: { width: 90, height: 110, resizeMode: 'contain', borderRadius: 8 },
-  info: { flex: 1, marginLeft: 12 },
+  image: { 
+    width: 90, 
+    height: 110, 
+    resizeMode: 'contain', 
+    borderRadius: 8 
+  },
+  info: { 
+    flex: 1, 
+    marginLeft: 12 
+  },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  name: { fontWeight: '600', flex: 1, marginRight: 8, fontSize: 14 },
+  name: { 
+    fontWeight: '600', 
+    flex: 1, 
+    marginRight: 8, 
+    fontSize: 14 
+  },
   variantRow: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -701,9 +738,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  variantText: { fontSize: 12, color: '#666' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  price: { fontWeight: '700', fontSize: 16 },
+  variantText: { 
+    fontSize: 12, 
+    color: '#666' 
+  },
+  priceRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 4 
+  },
+  price: { 
+    fontWeight: '700', 
+    fontSize: 16 
+  },
   mrp: {
     textDecorationLine: 'line-through',
     marginLeft: 6,
@@ -716,8 +763,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sizeText: { fontSize: 13, color: '#555', fontWeight: '500' },
-  qtyRow: { flexDirection: 'row', alignItems: 'center' },
+  sizeText: { 
+    fontSize: 13, 
+    color: '#555', 
+    fontWeight: '500' 
+  },
+  qtyRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
   qtyDropdown: {
     marginLeft: 6,
     borderWidth: 1,
@@ -727,34 +781,67 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    borderColor: '#ddd',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
+  sectionTitle: { 
+    fontSize: 16, 
+    fontWeight: '700',
+    marginBottom: 8,
+  },
   billRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginVertical: 4,
   },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 8 },
+  divider: { 
+    height: 1, 
+    backgroundColor: '#eee', 
+    marginVertical: 8 
+  },
   footer: {
     position: 'absolute',
-    bottom: 0,
-    width: '100%',
+    bottom: 60, // Account for tab bar height (usually 60px)
+    left: 0,
+    right: 0,
     padding: 14,
+    paddingBottom: 16,
     backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderColor: '#eee',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  subTotal: { fontSize: 18, fontWeight: '700' },
-  subLabel: { fontSize: 12, color: '#666', marginTop: 2 },
+  subTotal: { 
+    fontSize: 18, 
+    fontWeight: '700' 
+  },
+  subLabel: { 
+    fontSize: 12, 
+    color: '#666', 
+    marginTop: 2 
+  },
   checkoutBtn: {
     backgroundColor: '#000',
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 8,
+    minWidth: 150,
+    alignItems: 'center',
   },
-  checkoutText: { color: '#fff', fontWeight: '700' },
+  checkoutText: { 
+    color: '#fff', 
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  footerSpacer: {
+    height: 100, // Space for footer + tabs
+  },
   qtyModalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -780,9 +867,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  addressSub: { fontSize: 12, color: '#888', marginTop: 2 },
-  cancelButton: { borderBottomWidth: 0 },
-  cancelText: { color: '#E53935', fontWeight: '500' },
+  addressSub: { 
+    fontSize: 12, 
+    color: '#888', 
+    marginTop: 2 
+  },
+  cancelButton: { 
+    borderBottomWidth: 0 
+  },
+  cancelText: { 
+    color: '#E53935', 
+    fontWeight: '500' 
+  },
   policyCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -790,8 +886,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  policyTitle: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
-  policyDesc: { fontSize: 13, color: '#555', lineHeight: 18 },
+  policyTitle: { 
+    fontSize: 14, 
+    fontWeight: '700', 
+    marginBottom: 6 
+  },
+  policyDesc: { 
+    fontSize: 13, 
+    color: '#555', 
+    lineHeight: 18 
+  },
   readPolicy: {
     marginTop: 6,
     fontSize: 13,
@@ -805,7 +909,11 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f6f6f6',
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 16 },
+  emptyTitle: { 
+    fontSize: 18, 
+    fontWeight: '700', 
+    marginTop: 16 
+  },
   emptySubtitle: {
     fontSize: 14,
     color: '#777',
@@ -819,5 +927,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
   },
-  shopBtnText: { color: '#fff', fontWeight: '700' },
+  shopBtnText: { 
+    color: '#fff', 
+    fontWeight: '700' 
+  },
 });

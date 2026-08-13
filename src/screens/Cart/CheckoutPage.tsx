@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
 
   footer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 50,
     width: '100%',
     backgroundColor: '#fff',
     flexDirection: 'row',
