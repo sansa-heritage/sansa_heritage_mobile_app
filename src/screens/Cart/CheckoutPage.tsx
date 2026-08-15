@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
+  // ActivityIndicator,
   Image,
   Alert,
   BackHandler,
@@ -17,6 +17,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import { RootStackParamList } from '../../models/types';
 import { Address } from '../../models/address';
+
+import LoadingService from '../../services/LoadingService'; // Import LoadingService
+
 
 /* ================= TYPES ================= */
 
@@ -64,6 +67,7 @@ const OrderConfirmationScreen: React.FC = () => {
   useEffect(() => {
     const loadSelectedAddress = async () => {
       try {
+        LoadingService.show();
         const stored = await AsyncStorage.getItem('selectedAddress');
         if (stored) {
           setAddress(JSON.parse(stored));
@@ -71,6 +75,8 @@ const OrderConfirmationScreen: React.FC = () => {
       } catch (e) {
         console.log('Address load error', e);
       } finally {
+        LoadingService.hide();
+
         setLoading(false);
       }
     };
@@ -95,7 +101,7 @@ const OrderConfirmationScreen: React.FC = () => {
 
       // For React Native 0.65+ (new API)
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      
+
       // Cleanup function - using the new API
       return () => subscription.remove();
     }, [navigation])
@@ -160,13 +166,13 @@ const OrderConfirmationScreen: React.FC = () => {
 
   /* ================= LOADER ================= */
 
-  if (loading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#000" />
-      </View>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <View style={styles.loader}>
+  //       <ActivityIndicator size="large" color="#000" />
+  //     </View>
+  //   );
+  // }
 
   /* ================= UI ================= */
 

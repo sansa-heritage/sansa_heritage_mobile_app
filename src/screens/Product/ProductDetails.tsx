@@ -26,6 +26,8 @@ import { Address } from "../../models/address";
 import Rating from "../../components/common/RatingStars";
 import eventBus from "../../services/eventBus";
 import { Toast } from "../../components/common/Toast";
+import LoadingService from '../../services/LoadingService'; // Import LoadingService
+
 
 const { width } = Dimensions.get("window");
 
@@ -70,6 +72,8 @@ const ProductPage = () => {
   useEffect(() => {
     const init = async () => {
       try {
+        LoadingService.show();
+
         const storedToken = await AsyncStorage.getItem('authToken');
         const storedUserId = await AsyncStorage.getItem('userID');
 
@@ -91,6 +95,8 @@ const ProductPage = () => {
       } catch (e) {
         console.log(e);
       } finally {
+        LoadingService.hide();
+
         setLoading(false);
       }
     };
@@ -125,6 +131,7 @@ const ProductPage = () => {
       Alert.alert('Error', 'Token or user ID is missing. Unable to add product to cart.');
       return;
     }
+    LoadingService.show();
 
     setLoading(true);
     setError(null);
@@ -159,7 +166,10 @@ const ProductPage = () => {
     } catch (err) {
       setError('Failed to add product to cart. Please try again.');
     } finally {
+      LoadingService.hide();
+
       setLoading(false);
+
     }
   };
 
@@ -319,11 +329,11 @@ const ProductPage = () => {
 
       {/* FOOTER */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.buyNow}  onPress={() =>
-            navigation.navigate("CheckoutPage", {
-              billingDetails: finalPrice,
-            })
-          }>
+        <TouchableOpacity style={styles.buyNow} onPress={() =>
+          navigation.navigate("CheckoutPage", {
+            billingDetails: finalPrice,
+          })
+        }>
           <Text style={styles.buyText}>BUY NOW</Text>
         </TouchableOpacity>
 

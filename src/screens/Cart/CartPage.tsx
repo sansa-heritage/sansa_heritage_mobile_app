@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
+  // ActivityIndicator,
   Modal,
   Alert,
   SafeAreaView,
@@ -21,6 +21,8 @@ import config from '../../config/config';
 import { addToCart, removeFromCart } from '../../api/cartApi';
 import { RootStackParamList } from '../../models/types';
 import { Address } from '../../models/address';
+import LoadingService from '../../services/LoadingService'; // Import LoadingService
+
 
 const { height } = Dimensions.get('window');
 
@@ -114,15 +116,15 @@ const CartScreen: React.FC = () => {
     if (!imageUrl) {
       return require('../../../assets/images/logo.png');
     }
-    
+
     if (imageUrl.startsWith('data:image')) {
       return { uri: imageUrl };
     }
-    
+
     if (imageUrl.startsWith('http')) {
       return { uri: imageUrl };
     }
-    
+
     const baseURL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
     return { uri: `${baseURL}${imageUrl}` };
   };
@@ -130,14 +132,16 @@ const CartScreen: React.FC = () => {
   /* ================= FETCH CART ================= */
 
   const fetchCart = async () => {
+    LoadingService.show();
     setLoading(true);
     setError(null);
-    
+
     try {
       const token = await AsyncStorage.getItem('authToken');
-      
+
       if (!token) {
         setCartItems([]);
+        LoadingService.hide();
         setLoading(false);
         return;
       }
@@ -147,7 +151,7 @@ const CartScreen: React.FC = () => {
       console.log('📦 Fetching cart from:', url);
 
       const res = await fetch(url, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
@@ -156,6 +160,7 @@ const CartScreen: React.FC = () => {
       if (!res.ok) {
         if (res.status === 404) {
           setCartItems([]);
+          LoadingService.hide();
           setLoading(false);
           return;
         }
@@ -167,6 +172,7 @@ const CartScreen: React.FC = () => {
 
       if (!data || !data.items) {
         setCartItems([]);
+        LoadingService.hide();
         setLoading(false);
         return;
       }
@@ -182,18 +188,18 @@ const CartScreen: React.FC = () => {
                 headers: { 'Authorization': `Bearer ${token}` },
               },
             );
-            
+
             if (!productRes.ok) {
               console.log('Product fetch failed for:', item.productId);
-              return { 
-                ...item, 
-                sizeLabel: '', 
+              return {
+                ...item,
+                sizeLabel: '',
                 colorName: getColorName(item.color),
                 imageUrl: item.imageUrl || '',
                 cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}-${index}`,
               };
             }
-            
+
             const productData = await productRes.json();
 
             let sizeLabel = '';
@@ -235,9 +241,9 @@ const CartScreen: React.FC = () => {
             };
           } catch (err) {
             console.log('Error fetching product details:', err);
-            return { 
-              ...item, 
-              sizeLabel: '', 
+            return {
+              ...item,
+              sizeLabel: '',
               colorName: getColorName(item.color),
               imageUrl: item.imageUrl || '',
               cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}`,
@@ -261,8 +267,10 @@ const CartScreen: React.FC = () => {
     } catch (e: any) {
       console.error('Fetch cart error:', e);
       setError(e.message || 'Failed to load cart items');
+      LoadingService.hide();
       setCartItems([]);
     } finally {
+      LoadingService.hide();
       setLoading(false);
     }
   };
@@ -277,7 +285,7 @@ const CartScreen: React.FC = () => {
     const loadAddress = async () => {
       try {
         const token = await AsyncStorage.getItem('authToken');
-        
+
         if (!token) return;
 
         const baseURL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
@@ -316,22 +324,46 @@ const CartScreen: React.FC = () => {
     setQtyModalVisible(true);
   };
 
+  /* ================= QTY ================= */
+
   const updateQuantity = async (newQty: number) => {
     if (activeItemIndex === -1) return;
-    
+
     const currentItem = cartItems[activeItemIndex];
     if (!currentItem) return;
 
     const currentQty = Number(currentItem.quantity);
     const diff = newQty - currentQty;
 
+    LoadingService.show();
+
     try {
-      const colorValue = typeof currentItem.color === 'object' 
-        ? currentItem.color._id 
-        : currentItem.color;
-      const sizeValue = typeof currentItem.size === 'object' 
-        ? currentItem.size._id 
-        : currentItem.size;
+      // Safely get color value with null checks
+      let colorValue = null;
+      if (currentItem.color) {
+        if (typeof currentItem.color === 'object') {
+          colorValue = currentItem.color._id || currentItem.color.name || null;
+        } else {
+          colorValue = currentItem.color;
+        }
+      }
+
+      // Safely get size value with null checks
+      let sizeValue = null;
+      if (currentItem.size) {
+        if (typeof currentItem.size === 'object') {
+          sizeValue = currentItem.size._id || currentItem.size.label || null;
+        } else {
+          sizeValue = currentItem.size;
+        }
+      }
+
+      console.log('Updating quantity:', {
+        productId: currentItem.productId,
+        diff: diff,
+        color: colorValue,
+        size: sizeValue
+      });
 
       if (diff > 0) {
         await addToCart(currentItem.productId, diff, colorValue, sizeValue);
@@ -344,13 +376,18 @@ const CartScreen: React.FC = () => {
           index === activeItemIndex ? { ...item, quantity: newQty } : item,
         ),
       );
-      
+
       setQtyModalVisible(false);
       setActiveItemIndex(-1);
     } catch (e) {
-      console.log(e);
+      console.log('Update quantity error:', e);
+      Alert.alert('Error', 'Failed to update quantity. Please try again.');
+    } finally {
+      LoadingService.hide();
     }
   };
+
+  /* ================= REMOVE ITEM ================= */
 
   /* ================= REMOVE ITEM ================= */
 
@@ -364,18 +401,52 @@ const CartScreen: React.FC = () => {
         text: 'Remove',
         style: 'destructive',
         onPress: async () => {
+          LoadingService.show();
           try {
-            const colorValue = typeof item.color === 'object' 
-              ? item.color._id 
-              : item.color;
-            const sizeValue = typeof item.size === 'object' 
-              ? item.size._id 
-              : item.size;
-            
-            await removeFromCart(item.productId, Number(item.quantity), colorValue, sizeValue);
+            // Safely get color value with null checks
+            let colorValue = null;
+            if (item.color) {
+              if (typeof item.color === 'object') {
+                colorValue = item.color._id || item.color.name || null;
+              } else {
+                colorValue = item.color;
+              }
+            }
+
+            // Safely get size value with null checks
+            let sizeValue = null;
+            if (item.size) {
+              if (typeof item.size === 'object') {
+                sizeValue = item.size._id || item.size.label || null;
+              } else {
+                sizeValue = item.size;
+              }
+            }
+
+            console.log('Removing item:', {
+              productId: item.productId,
+              quantity: Number(item.quantity),
+              color: colorValue,
+              size: sizeValue
+            });
+
+            await removeFromCart(
+              item.productId,
+              Number(item.quantity),
+              colorValue,
+              sizeValue
+            );
+
             setCartItems(prev => prev.filter((_, i) => i !== index));
+
+            // Refresh cart to ensure consistency
+            await fetchCart();
+
           } catch (error) {
             console.error('Remove item error:', error);
+            Alert.alert('Error', 'Failed to remove item. Please try again.');
+          } finally {
+            LoadingService.hide();
           }
         },
       },
@@ -395,7 +466,7 @@ const CartScreen: React.FC = () => {
       (Number(i.price || 0) *
         Number(i.discount || 0) *
         Number(i.quantity || 0)) /
-        100,
+      100,
     0,
   );
 
@@ -404,13 +475,13 @@ const CartScreen: React.FC = () => {
 
   /* ================= LOADER ================= */
 
-  if (loading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#151515" />
-      </View>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <View style={styles.loader}>
+  //       <ActivityIndicator size="large" color="#151515" />
+  //     </View>
+  //   );
+  // }
 
   if (error) {
     return (
@@ -665,9 +736,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f6f6f6',
   },
-  loader: { 
-    flex: 1, 
-    justifyContent: 'center', 
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
   },
@@ -681,20 +752,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  addressRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
-  smallLabel: { 
-    fontSize: 12, 
-    color: '#666' 
+  smallLabel: {
+    fontSize: 12,
+    color: '#666'
   },
-  boldText: { 
-    fontWeight: '700' 
+  boldText: {
+    fontWeight: '700'
   },
-  changeText: { 
-    color: '#1e88e5', 
-    fontWeight: '700' 
+  changeText: {
+    color: '#1e88e5',
+    fontWeight: '700'
   },
   card: {
     backgroundColor: '#fff',
@@ -704,31 +775,31 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  image: { 
-    width: 90, 
-    height: 110, 
-    resizeMode: 'contain', 
-    borderRadius: 8 
+  image: {
+    width: 90,
+    height: 110,
+    resizeMode: 'contain',
+    borderRadius: 8
   },
-  info: { 
-    flex: 1, 
-    marginLeft: 12 
+  info: {
+    flex: 1,
+    marginLeft: 12
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  name: { 
-    fontWeight: '600', 
-    flex: 1, 
-    marginRight: 8, 
-    fontSize: 14 
+  name: {
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 8,
+    fontSize: 14
   },
-  variantRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 2 
+  variantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2
   },
   colorDot: {
     width: 12,
@@ -738,18 +809,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  variantText: { 
-    fontSize: 12, 
-    color: '#666' 
+  variantText: {
+    fontSize: 12,
+    color: '#666'
   },
-  priceRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 4 
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4
   },
-  price: { 
-    fontWeight: '700', 
-    fontSize: 16 
+  price: {
+    fontWeight: '700',
+    fontSize: 16
   },
   mrp: {
     textDecorationLine: 'line-through',
@@ -763,14 +834,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sizeText: { 
-    fontSize: 13, 
-    color: '#555', 
-    fontWeight: '500' 
+  sizeText: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '500'
   },
-  qtyRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   qtyDropdown: {
     marginLeft: 6,
@@ -783,8 +854,8 @@ const styles = StyleSheet.create({
     gap: 6,
     borderColor: '#ddd',
   },
-  sectionTitle: { 
-    fontSize: 16, 
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
   },
@@ -793,14 +864,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginVertical: 4,
   },
-  divider: { 
-    height: 1, 
-    backgroundColor: '#eee', 
-    marginVertical: 8 
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 8
   },
   footer: {
     position: 'absolute',
-    bottom: 60, // Account for tab bar height (usually 60px)
+    bottom: 80, // Account for tab bar height (usually 60px)
     left: 0,
     right: 0,
     padding: 14,
@@ -817,14 +888,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  subTotal: { 
-    fontSize: 18, 
-    fontWeight: '700' 
+  subTotal: {
+    fontSize: 18,
+    fontWeight: '700'
   },
-  subLabel: { 
-    fontSize: 12, 
-    color: '#666', 
-    marginTop: 2 
+  subLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2
   },
   checkoutBtn: {
     backgroundColor: '#000',
@@ -834,8 +905,8 @@ const styles = StyleSheet.create({
     minWidth: 150,
     alignItems: 'center',
   },
-  checkoutText: { 
-    color: '#fff', 
+  checkoutText: {
+    color: '#fff',
     fontWeight: '700',
     fontSize: 14,
   },
@@ -867,17 +938,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  addressSub: { 
-    fontSize: 12, 
-    color: '#888', 
-    marginTop: 2 
+  addressSub: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2
   },
-  cancelButton: { 
-    borderBottomWidth: 0 
+  cancelButton: {
+    borderBottomWidth: 0
   },
-  cancelText: { 
-    color: '#E53935', 
-    fontWeight: '500' 
+  cancelText: {
+    color: '#E53935',
+    fontWeight: '500'
   },
   policyCard: {
     backgroundColor: '#fff',
@@ -886,15 +957,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 16,
   },
-  policyTitle: { 
-    fontSize: 14, 
-    fontWeight: '700', 
-    marginBottom: 6 
+  policyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6
   },
-  policyDesc: { 
-    fontSize: 13, 
-    color: '#555', 
-    lineHeight: 18 
+  policyDesc: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18
   },
   readPolicy: {
     marginTop: 6,
@@ -909,10 +980,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f6f6f6',
   },
-  emptyTitle: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    marginTop: 16 
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16
   },
   emptySubtitle: {
     fontSize: 14,
@@ -927,8 +998,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
   },
-  shopBtnText: { 
-    color: '#fff', 
-    fontWeight: '700' 
+  shopBtnText: {
+    color: '#fff',
+    fontWeight: '700'
   },
 });

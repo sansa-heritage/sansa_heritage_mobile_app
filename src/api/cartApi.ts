@@ -1,11 +1,35 @@
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
-export const addToCart = async (productId: string, quantity: number, color: string, p0: string) => {
+export const addToCart = async (
+  productId: string, 
+  quantity: number, 
+  color: string | null = null, 
+  size: string | null = null
+) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
     const storedUserId = await AsyncStorage.getItem('userID');
+
+    if (!storedToken || !storedUserId) {
+      throw new Error('User not authenticated');
+    }
+
+    const body: any = {
+      productId,
+      quantity,
+      userId: storedUserId,
+    };
+
+    // Only add color and size if they have values
+    if (color && color !== null && color !== 'null') {
+      body.color = color;
+    }
+    if (size && size !== null && size !== 'null') {
+      body.size = size;
+    }
+
+    console.log('Adding to cart:', body);
 
     const response = await fetch(`${config.baseURL}api/cart/add-to-cart`, {
       method: 'POST',
@@ -13,28 +37,52 @@ export const addToCart = async (productId: string, quantity: number, color: stri
         'Content-Type': 'application/json',
         Authorization: `Bearer ${storedToken}`,
       },
-      body: JSON.stringify({
-        productId,
-        quantity,
-        userId: storedUserId,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      throw new Error(`Error adding item to cart: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error adding item to cart: ${response.status}`);
     }
 
     const data = await response.json();
     console.log('Item added to cart:', data);
+    return data;
   } catch (err) {
     console.error('Failed to add item to cart:', err);
+    throw err;
   }
 };
 
-export const removeFromCart = async (productId: string, quantity: number, color: string, p0: string) => {
+export const removeFromCart = async (
+  productId: string, 
+  quantity: number, 
+  color: string | null = null, 
+  size: string | null = null
+) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
     const storedUserId = await AsyncStorage.getItem('userID');
+
+    if (!storedToken || !storedUserId) {
+      throw new Error('User not authenticated');
+    }
+
+    const body: any = {
+      productId,
+      quantity,
+      userId: storedUserId,
+    };
+
+    // Only add color and size if they have values
+    if (color && color !== null && color !== 'null' && color !== 'N/A') {
+      body.color = color;
+    }
+    if (size && size !== null && size !== 'null' && size !== 'N/A') {
+      body.size = size;
+    }
+
+    console.log('Removing from cart:', body);
 
     const response = await fetch(`${config.baseURL}api/cart/remove-from-cart`, {
       method: 'POST',
@@ -42,21 +90,20 @@ export const removeFromCart = async (productId: string, quantity: number, color:
         'Content-Type': 'application/json',
         Authorization: `Bearer ${storedToken}`,
       },
-      body: JSON.stringify({
-        productId,
-        quantity,
-        userId: storedUserId,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
-      throw new Error(`Error removing item from cart: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error removing item from cart: ${response.status}`);
     }
 
     const data = await response.json();
     console.log('Item removed from cart:', data);
+    return data;
   } catch (err) {
     console.error('Failed to remove item from cart:', err);
+    throw err;
   }
 };
 
@@ -64,7 +111,6 @@ export const getCartItems = async () => {
   try {
     const token = await AsyncStorage.getItem('authToken');
 
-    // If no token, return empty array (user not logged in)
     if (!token) {
       console.log('No auth token found, returning empty cart');
       return [];
@@ -80,7 +126,6 @@ export const getCartItems = async () => {
       },
     });
 
-    // Always try to parse JSON
     let data;
     try {
       data = await response.json();
@@ -92,18 +137,14 @@ export const getCartItems = async () => {
     console.log('Cart API response status:', response.status);
     console.log('Cart API response:', data);
 
-    // If response is not OK, but we have data, check if it's an empty cart
     if (!response.ok) {
-      // If it's a 404 or similar, return empty array (cart doesn't exist yet)
       if (response.status === 404 || data?.message?.includes('empty') || data?.message?.includes('not found')) {
         console.log('Cart not found or empty, returning empty array');
         return [];
       }
-      // For other errors, throw
       throw new Error(data?.message || `Failed to fetch cart items: ${response.status}`);
     }
 
-    // Extract items from various possible response formats
     if (data?.items && Array.isArray(data.items)) {
       return data.items;
     }
@@ -116,23 +157,19 @@ export const getCartItems = async () => {
       return data.data;
     }
 
-    // If response is an array directly
     if (Array.isArray(data)) {
       return data;
     }
 
-    // If we have a success response but no items, return empty array
     if (data?.success !== false) {
       return [];
     }
 
-    // Fallback: return empty array
     console.log('No items found in cart response, returning empty array');
     return [];
 
   } catch (error) {
     console.error('Error fetching cart items:', error);
-    // Return empty array instead of throwing error
     return [];
   }
 };

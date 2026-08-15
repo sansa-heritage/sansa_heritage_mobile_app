@@ -23,9 +23,38 @@ import { RootStackParamList } from '../../models/types';
 import eventBus from '../../services/eventBus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
+import LoadingService from '../../services/LoadingService';
 
 // Base URL for images
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
+
+// Banner images - replace with your actual images
+const bannerImages = [
+  require('../../../assets/images/banner1.jpg'),
+  require('../../../assets/images/banner2.jpg'),
+  require('../../../assets/images/banner3.jpg'),
+];
+
+// Category icons mapping - add your actual icon images
+const categoryIcons: { [key: string]: any } = {
+  'All': require('../../../assets/icons/all.png'),
+  'Sarees': require('../../../assets/icons/saree.png'),
+  'Kurtis': require('../../../assets/icons/kurti.png'),
+  'Lehengas': require('../../../assets/icons/lehenga.png'),
+  'Ethnic Sets': require('../../../assets/icons/ethnic-set.png'),
+  'Dupattas': require('../../../assets/icons/dupatta.png'),
+};
+
+// ✅ FEATURE ICONS - Add your actual icon images here
+const featureIcons = {
+  deals: require('../../../assets/icons/deals.png'),
+  shipping: require('../../../assets/icons/shipping.png'),
+  quality: require('../../../assets/icons/quality.png'),
+  heritage: require('../../../assets/icons/heritage.png'),
+};
+
+// Fallback icon if category icon not found
+// const FALLBACK_ICON = require('../../../assets/icons/category.png');
 
 // Helper function to get image source
 const getImageSource = (item: any) => {
@@ -47,11 +76,20 @@ const getImageSource = (item: any) => {
   return require('../../../assets/images/logo.png');
 };
 
+// Helper function to get category icon
+const getCategoryIcon = (categoryName: string) => {
+  return categoryIcons[categoryName] || FALLBACK_ICON;
+};
+
 export default function Dashboard() {
   const [newArrivals, setNewArrivals] = useState([]);
   const [trendingItems, setTrendingItems] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<any[]>([]);
+  
+  // Banner slider state
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
 
   const [showAllNew, setShowAllNew] = useState(false);
   const [showAllTrending, setShowAllTrending] = useState(false);
@@ -69,12 +107,24 @@ export default function Dashboard() {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
+  // ✅ Auto-scroll banner
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (currentBannerIndex + 1) % bannerImages.length;
+      setCurrentBannerIndex(nextIndex);
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [currentBannerIndex]);
+
   // ✅ Debounce search - wait for user to stop typing
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchText(searchText);
-    }, 500); // 500ms delay
-
+    }, 500);
     return () => clearTimeout(timer);
   }, [searchText]);
 
@@ -86,20 +136,18 @@ export default function Dashboard() {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
       const data = await response.json();
-      
-      // Filter only active categories
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
-      
-      // Add "All" category at the beginning
       setCategories([{ _id: '', name: 'All', isActive: true }, ...activeCategories]);
       console.log('📂 Categories loaded:', activeCategories.length);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      // Fallback categories if API fails
       setCategories([
         { _id: '', name: 'All' },
-        { _id: '69c2929b7569532c3a762c58', name: 'Modern & Trendy' },
-        { _id: '69aad6af3048f07275f703c2', name: 'test-brand' },
+        { _id: '1', name: 'Sarees' },
+        { _id: '2', name: 'Kurtis' },
+        { _id: '3', name: 'Lehengas' },
+        { _id: '4', name: 'Ethnic Sets' },
+        { _id: '5', name: 'Dupattas' },
       ]);
     }
   };
@@ -115,33 +163,22 @@ export default function Dashboard() {
     priceRange?: [number, number];
   }) => {
     try {
-      const params: any = {
-        isNewArrival: true,
-      };
-
+      const params: any = { isNewArrival: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0] !== undefined && priceRange?.[0] > 0) params.minPrice = priceRange[0];
       if (priceRange?.[1] !== undefined && priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
-      
-      console.log('📦 New Arrivals Params:', params);
-      console.log('🔗 Category being sent (ID):', selectedCategory);
 
       const queryString = Object.keys(params)
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
         .join('&');
 
       const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
-      console.log('🌐 New Arrivals API URL:', url);
-
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
-      
       const data = await response.json();
-      console.log('✅ New Arrivals Response count:', data?.length || 0);
-
       setNewArrivals(data || []);
     } catch (err) {
       console.error('Error fetching new arrivals:', err);
@@ -159,10 +196,7 @@ export default function Dashboard() {
     priceRange?: [number, number];
   }) => {
     try {
-      const params: any = {
-        isTrending: true,
-      };
-
+      const params: any = { isTrending: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0] !== undefined && priceRange?.[0] > 0) params.minPrice = priceRange[0];
@@ -173,16 +207,11 @@ export default function Dashboard() {
         .join('&');
 
       const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
-      console.log('🌐 Trending API URL:', url);
-
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
-      
       const data = await response.json();
-      console.log('✅ Trending Response count:', data?.length || 0);
-
       setTrendingItems(data || []);
     } catch (err) {
       console.error('Error fetching trending:', err);
@@ -193,6 +222,7 @@ export default function Dashboard() {
   // ✅ Load categories and products on mount
   useEffect(() => {
     const loadData = async () => {
+      LoadingService.show();
       setLoading(true);
       await fetchCategories();
       await Promise.all([
@@ -200,19 +230,22 @@ export default function Dashboard() {
         fetchTrending({ searchText: '', selectedCategory: '', priceRange }),
       ]);
       setLoading(false);
+      LoadingService.hide();
     };
     loadData();
   }, []);
 
-  // ✅ Refetch when filters change (using debounced search)
+  // ✅ Refetch when filters change
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
+        LoadingService.show();
         setLoading(true);
         await Promise.all([
           fetchNewArrivals({ searchText: debouncedSearchText, selectedCategory, priceRange }),
           fetchTrending({ searchText: debouncedSearchText, selectedCategory, priceRange }),
         ]);
+        LoadingService.hide();
         setLoading(false);
       };
       loadData();
@@ -230,7 +263,6 @@ export default function Dashboard() {
 
   const handleSearchChange = (text: string) => {
     setSearchText(text);
-    // The debounce will handle the actual search
   };
 
   const assignFilterItem = (categoryId: string) => {
@@ -240,11 +272,13 @@ export default function Dashboard() {
 
   const applyFilter = async () => {
     setModalVisible(false);
+    LoadingService.show();
     setLoading(true);
     await Promise.all([
       fetchNewArrivals({ searchText: debouncedSearchText, selectedCategory, priceRange }),
       fetchTrending({ searchText: debouncedSearchText, selectedCategory, priceRange }),
     ]);
+    LoadingService.hide();
     setLoading(false);
   };
 
@@ -256,18 +290,6 @@ export default function Dashboard() {
     setDistanceRange([500, 2000]);
     setModalVisible(false);
   };
-
-  const navigateToCategory = (category: string) => {
-    navigation.navigate('CategoryScreen', { mainCategory: category });
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#151515" />
-      </View>
-    );
-  }
 
   const itemsToShowNew = showAllNew ? newArrivals : newArrivals.slice(0, 4);
   const itemsToShowTrending = showAllTrending ? trendingItems : trendingItems.slice(0, 4);
@@ -315,69 +337,138 @@ export default function Dashboard() {
     </TouchableOpacity>
   );
 
+  // ✅ Banner Slider Component
+  const BannerSlider = () => (
+    <View style={styles.bannerWrapper}>
+      <FlatList
+        ref={flatListRef}
+        data={bannerImages}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <Image source={item} style={styles.bannerImage} resizeMode="cover" />
+        )}
+        keyExtractor={(_, index) => index.toString()}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          setCurrentBannerIndex(index);
+        }}
+      />
+      {/* Dots */}
+      <View style={styles.dotsContainer}>
+        {bannerImages.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              currentBannerIndex === index && styles.activeDot,
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+
+  // ✅ Category Item Component with Icon
+  const CategoryItem = ({ item }: { item: any }) => {
+    const isActive = selectedCategory === item._id;
+    const iconSource = getCategoryIcon(item.name);
+    
+    return (
+      <TouchableOpacity
+        onPress={() => assignFilterItem(item._id)}
+        style={[
+          styles.categoryItem,
+          isActive && styles.categoryItemActive,
+        ]}
+      >
+        <View style={[
+          styles.categoryIconWrapper,
+          isActive && styles.categoryIconWrapperActive,
+        ]}>
+          <Image 
+            source={iconSource} 
+            style={[
+              styles.categoryIcon,
+              isActive && styles.categoryIconActive,
+            ]} 
+            resizeMode="contain"
+          />
+        </View>
+        <Text
+          style={[
+            styles.categoryName,
+            isActive && styles.categoryNameActive,
+          ]}
+        >
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // ✅ Feature Badges Component with Image Icons
+  const FeatureBadges = () => (
+    <View style={styles.featuresContainer}>
+      {/* 1. Exclusive Deals */}
+      <View style={styles.featureItem}>
+        <Image source={featureIcons.deals} style={styles.featureIconImage} resizeMode="contain" />
+        <View style={styles.featureTextWrapper}>
+          <Text style={styles.featureTitle}>Exclusive Deals</Text>
+          <Text style={styles.featureSubtext}>Best Prices</Text>
+        </View>
+      </View>
+      
+      {/* 2. Free Shipping */}
+      <View style={styles.featureItem}>
+        <Image source={featureIcons.shipping} style={styles.featureIconImage} resizeMode="contain" />
+        <View style={styles.featureTextWrapper}>
+          <Text style={styles.featureTitle}>Free Shipping</Text>
+          <Text style={styles.featureSubtext}>On orders above 999</Text>
+        </View>
+      </View>
+      
+      {/* 3. Quality Assured */}
+      <View style={styles.featureItem}>
+        <Image source={featureIcons.quality} style={styles.featureIconImage} resizeMode="contain" />
+        <View style={styles.featureTextWrapper}>
+          <Text style={styles.featureTitle}>Quality Assured</Text>
+          <Text style={styles.featureSubtext}>100% Original</Text>
+        </View>
+      </View>
+      
+      {/* 4. Handpicked Heritage */}
+      <View style={styles.featureItem}>
+        <Image source={featureIcons.heritage} style={styles.featureIconImage} resizeMode="contain" />
+        <View style={styles.featureTextWrapper}>
+          <Text style={styles.featureTitle}>Handpicked Heritage</Text>
+          <Text style={styles.featureSubtext}>Styles for you</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   // ✅ Header component with dynamic categories
   const ListHeaderComponent = () => (
     <>
-      <View style={styles.titleSection}>
-        <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>Best outfits for you</Text>
-      </View>
+      {/* Banner Slider */}
+      <BannerSlider />
 
-      <View style={styles.searchSection}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search items..."
-          value={searchText}
-          onChangeText={handleSearchChange}
-          placeholderTextColor="#888"
-        />
-        <TouchableOpacity
-          style={styles.searchIconWrapper}
-          onPress={() => setModalVisible(true)}
-        >
-          <MaterialIcons name="filter-list" size={24} color="white" />
-        </TouchableOpacity>
-      </View>
-
-      {searchText ? (
-        <View style={styles.searchInfoContainer}>
-          <Text style={styles.searchInfoText}>
-            Search results for:{' '}
-            <Text style={styles.searchQueryText}>{searchText}</Text>
-          </Text>
-        </View>
-      ) : null}
-
-      {/* ✅ Dynamic Categories */}
+      {/* Dynamic Categories with Icons */}
       <View style={styles.categoryWrapper}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           data={categories}
           keyExtractor={item => item._id || 'all'}
-          renderItem={({ item }) => {
-            const isActive = selectedCategory === item._id;
-            return (
-              <TouchableOpacity
-                onPress={() => assignFilterItem(item._id)}
-                style={[
-                  styles.categoryPill,
-                  isActive && styles.categoryPillActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.categoryPillText,
-                    isActive && styles.categoryPillTextActive,
-                  ]}
-                >
-                  {item.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => <CategoryItem item={item} />}
+          contentContainerStyle={styles.categoryList}
         />
       </View>
+
+      {/* Feature Badges with Image Icons */}
+      <FeatureBadges />
     </>
   );
 
@@ -445,7 +536,7 @@ export default function Dashboard() {
         keyboardShouldPersistTaps="handled"
       />
 
-      {/* ✅ Filter Modal - FIXED */}
+      {/* ✅ Filter Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -617,27 +708,99 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
+  
+  // ============================================
+  // CATEGORY STYLES - With Icons
+  // ============================================
   categoryWrapper: {
-    marginVertical: 15,
+    marginVertical: 10,
   },
-  categoryPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    backgroundColor: '#f2f2f2',
-    borderRadius: 25,
-    marginRight: 10,
+  categoryList: {
+    paddingHorizontal: 2,
   },
-  categoryPillActive: {
-    backgroundColor: '#151515',
+  categoryItem: {
+    alignItems: 'center',
+    marginRight: 20,
+    paddingVertical: 6,
   },
-  categoryPillText: {
-    fontSize: 14,
-    color: '#333',
+  categoryItemActive: {
+    // Active state styling
+  },
+  categoryIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  categoryIconWrapperActive: {
+    backgroundColor: '#96252A',
+    borderColor: '#96252A',
+  },
+  categoryIcon: {
+    width: 30,
+    height: 30,
+    tintColor: '#96252A',
+  },
+  categoryIconActive: {
+    tintColor: '#FFFFFF',
+  },
+  categoryName: {
+    fontSize: 12,
+    color: '#666',
     fontWeight: '500',
+    textAlign: 'center',
   },
-  categoryPillTextActive: {
-    color: '#fff',
+  categoryNameActive: {
+    color: '#96252A',
+    fontWeight: '600',
   },
+
+  // ============================================
+  // FEATURE BADGES - With Image Icons
+  // ============================================
+  featuresContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8F4F0',
+    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    marginVertical: 3,
+    marginHorizontal: 2,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: 1,
+  },
+  featureIconImage: {
+    width: 25,
+    height: 25,
+    tintColor: '#96252A',
+    marginRight: 2,
+  },
+  featureTextWrapper: {
+    flex: 1,
+  },
+  featureTitle: {
+    fontSize: 9,
+    color: '#96252A',
+    fontWeight: '700',
+    lineHeight: 12,
+  },
+  featureSubtext: {
+    fontSize: 7.5,
+    color: '#888',
+    fontWeight: '400',
+    lineHeight: 10,
+  },
+
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
@@ -806,7 +969,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryFilterButtonActive: {
-    backgroundColor: '#151515',
+    backgroundColor: '#96252A',
   },
   categoryFilterText: {
     color: '#333',
@@ -835,7 +998,7 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   applyButton: {
-    backgroundColor: '#151515',
+    backgroundColor: '#96252A',
     borderRadius: 35,
     paddingVertical: 15,
     alignItems: 'center',
@@ -844,10 +1007,43 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
   button: {
     marginTop: 10,
     alignSelf: 'center',
+  },
+
+  // ============================================
+  // BANNER SLIDER STYLES
+  // ============================================
+  bannerWrapper: {
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  bannerImage: {
+    width: width - 30,
+    height: 180,
+    borderRadius: 12,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 10,
+    flexDirection: 'row',
+    alignSelf: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  activeDot: {
+    backgroundColor: '#96252A',
+    width: 20,
   },
 });
 

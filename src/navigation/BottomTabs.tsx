@@ -25,9 +25,7 @@ const tabs: Tab[] = [
 ];
 
 interface Props {
-  // activeRoute: 'Dashboard' | 'CartPage' | 'FavoritesPage' | 'Profile';
   activeRoute: string;
-
   onLogout: () => void;
 }
 
@@ -62,21 +60,19 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
 
     const listener = (data) => {
       console.log("item removed", data);
-      fetchCounts();    // refresh count after item removed
+      fetchCounts();
     };
 
-    eventBus.on("ITEM_REMOVED", listener);   // ADD listener
+    eventBus.on("ITEM_REMOVED", listener);
 
     fetchCounts();
     loadUserData();
 
     return () => {
-      eventBus.off("ITEM_REMOVED", listener); // REMOVE only on unmount
+      eventBus.off("ITEM_REMOVED", listener);
     };
 
   }, []);
-
-
 
   const redirectToProfile = () => {
     navigation.navigate('Profile');
@@ -134,12 +130,13 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
               key={tab.name}
               style={styles.tab}
               onPress={() => navigateTab(tab.name)}
+              activeOpacity={0.7}
             >
               <View style={{ position: "relative" }}>
                 <Ionicons
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={28}
-                  color={isActive ? "#151515" : "#adadad"}
+                  color={isActive ? "#96252A" : "#adadad"}
                 />
                 {badgeCount > 0 && (
                   <View style={styles.badge}>
@@ -148,14 +145,13 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 )}
               </View>
 
-              <Text style={[styles.label, { color: isActive ? "#151515" : "#adadad" }]}>
+              <Text style={[styles.label, { color: isActive ? "#96252A" : "#adadad" }]}>
                 {tab.name.replace("Page", "")}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
-
 
       {/* Side Menu Modal */}
       <Modal
@@ -166,13 +162,10 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
       >
         <View style={styles.menuContainer}>
           <View style={styles.menuContent}>
-
-            {/* Close Button */}
             <TouchableOpacity onPress={() => setMenuVisible(false)}>
               <Text style={styles.menuCloseText}>Close</Text>
             </TouchableOpacity>
 
-            {/* Profile Section */}
             <TouchableOpacity onPress={redirectToProfile} style={styles.menuItem}>
               <View style={styles.profileContainer}>
                 <Image
@@ -186,59 +179,54 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
               </View>
             </TouchableOpacity>
 
-            <ScrollView>
-              {/* Menu Items */}
+            <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity onPress={redirectToFavorites} style={styles.menuItem}>
-                <MaterialIcons name="favorite" size={24} color="orange" />
+                <MaterialIcons name="favorite" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>My Favorites</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToWallets} style={styles.menuItem}>
-                <Ionicons name="wallet" size={24} color="orange" />
+                <Ionicons name="wallet" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Wallets</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToOrders} style={styles.menuItem}>
-                <MaterialIcons name="shopping-cart" size={24} color="orange" />
+                <MaterialIcons name="shopping-cart" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>My Orders</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToProfile} style={styles.menuItem}>
-                <Ionicons name="person" size={24} color="orange" />
+                <Ionicons name="person" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Profiles</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToAboutUs}>
-                <Ionicons name="document" size={24} color="orange" />
+                <Ionicons name="document" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>About Us</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToPrivacy}>
-                <Ionicons name="lock-closed" size={24} color="orange" />
+                <Ionicons name="lock-closed" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Privacy policy</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToSettings} style={styles.menuItem}>
-                <Ionicons name="settings" size={24} color="orange" />
+                <Ionicons name="settings" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Settings</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={e => {
-                  handleLogout()
-                }}
+                onPress={handleLogout}
                 style={styles.logOut}
               >
-                <Ionicons name="log-out" size={24} color="orange" />
+                <Ionicons name="log-out" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Log out</Text>
               </TouchableOpacity>
 
-              {/* Brand Logo */}
               <View style={styles.brandLogo}>
                 <Image source={require('../../assets/images/Vector.png')} />
               </View>
             </ScrollView>
-
           </View>
         </View>
       </Modal>
@@ -253,19 +241,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 60,
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    backgroundColor: '#fff',
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     position: 'absolute',
-    bottom: 0,
+    bottom: 35,
     left: 0,
     right: 0,
+    zIndex: 10,
+    elevation: 10,
   },
   tab: {
     alignItems: 'center',
+    paddingVertical: 4,
   },
   label: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
+    fontWeight: '500',
   },
   menuContainer: {
     flex: 1,
@@ -280,9 +272,10 @@ const styles = StyleSheet.create({
   },
   menuCloseText: {
     fontSize: 16,
-    color: '#ff6f61',
+    color: '#96252A',
     textAlign: 'right',
     marginBottom: 20,
+    fontWeight: '600',
   },
   menuItem: {
     flexDirection: 'row',
@@ -292,6 +285,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     marginLeft: 15,
+    color: '#333',
   },
   profileContainer: {
     flexDirection: 'row',
@@ -331,18 +325,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -5,
     right: -10,
-    backgroundColor: "red",
+    backgroundColor: "#E53935",
     borderRadius: 20,
-    width: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
+    paddingHorizontal: 4,
   },
   badgeText: {
     color: "white",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "bold",
   },
-
 });
