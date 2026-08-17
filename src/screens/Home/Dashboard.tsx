@@ -53,9 +53,6 @@ const featureIcons = {
   heritage: require('../../../assets/icons/heritage.png'),
 };
 
-// Fallback icon if category icon not found
-// const FALLBACK_ICON = require('../../../assets/icons/category.png');
-
 // Helper function to get image source
 const getImageSource = (item: any) => {
   if (item.images && Array.isArray(item.images) && item.images.length > 0) {
@@ -291,6 +288,11 @@ export default function Dashboard() {
     setModalVisible(false);
   };
 
+  // ✅ Navigate to CategoryScreen
+  const navigateToCategory = (categoryName: string) => {
+    navigation.navigate('CategoryScreen', { mainCategory: categoryName });
+  };
+
   const itemsToShowNew = showAllNew ? newArrivals : newArrivals.slice(0, 4);
   const itemsToShowTrending = showAllTrending ? trendingItems : trendingItems.slice(0, 4);
 
@@ -377,7 +379,10 @@ export default function Dashboard() {
     
     return (
       <TouchableOpacity
-        onPress={() => assignFilterItem(item._id)}
+        onPress={() => {
+          // Navigate to CategoryScreen when category is clicked
+          navigateToCategory(item.name);
+        }}
         style={[
           styles.categoryItem,
           isActive && styles.categoryItemActive,
@@ -455,7 +460,7 @@ export default function Dashboard() {
       {/* Banner Slider */}
       <BannerSlider />
 
-      {/* Dynamic Categories with Icons */}
+      {/* Dynamic Categories with Icons - Navigate on press */}
       <View style={styles.categoryWrapper}>
         <FlatList
           horizontal
@@ -475,12 +480,16 @@ export default function Dashboard() {
   // Footer component
   const ListFooterComponent = () => (
     <>
+      {/* New Arrival Section */}
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity onPress={() => setShowAllNew(!showAllNew)}>
+          <TouchableOpacity onPress={() => {
+            // Navigate to CategoryScreen for New Arrival
+            navigateToCategory('New Arrival');
+          }}>
             <Text style={styles.seeAllText}>
-              {showAllNew ? 'Show Less' : 'See All'}
+              See All
             </Text>
           </TouchableOpacity>
         </View>
@@ -498,12 +507,16 @@ export default function Dashboard() {
         )}
       </View>
 
+      {/* Trending Section */}
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => setShowAllTrending(!showAllTrending)}>
+          <TouchableOpacity onPress={() => {
+            // Navigate to CategoryScreen for Trending
+            navigateToCategory('Trending');
+          }}>
             <Text style={styles.seeAllText}>
-              {showAllTrending ? 'Show Less' : 'See All'}
+              See All
             </Text>
           </TouchableOpacity>
         </View>
@@ -883,7 +896,8 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#151515',
+    color: '#96252A',
+    fontWeight: '600',
   },
   noRecordsText: {
     fontSize: 14,
