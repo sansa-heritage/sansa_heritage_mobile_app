@@ -1,117 +1,16 @@
-// import React, { useState } from 'react';
-// import { View, Text, StyleSheet, Switch, TouchableOpacity, Image } from 'react-native';
-// import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-
-// const SettingsScreen = () => {
-//   const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
-//   const [isUpdateEnabled, setIsUpdateEnabled] = useState(false);
-
-//   const toggleNotificationSwitch = () => setIsNotificationEnabled(previousState => !previousState);
-//   const toggleUpdateSwitch = () => setIsUpdateEnabled(previousState => !previousState);
-
-//   return (
-//     <View style={styles.screen}>
-//       <Text style={styles.header}>Settings</Text>
-
-//       <TouchableOpacity style={styles.settingItem}>
-//         <View style={styles.iconTextContainer}>
-//           <MaterialIcons name="email" size={24} color="orange" />
-//           <Text style={styles.itemText}>Email Support</Text>
-//         </View>
-//         <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-//       </TouchableOpacity>
-
-//       <TouchableOpacity style={styles.settingItem}>
-//         <View style={styles.iconTextContainer}>
-//           <MaterialIcons name="help-outline" size={24} color="orange" />
-//           <Text style={styles.itemText}>FAQ</Text>
-//         </View>
-//         <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-//       </TouchableOpacity>
-
-//       <TouchableOpacity style={styles.settingItem}>
-//         <View style={styles.iconTextContainer}>
-//           <MaterialIcons name="lock" size={24} color="orange" />
-//           <Text style={styles.itemText}>Privacy Statement</Text>
-//         </View>
-//         <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-//       </TouchableOpacity>
-
-//       <View style={styles.settingItem}>
-//         <View style={styles.iconTextContainer}>
-//           <MaterialIcons name="notifications" size={24} color="orange" />
-//           <Text style={styles.itemText}>Notification</Text>
-//         </View>
-//         <Switch
-//           trackColor={{ false: '#767577', true: 'orange' }}
-//           thumbColor={isNotificationEnabled ? 'white' : '#f4f3f4'}
-//           onValueChange={toggleNotificationSwitch}
-//           value={isNotificationEnabled}
-//         />
-//       </View>
-
-//       <View style={styles.settingItem}>
-//         <View style={styles.iconTextContainer}>
-//           <MaterialIcons name="update" size={24} color="orange" />
-//           <Text style={styles.itemText}>Update</Text>
-//         </View>
-//         <Switch
-//           trackColor={{ false: '#767577', true: 'orange' }}
-//           thumbColor={isUpdateEnabled ? 'white' : '#f4f3f4'}
-//           onValueChange={toggleUpdateSwitch}
-//           value={isUpdateEnabled}
-//         />
-//       </View>
-//     </View>
-//   );
-// };
-
-// export default SettingsScreen;
-
-// const styles = StyleSheet.create({
-//   screen: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     paddingHorizontal: 20,
-//     paddingTop: 20,
-//   },
-//   header: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     marginBottom: 20,
-//     textAlign: 'center',
-//   },
-//   settingItem: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     alignItems: 'center',
-//     paddingVertical: 15,
-//     borderBottomWidth: 1,
-//     borderBottomColor: '#f4f4f4',
-//   },
-//   iconTextContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   itemText: {
-//     marginLeft: 10,
-//     fontSize: 16,
-//     color: '#000',
-//   },
-// });
-
-// src/screens/Profile/SettingsPage.tsx - Updated
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Switch, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
   Alert,
-  ScrollView 
+  ScrollView,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
@@ -174,7 +73,6 @@ const SettingsScreen = () => {
       const data = await response.json();
       if (data.success) {
         setPreferences(updatedPreferences);
-        Alert.alert('Success', 'Preferences updated successfully');
       }
     } catch (error) {
       console.error('Error updating preference:', error);
@@ -188,211 +86,168 @@ const SettingsScreen = () => {
     navigation.navigate(screen as never);
   };
 
+  // Support & Information items (with chevron)
+  const supportItems = [
+    { id: 'email-support', label: 'Email Support', icon: 'mail-outline' },
+    { id: 'faq', label: 'FAQ', icon: 'help-circle-outline' },
+    { id: 'privacy', label: 'Privacy Statement', icon: 'lock-closed-outline' },
+    { id: 'terms', label: 'Terms & Conditions', icon: 'document-text-outline' },
+  ];
+
+  // Notification items (with toggle switches)
+  const notificationItems = [
+    { id: 'pushNotifications', label: 'Push Notifications', icon: 'notifications-outline' },
+    { id: 'orderUpdates', label: 'Order Updates', icon: 'cart-outline' },
+    { id: 'promotions', label: 'Promotions & Offers', icon: 'pricetag-outline' },
+    { id: 'paymentAlerts', label: 'Payment Alerts', icon: 'card-outline' },
+    { id: 'deliveryUpdates', label: 'Delivery Updates', icon: 'car-outline' },
+    { id: 'systemAnnouncements', label: 'System Announcements', icon: 'megaphone-outline' },
+    { id: 'emailNotifications', label: 'Email Notifications', icon: 'mail-outline' },
+  ];
+
   return (
-    <ScrollView style={styles.screen}>
-      <Text style={styles.header}>Settings</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F6F6F6" />
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        {/* <Text style={styles.header}>Settings</Text> */}
 
-      {/* Email Support */}
-      <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert('Support', 'support@example.com')}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="email" size={24} color="orange" />
-          <Text style={styles.itemText}>Email Support</Text>
+        {/* Support & Information Section */}
+        <Text style={styles.sectionTitle}>Support & Information</Text>
+        <View style={styles.card}>
+          {supportItems.map((item, index) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.menuItem,
+                index === supportItems.length - 1 && styles.menuItemLast
+              ]}
+              onPress={() => {
+                const screenMap: { [key: string]: string } = {
+                  'email-support': 'EmailSupport',
+                  'faq': 'FAQScreen',
+                  'privacy': 'PrivacyPolicy',
+                  'terms': 'TermsScreen',
+                };
+                navigateTo(screenMap[item.id]);
+              }}
+            >
+              <View style={styles.menuLeft}>
+                <Ionicons name={item.icon} size={22} color="#1C1C1E" />
+                <Text style={styles.menuLabel}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={20} color="#C0C0C0" />
+            </TouchableOpacity>
+          ))}
         </View>
-        <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-      </TouchableOpacity>
 
-      {/* FAQ */}
-      <TouchableOpacity style={styles.settingItem} onPress={() => navigateTo('FAQScreen')}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="help-outline" size={24} color="orange" />
-          <Text style={styles.itemText}>FAQ</Text>
+        {/* Notifications Section */}
+        <Text style={styles.sectionTitle}>Notifications</Text>
+        <View style={styles.card}>
+          {notificationItems.map((item, index) => (
+            <View
+              key={item.id}
+              style={[
+                styles.menuItem,
+                index === notificationItems.length - 1 && styles.menuItemLast
+              ]}
+            >
+              <View style={styles.menuLeft}>
+                <Ionicons name={item.icon} size={22} color="#1C1C1E" />
+                <Text style={styles.menuLabel}>{item.label}</Text>
+              </View>
+              <Switch
+                trackColor={{ false: '#D1D1D6', true: '#1C1C1E' }}
+                thumbColor={preferences[item.id as keyof typeof preferences] ? '#FFFFFF' : '#FFFFFF'}
+                onValueChange={(value) => updatePreference(item.id, value)}
+                value={preferences[item.id as keyof typeof preferences] || false}
+                disabled={loading}
+                ios_backgroundColor="#D1D1D6"
+              />
+            </View>
+          ))}
         </View>
-        <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-      </TouchableOpacity>
-
-      {/* Privacy Statement */}
-      <TouchableOpacity style={styles.settingItem} onPress={() => navigateTo('PrivacyPolicy')}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="lock" size={24} color="orange" />
-          <Text style={styles.itemText}>Privacy Statement</Text>
-        </View>
-        <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-      </TouchableOpacity>
-
-      {/* Terms & Conditions */}
-      <TouchableOpacity style={styles.settingItem} onPress={() => navigateTo('TermsScreen')}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="description" size={24} color="orange" />
-          <Text style={styles.itemText}>Terms & Conditions</Text>
-        </View>
-        <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-      </TouchableOpacity>
-
-      {/* Push Notifications */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="notifications" size={24} color="orange" />
-          <Text style={styles.itemText}>Push Notifications</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.pushNotifications ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('pushNotifications', value)}
-          value={preferences.pushNotifications}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Order Updates */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="shopping-cart" size={24} color="orange" />
-          <Text style={styles.itemText}>Order Updates</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.orderUpdates ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('orderUpdates', value)}
-          value={preferences.orderUpdates}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Promotions */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="local-offer" size={24} color="orange" />
-          <Text style={styles.itemText}>Promotions & Offers</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.promotions ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('promotions', value)}
-          value={preferences.promotions}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Payment Alerts */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="payment" size={24} color="orange" />
-          <Text style={styles.itemText}>Payment Alerts</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.paymentAlerts ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('paymentAlerts', value)}
-          value={preferences.paymentAlerts}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Delivery Updates */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="local-shipping" size={24} color="orange" />
-          <Text style={styles.itemText}>Delivery Updates</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.deliveryUpdates ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('deliveryUpdates', value)}
-          value={preferences.deliveryUpdates}
-          disabled={loading}
-        />
-      </View>
-
-      {/* System Announcements */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="announcement" size={24} color="orange" />
-          <Text style={styles.itemText}>System Announcements</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.systemAnnouncements ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('systemAnnouncements', value)}
-          value={preferences.systemAnnouncements}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Email Notifications */}
-      <View style={styles.settingItem}>
-        <View style={styles.iconTextContainer}>
-          <MaterialIcons name="email" size={24} color="orange" />
-          <Text style={styles.itemText}>Email Notifications</Text>
-        </View>
-        <Switch
-          trackColor={{ false: '#767577', true: 'orange' }}
-          thumbColor={preferences.emailNotifications ? 'white' : '#f4f3f4'}
-          onValueChange={(value) => updatePreference('emailNotifications', value)}
-          value={preferences.emailNotifications}
-          disabled={loading}
-        />
-      </View>
-
-      {/* Admin Section (only visible to admins) */}
-      <View style={styles.adminSection}>
-        <Text style={styles.adminSectionTitle}>Admin</Text>
-        <TouchableOpacity 
-          style={styles.settingItem} 
-          onPress={() => navigateTo('AdminNotifications')}
-        >
-          <View style={styles.iconTextContainer}>
-            <MaterialIcons name="notifications-active" size={24} color="#2563EB" />
-            <Text style={styles.itemText}>Manage Notifications</Text>
-          </View>
-          <MaterialIcons name="arrow-forward-ios" size={20} color="gray" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+export default SettingsScreen;
+
 const styles = StyleSheet.create({
-  screen: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    backgroundColor: '#F6F6F6',
   },
+  container: {
+    flex: 1,
+    backgroundColor: '#F6F6F6',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 60, // Increased for better scrolling
+    paddingTop: 8,
+  },
+
+  // Header
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#151515',
+    marginTop: 8,
+    marginBottom: 24,
   },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f4f4f4',
-  },
-  iconTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#000',
-  },
-  adminSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  adminSectionTitle: {
-    fontSize: 16,
+
+  // Section Title
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#8E8E93',
     marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+
+  // Card
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  // Menu Item
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    minHeight: 50, // Ensures consistent height
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
+  },
+  menuLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 15,
+    color: '#1C1C1E',
+    fontWeight: '400',
+    marginLeft: 14,
+    flex: 1,
   },
 });
-
-export default SettingsScreen;
