@@ -45,7 +45,7 @@ const categoryIcons: { [key: string]: any } = {
   'Dupattas': require('../../../assets/icons/dupatta.png'),
 };
 
-// ✅ FEATURE ICONS - Add your actual icon images here
+// ✅ FEATURE ICONS
 const featureIcons = {
   deals: require('../../../assets/icons/deals.png'),
   shipping: require('../../../assets/icons/shipping.png'),
@@ -75,7 +75,7 @@ const getImageSource = (item: any) => {
 
 // Helper function to get category icon
 const getCategoryIcon = (categoryName: string) => {
-  return categoryIcons[categoryName] || FALLBACK_ICON;
+  return categoryIcons[categoryName] || categoryIcons['All'];
 };
 
 export default function Dashboard() {
@@ -339,7 +339,7 @@ export default function Dashboard() {
     </TouchableOpacity>
   );
 
-  // ✅ Banner Slider Component
+  // ✅ Banner Slider Component - FIXED
   const BannerSlider = () => (
     <View style={styles.bannerWrapper}>
       <FlatList
@@ -353,8 +353,23 @@ export default function Dashboard() {
         )}
         keyExtractor={(_, index) => index.toString()}
         onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          const index = Math.round(e.nativeEvent.contentOffset.x / (width - 30));
           setCurrentBannerIndex(index);
+        }}
+        // ✅ FIX: Add these props to prevent scrollToIndex error
+        getItemLayout={(data, index) => ({
+          length: width - 30,
+          offset: (width - 30) * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise(resolve => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: true,
+            });
+          });
         }}
       />
       {/* Dots */}
@@ -380,7 +395,6 @@ export default function Dashboard() {
     return (
       <TouchableOpacity
         onPress={() => {
-          // Navigate to CategoryScreen when category is clicked
           navigateToCategory(item.name);
         }}
         style={[
@@ -413,10 +427,9 @@ export default function Dashboard() {
     );
   };
 
-  // ✅ Feature Badges Component with Image Icons
+  // ✅ Feature Badges Component
   const FeatureBadges = () => (
     <View style={styles.featuresContainer}>
-      {/* 1. Exclusive Deals */}
       <View style={styles.featureItem}>
         <Image source={featureIcons.deals} style={styles.featureIconImage} resizeMode="contain" />
         <View style={styles.featureTextWrapper}>
@@ -425,7 +438,6 @@ export default function Dashboard() {
         </View>
       </View>
       
-      {/* 2. Free Shipping */}
       <View style={styles.featureItem}>
         <Image source={featureIcons.shipping} style={styles.featureIconImage} resizeMode="contain" />
         <View style={styles.featureTextWrapper}>
@@ -434,7 +446,6 @@ export default function Dashboard() {
         </View>
       </View>
       
-      {/* 3. Quality Assured */}
       <View style={styles.featureItem}>
         <Image source={featureIcons.quality} style={styles.featureIconImage} resizeMode="contain" />
         <View style={styles.featureTextWrapper}>
@@ -443,7 +454,6 @@ export default function Dashboard() {
         </View>
       </View>
       
-      {/* 4. Handpicked Heritage */}
       <View style={styles.featureItem}>
         <Image source={featureIcons.heritage} style={styles.featureIconImage} resizeMode="contain" />
         <View style={styles.featureTextWrapper}>
@@ -457,10 +467,7 @@ export default function Dashboard() {
   // ✅ Header component with dynamic categories
   const ListHeaderComponent = () => (
     <>
-      {/* Banner Slider */}
       <BannerSlider />
-
-      {/* Dynamic Categories with Icons - Navigate on press */}
       <View style={styles.categoryWrapper}>
         <FlatList
           horizontal
@@ -471,8 +478,6 @@ export default function Dashboard() {
           contentContainerStyle={styles.categoryList}
         />
       </View>
-
-      {/* Feature Badges with Image Icons */}
       <FeatureBadges />
     </>
   );
@@ -485,7 +490,6 @@ export default function Dashboard() {
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
           <TouchableOpacity onPress={() => {
-            // Navigate to CategoryScreen for New Arrival
             navigateToCategory('New Arrival');
           }}>
             <Text style={styles.seeAllText}>
@@ -512,7 +516,6 @@ export default function Dashboard() {
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
           <TouchableOpacity onPress={() => {
-            // Navigate to CategoryScreen for Trending
             navigateToCategory('Trending');
           }}>
             <Text style={styles.seeAllText}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -23,6 +23,8 @@ import LoadingService from '../../services/LoadingService';
 const { width } = Dimensions.get('window');
 
 export default function AddressScreen({ navigation }) {
+    const flatListRef = useRef<FlatList>(null);
+
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
@@ -59,14 +61,14 @@ export default function AddressScreen({ navigation }) {
             const list = json.addresses || [];
             setAddresses(list);
 
-            // Load selected address
             const saved = await AsyncStorage.getItem('selectedAddress');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 setSelectedAddress(parsed._id);
             } else if (list.length > 0) {
-                setSelectedAddress(list[0]._id);
-                await AsyncStorage.setItem("selectedAddress", JSON.stringify(list[0]));
+                const defaultAddr = list.find(addr => addr.isDefault) || list[0];
+                setSelectedAddress(defaultAddr._id);
+                await AsyncStorage.setItem("selectedAddress", JSON.stringify(defaultAddr));
             }
         } catch (err) {
             console.log('Error fetching addresses', err);
@@ -121,7 +123,13 @@ export default function AddressScreen({ navigation }) {
         if (!state.trim()) return 'State is required';
         if (!country.trim()) return 'Country is required';
         if (!zipCode.trim()) return 'Zip code is required';
-        // Phone is optional - don't validate if empty
+        if (zipCode.length < 5) return 'Please enter a valid zip code (minimum 5 digits)';
+        if (phone && phone.trim()) {
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phone.trim())) {
+                return 'Please enter a valid 10-digit phone number';
+            }
+        }
         return null;
     };
 
@@ -142,16 +150,15 @@ export default function AddressScreen({ navigation }) {
                 return;
             }
 
-            // ✅ Build address data - only include fields that have values
             const addressData: any = {
                 street: newAddress.street.trim(),
                 city: newAddress.city.trim(),
                 state: newAddress.state.trim(),
                 country: newAddress.country.trim(),
                 zipCode: newAddress.zipCode.trim(),
+                isDefault: addresses.length === 0
             };
 
-            // ✅ Only add phone if it has a value
             if (newAddress.phone && newAddress.phone.trim()) {
                 addressData.phone = newAddress.phone.trim();
             }
@@ -188,12 +195,7 @@ export default function AddressScreen({ navigation }) {
                     phone: ''
                 });
             } else {
-                // Handle specific error messages
-                if (data.error && data.error.includes('duplicate key')) {
-                    Toast.show('error', 'Phone number already exists. Please use a different number.');
-                } else {
-                    Toast.show('error', data.message || (isEditMode ? 'Update failed' : 'Add failed'));
-                }
+                Toast.show('error', data.message || (isEditMode ? 'Update failed' : 'Add failed'));
             }
 
         } catch (err: any) {
@@ -242,6 +244,34 @@ export default function AddressScreen({ navigation }) {
         );
     };
 
+    const setDefaultAddress = async (addressId: string) => {
+        LoadingService.show('Setting as default...');
+        try {
+            const storedToken = await AsyncStorage.getItem("authToken");
+            const response = await fetch(`${config.baseURL}api/auth/addresses/${addressId}/default`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${storedToken}`,
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            }
+
+            Toast.show('success', 'Default address updated');
+            await fetchAddresses();
+        } catch (err: any) {
+            console.error('Set default error:', err);
+            Toast.show('error', err.message || 'Failed to set default address');
+        } finally {
+            LoadingService.hide();
+        }
+    };
+
     const renderAddressItem = ({ item }: { item: Address }) => {
         const isSelected = selectedAddress === item._id;
 
@@ -254,13 +284,21 @@ export default function AddressScreen({ navigation }) {
                 <View style={styles.cardHeader}>
                     <View style={styles.cardHeaderLeft}>
                         <Ionicons name="location-outline" size={20} color="#96252A" />
-                        <Text style={styles.streetText}>{item.street}</Text>
+                        <Text style={styles.streetText} numberOfLines={1}>{item.street}</Text>
                     </View>
-                    {item.isDefault && (
-                        <View style={styles.defaultBadge}>
-                            <Text style={styles.defaultBadgeText}>Default</Text>
-                        </View>
-                    )}
+                    <View style={styles.badgeContainer}>
+                        {item.isDefault && (
+                            <View style={styles.defaultBadge}>
+                                <Ionicons name="star" size={12} color="#16A34A" />
+                                <Text style={styles.defaultBadgeText}>Default</Text>
+                            </View>
+                        )}
+                        {isSelected && !item.isDefault && (
+                            <View style={styles.selectedBadge}>
+                                <Text style={styles.selectedBadgeText}>Selected</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
 
                 <View style={styles.cardBody}>
@@ -281,13 +319,16 @@ export default function AddressScreen({ navigation }) {
                 </View>
 
                 <View style={styles.cardFooter}>
-                    {isSelected && (
-                        <View style={styles.selectedBadge}>
-                            <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-                            <Text style={styles.selectedBadgeText}>Selected</Text>
-                        </View>
-                    )}
                     <View style={styles.actionButtons}>
+                        {!item.isDefault && (
+                            <TouchableOpacity
+                                onPress={() => setDefaultAddress(item._id)}
+                                style={[styles.actionBtn, styles.setDefaultBtn]}
+                            >
+                                <Ionicons name="star-outline" size={16} color="#F59E0B" />
+                                <Text style={styles.setDefaultText}>Set Default</Text>
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity
                             onPress={() => openEditModal(item)}
                             style={styles.actionBtn}
@@ -318,11 +359,13 @@ export default function AddressScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Header */}
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeft}>
                         <Ionicons name="location" size={24} color="#96252A" />
                         <Text style={styles.headerTitle}>My Addresses</Text>
+                        <View style={styles.addressCount}>
+                            <Text style={styles.addressCountText}>{addresses.length}</Text>
+                        </View>
                     </View>
                     <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
                         <Ionicons name="add-circle" size={24} color="#96252A" />
@@ -330,14 +373,28 @@ export default function AddressScreen({ navigation }) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Address List */}
                 {addresses.length > 0 ? (
                     <FlatList
+                        ref={flatListRef}
                         data={addresses}
                         keyExtractor={(item) => item._id}
                         renderItem={renderAddressItem}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
+                        getItemLayout={(data, index) => ({
+                            length: 220,
+                            offset: 220 * index,
+                            index,
+                        })}
+                        onScrollToIndexFailed={(info) => {
+                            const wait = new Promise(resolve => setTimeout(resolve, 500));
+                            wait.then(() => {
+                                flatListRef.current?.scrollToIndex({
+                                    index: info.index,
+                                    animated: true
+                                });
+                            });
+                        }}
                     />
                 ) : (
                     <View style={styles.emptyContainer}>
@@ -354,7 +411,6 @@ export default function AddressScreen({ navigation }) {
                     </View>
                 )}
 
-                {/* Add/Edit Address Modal */}
                 <Modal
                     visible={addressModalVisible}
                     animationType="slide"
@@ -429,6 +485,7 @@ export default function AddressScreen({ navigation }) {
                                                 keyboardType="numeric"
                                                 value={newAddress.zipCode}
                                                 onChangeText={(t) => setNewAddress({ ...newAddress, zipCode: t })}
+                                                maxLength={6}
                                             />
                                         </View>
                                     </View>
@@ -449,7 +506,8 @@ export default function AddressScreen({ navigation }) {
                                 </View>
 
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Phone Number (Optional)</Text>
+                                    <Text style={styles.inputLabel}>Phone Number</Text>
+                                    <Text style={styles.inputHelper}>Optional - Enter 10-digit number</Text>
                                     <View style={styles.phoneWrapper}>
                                         <View style={styles.countryCodeContainer}>
                                             <Text style={styles.countryCode}>+91</Text>
@@ -532,6 +590,17 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#0F172A',
     },
+    addressCount: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 10,
+        paddingVertical: 2,
+        borderRadius: 12,
+    },
+    addressCountText: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+    },
     addButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -584,16 +653,36 @@ const styles = StyleSheet.create({
         color: '#0F172A',
         flex: 1,
     },
+    badgeContainer: {
+        flexDirection: 'row',
+        gap: 6,
+    },
     defaultBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#DCFCE7',
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#86EFAC',
+        gap: 4,
     },
     defaultBadgeText: {
         color: '#16A34A',
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    selectedBadge: {
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#FCD34D',
+    },
+    selectedBadgeText: {
+        color: '#D97706',
         fontSize: 10,
         fontWeight: '600',
     },
@@ -612,32 +701,28 @@ const styles = StyleSheet.create({
     },
     cardFooter: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 10,
+        justifyContent: 'flex-end',
+        paddingTop: 0,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
-    },
-    selectedBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        backgroundColor: '#DCFCE7',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    selectedBadgeText: {
-        color: '#16A34A',
-        fontSize: 12,
-        fontWeight: '500',
     },
     actionButtons: {
         flexDirection: 'row',
         gap: 12,
+        alignItems: 'center',
     },
     actionBtn: {
         padding: 4,
+    },
+    setDefaultBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    setDefaultText: {
+        fontSize: 12,
+        color: '#F59E0B',
+        fontWeight: '500',
     },
     emptyContainer: {
         flex: 1,
@@ -713,6 +798,11 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
         color: '#0F172A',
+        marginBottom: 6,
+    },
+    inputHelper: {
+        fontSize: 12,
+        color: '#94A3B8',
         marginBottom: 6,
     },
     inputWrapper: {

@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     SafeAreaView,
     StyleSheet,
+    TextInput,
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -57,6 +58,7 @@ export default function CategoryScreen() {
     const [priceRange, setPriceRange] = useState([0, 5000]);
     const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState("");
 
     const getDisplayTitle = () => {
         if (mainCategory === "New Arrival") return "New Arrivals";
@@ -127,7 +129,14 @@ export default function CategoryScreen() {
                 params.category = mainCategory;
             }
 
-            if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
+            // ✅ Add search text to params (only if not empty)
+            if (searchText && searchText.trim()) {
+                params.search = searchText.trim();
+            }
+
+            if (selectedCategory && selectedCategory !== 'All' && selectedCategory !== '') {
+                params.category = selectedCategory;
+            }
             if (priceRange?.[0] && priceRange[0] > 0) params.minPrice = priceRange[0];
             if (priceRange?.[1] && priceRange[1] > 0) params.maxPrice = priceRange[1];
 
@@ -151,6 +160,18 @@ export default function CategoryScreen() {
             setLoading(false);
             LoadingService.hide();
         }
+    };
+
+    // ✅ Manual search handler
+    const handleSearch = () => {
+        fetchProducts();
+    };
+
+    // ✅ Clear search handler
+    const handleClearSearch = () => {
+        setSearchText("");
+        // Fetch products without search filter
+        fetchProducts();
     };
 
     const renderPrice = (price, discount) => {
@@ -233,7 +254,38 @@ export default function CategoryScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
                 {/* Header with Back Button */}
-                
+                {/* <View style={styles.header}>
+                    <TouchableOpacity onPress={goBack} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#151515" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>{getDisplayTitle()}</Text>
+                    <View style={{ width: 24 }} />
+                </View> */}
+
+                {/* ✅ Search Bar with Manual Search Button */}
+                <View style={styles.searchSection}>
+                    <Ionicons name="search-outline" size={20} color="#999" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search products..."
+                        placeholderTextColor="#999"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        returnKeyType="search"
+                        onSubmitEditing={handleSearch} // ✅ Search on keyboard enter
+                    />
+                    {searchText.length > 0 && (
+                        <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
+                            <Ionicons name="close-circle" size={20} color="#999" />
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity 
+                        style={styles.searchButton} 
+                        onPress={handleSearch}
+                    >
+                        <Text style={styles.searchButtonText}>Search</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Dynamic Category Tabs */}
                 <View style={styles.categoryTabsContainer}>
@@ -264,11 +316,12 @@ export default function CategoryScreen() {
                         <Ionicons name="search-outline" size={80} color="#D1D5DB" />
                         <Text style={styles.emptyTitle}>No Products Found</Text>
                         <Text style={styles.emptySubtitle}>
-                            Try selecting a different category
+                            {searchText ? `No results for "${searchText}"` : "Try selecting a different category"}
                         </Text>
                         <TouchableOpacity style={styles.clearFilterBtn} onPress={() => {
                             setSelectedCategory("");
                             setPriceRange([0, 5000]);
+                            setSearchText("");
                             fetchProducts();
                         }}>
                             <Text style={styles.clearFilterBtnText}>Clear Filters</Text>
@@ -318,6 +371,39 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: '700',
         color: '#151515',
+    },
+    // ✅ Search Bar Styles
+    searchSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F0F0F0',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        marginBottom: 8,
+        marginTop:8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        color: '#151515',
+    },
+    searchButton: {
+        backgroundColor: '#96252A',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 8,
+        marginLeft: 8,
+    },
+    searchButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    clearButton: {
+        padding: 4,
     },
     categoryTabsContainer: {
         marginVertical: 8,

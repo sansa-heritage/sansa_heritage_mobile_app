@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  // ActivityIndicator,
   Image,
   Alert,
   BackHandler,
@@ -18,8 +17,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../models/types';
 import { Address } from '../../models/address';
 
-import LoadingService from '../../services/LoadingService'; // Import LoadingService
-
+import LoadingService from '../../services/LoadingService';
 
 /* ================= TYPES ================= */
 
@@ -33,32 +31,31 @@ const OrderConfirmationScreen: React.FC = () => {
 
   const [address, setAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('razorpay');
 
-  const amountPayable: number = Number(route.params?.billingDetails ?? 0);
+  // Get all breakdown values from route params
+  const {
+    billingDetails = 0,
+    bagTotal = 0,
+    savings = 0,
+    couponDiscount = 0,
+    deliveryFee = 50,
+    isFreeShipping = false,
+    subtotal = 0,
+    couponApplied = false,
+  } = route.params || {};
 
-  // Calculate final amount
-  const deliveryFee = amountPayable > 0 ? 50 : 0;
-  const gst = (amountPayable + deliveryFee) * 0.05;
-  const finalAmount = amountPayable + deliveryFee + gst;
+  const amountPayable: number = Number(billingDetails);
+  const finalDeliveryFee = isFreeShipping ? 0 : deliveryFee;
+  const gst = (amountPayable + finalDeliveryFee) * 0.05;
+  const finalAmount = amountPayable + finalDeliveryFee + gst;
 
-  /* ================= GET BUTTON TEXT BASED ON SELECTION ================= */
+  /* ================= GET BUTTON TEXT ================= */
   const getButtonText = () => {
-    if (selectedPaymentMethod === 'razorpay') {
-      return 'PROCEED TO PAYMENT';
-    } else if (selectedPaymentMethod === 'cod') {
-      return 'PLACE ORDER';
-    }
     return 'PROCEED TO PAYMENT';
   };
 
   /* ================= GET BUTTON ICON ================= */
   const getButtonIcon = () => {
-    if (selectedPaymentMethod === 'razorpay') {
-      return 'arrow-forward';
-    } else if (selectedPaymentMethod === 'cod') {
-      return 'checkmark-circle-outline';
-    }
     return 'arrow-forward';
   };
 
@@ -76,7 +73,6 @@ const OrderConfirmationScreen: React.FC = () => {
         console.log('Address load error', e);
       } finally {
         LoadingService.hide();
-
         setLoading(false);
       }
     };
@@ -84,7 +80,7 @@ const OrderConfirmationScreen: React.FC = () => {
     loadSelectedAddress();
   }, []);
 
-  /* ================= BACK BUTTON HANDLER - FIXED ================= */
+  /* ================= BACK BUTTON HANDLER ================= */
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -99,10 +95,7 @@ const OrderConfirmationScreen: React.FC = () => {
         return true;
       };
 
-      // For React Native 0.65+ (new API)
       const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      // Cleanup function - using the new API
       return () => subscription.remove();
     }, [navigation])
   );
@@ -129,50 +122,14 @@ const OrderConfirmationScreen: React.FC = () => {
       return;
     }
 
-    if (selectedPaymentMethod === 'razorpay') {
-      // Navigate to Payment Page
-      navigation.navigate('PaymentPage', {
-        amount: Math.round(finalAmount),
-        address: address,
-        orderId: `ORD${Date.now()}`,
-        productName: 'Sansa Heritage Order'
-      });
-    } else if (selectedPaymentMethod === 'cod') {
-      // Cash on Delivery
-      Alert.alert(
-        'Order Confirmed! 🎉',
-        `Your order of ₹${Math.round(finalAmount)} has been placed successfully!\n\nYou will pay cash on delivery.`,
-        [
-          {
-            text: 'OK',
-            onPress: async () => {
-              // Clear cart after order placement
-              try {
-                const token = await AsyncStorage.getItem('authToken');
-                await fetch('YOUR_API_URL/api/cart/clear', {
-                  method: 'DELETE',
-                  headers: { Authorization: `Bearer ${token}` }
-                });
-              } catch (error) {
-                console.log('Error clearing cart:', error);
-              }
-              navigation.navigate('Dashboard');
-            },
-          },
-        ]
-      );
-    }
+    // Navigate to Payment Page
+    navigation.navigate('PaymentPage', {
+      amount: Math.round(finalAmount),
+      address: address,
+      orderId: `ORD${Date.now()}`,
+      productName: 'Sansa Heritage Order'
+    });
   };
-
-  /* ================= LOADER ================= */
-
-  // if (loading) {
-  //   return (
-  //     <View style={styles.loader}>
-  //       <ActivityIndicator size="large" color="#000" />
-  //     </View>
-  //   );
-  // }
 
   /* ================= UI ================= */
 
@@ -232,34 +189,52 @@ const OrderConfirmationScreen: React.FC = () => {
           )}
         </View>
 
-        {/* ORDER SUMMARY */}
+        {/* ORDER SUMMARY - Now shows all breakdowns */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="receipt-outline" size={22} color="#000" />
             <Text style={styles.cardTitle}>Order Summary</Text>
           </View>
 
+          {/* Bag Total */}
           <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Subtotal</Text>
-            <Text style={styles.billValue}>₹{amountPayable.toFixed(0)}</Text>
+            <Text style={styles.billLabel}>Bag Total</Text>
+            <Text style={styles.billValue}>₹{Number(bagTotal).toFixed(0)}</Text>
           </View>
 
+          {/* Savings */}
+          {Number(savings) > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Savings</Text>
+              <Text style={styles.savingsValue}>-₹{Number(savings).toFixed(0)}</Text>
+            </View>
+          )}
+
+          {/* Coupon Discount */}
+          {couponApplied && Number(couponDiscount) > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>Coupon Discount</Text>
+              <Text style={styles.savingsValue}>-₹{Number(couponDiscount).toFixed(0)}</Text>
+            </View>
+          )}
+
+          {/* Delivery Fee */}
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Delivery Fee</Text>
-            <Text style={styles.billValue}>
-              ₹{amountPayable > 0 ? '50' : '0'}
+            <Text style={[styles.billValue, isFreeShipping && styles.freeText]}>
+              {isFreeShipping ? 'FREE' : `₹${Number(deliveryFee).toFixed(0)}`}
             </Text>
           </View>
 
+          {/* GST */}
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>GST (5%)</Text>
-            <Text style={styles.billValue}>
-              ₹{((amountPayable + 50) * 0.05).toFixed(0)}
-            </Text>
+            <Text style={styles.billValue}>₹{gst.toFixed(0)}</Text>
           </View>
 
           <View style={styles.divider} />
 
+          {/* Total Amount */}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>
@@ -268,28 +243,26 @@ const OrderConfirmationScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* PAYMENT METHOD - MYNTRA STYLE */}
+        {/* PAYMENT METHOD - Only Razorpay */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="card-outline" size={22} color="#000" />
-            <Text style={styles.cardTitle}>Select Payment Method</Text>
+            <Text style={styles.cardTitle}>Payment Method</Text>
           </View>
 
-          {/* Razorpay Option */}
-          <TouchableOpacity
+          {/* Razorpay Option - Always selected */}
+          <View
             style={[
               styles.paymentOption,
-              selectedPaymentMethod === 'razorpay' && styles.paymentOptionSelected,
+              styles.paymentOptionSelected,
             ]}
-            onPress={() => setSelectedPaymentMethod('razorpay')}
-            activeOpacity={0.7}
           >
             <View style={styles.paymentOptionLeft}>
               <View style={styles.paymentIconContainer}>
                 <Image
-                  // source={require('../assets/images/Razorpay.png')}
+                  source={{ uri: 'https://razorpay.com/favicon.png' }}
                   style={styles.paymentIcon}
-                  defaultSource={require('../../../assets/images/logo.png')}
+                  resizeMode="contain"
                 />
               </View>
               <View style={styles.paymentTextContainer}>
@@ -302,42 +275,12 @@ const OrderConfirmationScreen: React.FC = () => {
             <View
               style={[
                 styles.radioCircle,
-                selectedPaymentMethod === 'razorpay' && styles.radioCircleSelected,
+                styles.radioCircleSelected,
               ]}
             >
-              {selectedPaymentMethod === 'razorpay' && <View style={styles.radioInner} />}
+              <View style={styles.radioInner} />
             </View>
-          </TouchableOpacity>
-
-          {/* Cash on Delivery Option */}
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              selectedPaymentMethod === 'cod' && styles.paymentOptionSelected,
-            ]}
-            onPress={() => setSelectedPaymentMethod('cod')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.paymentOptionLeft}>
-              <View style={styles.paymentIconContainer}>
-                <Ionicons name="cash-outline" size={28} color="#333" />
-              </View>
-              <View style={styles.paymentTextContainer}>
-                <Text style={styles.paymentOptionText}>Cash on Delivery</Text>
-                <Text style={styles.paymentOptionSubText}>
-                  Pay when you receive the product
-                </Text>
-              </View>
-            </View>
-            <View
-              style={[
-                styles.radioCircle,
-                selectedPaymentMethod === 'cod' && styles.radioCircleSelected,
-              ]}
-            >
-              {selectedPaymentMethod === 'cod' && <View style={styles.radioInner} />}
-            </View>
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* ORDER NOTE */}
@@ -361,7 +304,7 @@ const OrderConfirmationScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* FOOTER BUTTON - DYNAMIC TEXT */}
+      {/* FOOTER BUTTON */}
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
           <Text style={styles.footerAmount}>₹{Math.round(finalAmount)}</Text>
@@ -495,7 +438,7 @@ const styles = StyleSheet.create({
   billRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
 
   billLabel: {
@@ -507,6 +450,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
+  },
+
+  savingsValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4CAF50',
+  },
+
+  freeText: {
+    color: '#4CAF50',
+    fontWeight: '700',
   },
 
   divider: {
@@ -568,8 +522,8 @@ const styles = StyleSheet.create({
   },
 
   paymentIcon: {
-    width: 80,
-    height: 24,
+    width: 40,
+    height: 40,
     resizeMode: 'contain',
   },
 
@@ -631,7 +585,7 @@ const styles = StyleSheet.create({
 
   footer: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 80,
     width: '100%',
     backgroundColor: '#fff',
     flexDirection: 'row',

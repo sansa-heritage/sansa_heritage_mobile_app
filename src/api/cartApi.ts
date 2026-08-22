@@ -2,10 +2,10 @@ import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const addToCart = async (
-  productId: string, 
-  quantity: number, 
-  color: string | null = null, 
-  size: string | null = null
+  productId: string,
+  quantity: number,
+  color: string | null = null,
+  size: string | null = null,
 ) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
@@ -42,7 +42,9 @@ export const addToCart = async (
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error adding item to cart: ${response.status}`);
+      throw new Error(
+        errorData.message || `Error adding item to cart: ${response.status}`,
+      );
     }
 
     const data = await response.json();
@@ -55,10 +57,10 @@ export const addToCart = async (
 };
 
 export const removeFromCart = async (
-  productId: string, 
-  quantity: number, 
-  color: string | null = null, 
-  size: string | null = null
+  productId: string,
+  quantity: number,
+  color: string | null = null,
+  size: string | null = null,
 ) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
@@ -95,7 +97,10 @@ export const removeFromCart = async (
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Error removing item from cart: ${response.status}`);
+      throw new Error(
+        errorData.message ||
+          `Error removing item from cart: ${response.status}`,
+      );
     }
 
     const data = await response.json();
@@ -138,21 +143,27 @@ export const getCartItems = async () => {
     console.log('Cart API response:', data);
 
     if (!response.ok) {
-      if (response.status === 404 || data?.message?.includes('empty') || data?.message?.includes('not found')) {
+      if (
+        response.status === 404 ||
+        data?.message?.includes('empty') ||
+        data?.message?.includes('not found')
+      ) {
         console.log('Cart not found or empty, returning empty array');
         return [];
       }
-      throw new Error(data?.message || `Failed to fetch cart items: ${response.status}`);
+      throw new Error(
+        data?.message || `Failed to fetch cart items: ${response.status}`,
+      );
     }
 
     if (data?.items && Array.isArray(data.items)) {
       return data.items;
     }
-    
+
     if (data?.cart?.items && Array.isArray(data.cart.items)) {
       return data.cart.items;
     }
-    
+
     if (data?.data && Array.isArray(data.data)) {
       return data.data;
     }
@@ -167,7 +178,6 @@ export const getCartItems = async () => {
 
     console.log('No items found in cart response, returning empty array');
     return [];
-
   } catch (error) {
     console.error('Error fetching cart items:', error);
     return [];

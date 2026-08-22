@@ -27,7 +27,7 @@ import { navigationRef, getCurrentRoute } from "./src/services/NavigationService
 import AccountPage from "./src/screens/Profile/AccountPage";
 import TermsScreen from "./src/screens/Info/TermsAndCondition";
 import FAQScreen from "./src/screens/Info/FQPage";
-import AddressFormScreen from "./src/screens/Profile/AddressPage";
+import AddressScreen from "./src/screens/Profile/AddressPage";
 import { AlertComponent } from "./src/components/common/Toast";
 import UpdateProfileScreen from "./src/screens/Profile/UserEditPage";
 import NotificationScreen from "./src/screens/Notification/NotificationPage";
@@ -153,7 +153,7 @@ const App = () => {
                 <Stack.Screen name="AboutUs" component={AboutUsScreen} />
                 <Stack.Screen name="TermsScreen" component={TermsScreen} />
                 <Stack.Screen name="FAQScreen" component={FAQScreen} />
-                <Stack.Screen name="AddressFormPage" component={AddressFormScreen} />
+                <Stack.Screen name="AddressScreen" component={AddressScreen} />
                 <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
                 <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
                 <Stack.Screen name="CardsScreen" component={CardsScreen} />
