@@ -616,7 +616,6 @@ const MyOrdersScreen: React.FC = () => {
             </View>
             <TouchableOpacity style={styles.contactBtn}>
               <Text style={styles.contactBtnText}>Contact Us</Text>
-              <Ionicons name="chevron-forward" size={18} color="#96252A" />
             </TouchableOpacity>
           </View>
         </View>
@@ -812,6 +811,7 @@ const styles = StyleSheet.create({
   },
   trackBtn: {
     backgroundColor: '#96252A',
+  
   },
   trackBtnText: {
     fontSize: 13,
@@ -819,7 +819,8 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   cancelBtn: {
-    backgroundColor: '#E53935',
+    backgroundColor: '#fff',
+    borderColor:'#96252A'
   },
   cancelBtnText: {
     fontSize: 13,
@@ -863,13 +864,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   helpTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#151515',
     marginBottom: 2,
   },
   helpSubtitle: {
-    fontSize: 13,
+    fontSize: 10,
     color: '#666',
     lineHeight: 18,
   },
@@ -878,17 +879,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#96252A',
     backgroundColor: 'transparent',
     marginLeft: 10,
   },
   contactBtnText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#96252A',
-    marginRight: 2,
+    marginRight: 0,
   },
 
   // Empty State
