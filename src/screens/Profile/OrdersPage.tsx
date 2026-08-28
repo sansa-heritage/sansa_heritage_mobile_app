@@ -176,6 +176,7 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { cancelOrder, getOrders } from '../../api/orderApi';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -264,15 +265,28 @@ const staticOrders: Order[] = [
 const MyOrdersScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [orders, setOrders] = useState<Order[]>(staticOrders);
-  const [activeTab, setActiveTab] = useState<string>('All Orders');
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>(staticOrders);
   const [loading, setLoading] = useState(false);
-
-  const tabs = ['All Orders', 'To Pay', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     // Using static data, no API call
-  }, [refreshKey]);
+  }, []);
+
+  // Handle search
+  const handleSearch = (text: string) => {
+    setSearchText(text);
+    if (text.trim() === '') {
+      setFilteredOrders(orders);
+    } else {
+      const filtered = orders.filter(order => {
+        const product = order.products[0] || {};
+        const productName = product?.name || '';
+        return productName.toLowerCase().includes(text.toLowerCase());
+      });
+      setFilteredOrders(filtered);
+    }
+  };
 
   const handleCancelOrder = async (orderId: string) => {
     console.log("Cancel clicked", orderId);
@@ -281,6 +295,7 @@ const MyOrdersScreen: React.FC = () => {
       const confirmCancel = window.confirm('Are you sure you want to cancel this order?');
       if (confirmCancel) {
         setOrders(prev => prev.filter(order => order._id !== orderId));
+        setFilteredOrders(prev => prev.filter(order => order._id !== orderId));
       }
     } else {
       Alert.alert(
@@ -292,6 +307,7 @@ const MyOrdersScreen: React.FC = () => {
             text: 'Yes',
             onPress: () => {
               setOrders(prev => prev.filter(order => order._id !== orderId));
+              setFilteredOrders(prev => prev.filter(order => order._id !== orderId));
             }
           },
         ]
@@ -305,16 +321,6 @@ const MyOrdersScreen: React.FC = () => {
       setLoading(false);
     }, 500);
   };
-
-  // Filter orders based on the selected tab
-  const getFilteredOrders = () => {
-    if (activeTab === 'All Orders') {
-      return orders;
-    }
-    return orders.filter(order => order.status === activeTab);
-  };
-
-  const filteredOrders = getFilteredOrders();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -387,7 +393,6 @@ const MyOrdersScreen: React.FC = () => {
   const navigateToOrderDetails = (item: Order) => {
     const product = item.products[0] || {};
     
-    // Prepare order data for details page
     const orderData = {
       orderId: `#${item._id.padStart(6, '0')}`,
       status: item.status,
@@ -540,9 +545,7 @@ const MyOrdersScreen: React.FC = () => {
       <Ionicons name="receipt-outline" size={80} color="#ddd" />
       <Text style={styles.emptyTitle}>No Orders Yet</Text>
       <Text style={styles.emptySubtitle}>
-        {activeTab === 'All Orders'
-          ? 'Start shopping to see your orders here'
-          : `No ${activeTab.toLowerCase()} orders found`}
+        {searchText ? `No results for "${searchText}"` : 'Start shopping to see your orders here'}
       </Text>
       <TouchableOpacity
         style={styles.shopBtn}
@@ -557,35 +560,30 @@ const MyOrdersScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
       <View style={styles.container}>
-        {/* Tabs */}
-        <View style={styles.tabsWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tabsScrollView}
-            contentContainerStyle={styles.tabsContent}
-          >
-            {tabs.map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tab,
-                  activeTab === tab && styles.tabActive,
-                ]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab && styles.tabTextActive,
-                  ]}
-                >
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        {/* Header */}
+        
+        {/* Search Bar */}
+        <View style={styles.searchSection}>
+          <Ionicons name="search-outline" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search orders..."
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={handleSearch}
+            returnKeyType="search"
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => handleSearch('')}>
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Orders Count */}
+        <Text style={styles.orderCountText}>
+          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
+        </Text>
 
         {/* Orders List */}
         {filteredOrders.length > 0 ? (
@@ -641,41 +639,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
 
-  // Tabs Wrapper
-  tabsWrapper: {
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#f8f8f8',
-    paddingTop: 12,
-    paddingBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#151515',
   },
 
-  // Tabs ScrollView
-  tabsScrollView: {
-    paddingHorizontal: 16,
-  },
-  tabsContent: {
-    paddingVertical: 4,
-    paddingRight: 4,
-  },
-  tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginRight: 12,
-    borderRadius: 22,
-    backgroundColor: '#f0f0f0',
+  // Search Bar
+  searchSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
-  tabActive: {
-    backgroundColor: '#96252A',
-  },
-  tabText: {
+  searchInput: {
+    flex: 1,
     fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-    textAlign: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    color: '#151515',
   },
-  tabTextActive: {
-    color: '#fff',
+
+  // Order Count
+  orderCountText: {
+    fontSize: 13,
+    color: '#666',
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
 
   // List Content
