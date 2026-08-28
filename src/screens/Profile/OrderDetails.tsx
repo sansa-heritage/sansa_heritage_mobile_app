@@ -8,11 +8,15 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
+
+// Product image URL
+const productImage = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop&crop=center&q=80';
 
 const OrderDetailsScreen = () => {
   const navigation = useNavigation();
@@ -155,9 +159,11 @@ const OrderDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Order Items ({orderData.quantity})</Text>
             <View style={styles.productContainer}>
-              <View style={styles.productImagePlaceholder}>
-                <Ionicons name="image-outline" size={30} color="#ccc" />
-              </View>
+              <Image 
+                source={{ uri: productImage }} 
+                style={styles.productImage}
+                resizeMode="cover"
+              />
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{orderData.productName}</Text>
                 <Text style={styles.productMeta}>
@@ -235,12 +241,12 @@ const OrderDetailsScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Card 7: Two Action Buttons */}
+          {/* Card 7: Two Action Buttons - Fixed Equal Width */}
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.buyAgainBtn}>
+            <TouchableOpacity style={[styles.actionBtn, styles.buyAgainBtn]}>
               <Text style={styles.buyAgainText}>Buy Again</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.trackOrderBtn}>
+            <TouchableOpacity style={[styles.actionBtn, styles.trackOrderBtn]}>
               <Text style={styles.trackOrderText}>Track Order</Text>
             </TouchableOpacity>
           </View>
@@ -408,14 +414,12 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
-  productImagePlaceholder: {
+  productImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 12,
+    backgroundColor: '#f0f0f0',
   },
   productInfo: {
     flex: 1,
@@ -555,19 +559,21 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
 
-  // Card 7: Two Action Buttons
+  // Card 7: Two Action Buttons - Fixed Equal Width
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     marginBottom: 60,
   },
-  buyAgainBtn: {
+  actionBtn: {
     flex: 1,
-    backgroundColor: 'black',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    width:60,
+    justifyContent: 'center',
+  },
+  buyAgainBtn: {
+    backgroundColor: '#000000',
   },
   buyAgainText: {
     color: '#fff',
@@ -575,11 +581,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   trackOrderBtn: {
-    flex: 1,
     backgroundColor: '#fff',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#96252A',
   },
