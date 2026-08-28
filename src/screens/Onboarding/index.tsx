@@ -75,10 +75,12 @@
 // };
 
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../models/types';
+
+const { width, height } = Dimensions.get('window');
 
 const slides = [
   {
@@ -113,7 +115,6 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
 
   const handleNext = () => {
     if (currentSlideIndex === slides.length - 1) {
-      // ✅ Call the callback to finish intro
       onFinishIntro();
     } else {
       setCurrentSlideIndex(currentSlideIndex + 1);
@@ -121,65 +122,61 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   };
 
   const handleSkip = () => {
-    // ✅ Call the callback to finish intro
     onFinishIntro();
   };
 
   const currentSlide = slides[currentSlideIndex];
 
   return (
-    <View style={{ 
-      flex: 1, 
-      backgroundColor: currentSlide.backgroundColor, 
-      justifyContent: 'center', 
-      alignItems: 'center' 
-    }}>
-      <Image source={currentSlide.image} style={{ width: 300, height: 450 }} />
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginTop: 20 }}>
+    <View style={[styles.container, { backgroundColor: currentSlide.backgroundColor }]}>
+      {/* Image - Centered */}
+      <View style={styles.imageContainer}>
+        <Image 
+          source={currentSlide.image} 
+          style={styles.image}
+          resizeMode="contain"
+        />
+      </View>
+
+      {/* Title */}
+      <Text style={styles.title}>
         {currentSlide.title}
       </Text>
-      <Text style={{ textAlign: 'center', marginVertical: 10, width: 350, paddingHorizontal: 20 }}>
+
+      {/* Description */}
+      <Text style={styles.description}>
         {currentSlide.text}
       </Text>
 
       {/* Slide indicators */}
-      <View style={{ flexDirection: 'row', marginTop: 20 }}>
+      <View style={styles.indicatorContainer}>
         {slides.map((_, index) => (
           <View
             key={index}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc',
-              marginHorizontal: 4,
-            }}
+            style={[
+              styles.indicator,
+              { backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc' },
+            ]}
           />
         ))}
       </View>
 
-      <View style={{ position: 'absolute', bottom: 50, alignSelf: 'center' }}>
+      {/* Buttons - Centered */}
+      <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={{
-            width: 218,
-            height: 40,
-            borderRadius: 133,
-            backgroundColor: '#151515',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
+          style={styles.nextButton}
           onPress={handleNext}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>
+          <Text style={styles.nextButtonText}>
             {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
           </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
-          style={{ marginTop: 15 }}
+          style={styles.skipButton}
           onPress={handleSkip}
         >
-          <Text style={{ color: '#666', fontSize: 14 }}>
+          <Text style={styles.skipButtonText}>
             Skip
           </Text>
         </TouchableOpacity>
@@ -189,3 +186,76 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
 };
 
 export default BasicExample;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 300,
+  },
+  image: {
+    width: width * 30,
+    height: height * 0.80,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  description: {
+    textAlign: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+  },
+  indicatorContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  buttonContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  nextButton: {
+    width: 218,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#151515',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nextButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  skipButton: {
+    marginTop: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  skipButtonText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});

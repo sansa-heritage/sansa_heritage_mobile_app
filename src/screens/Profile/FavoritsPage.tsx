@@ -204,19 +204,6 @@ const FavoriteScreen = () => {
     return '';
   };
 
-  const getBrandName = (product: any): string => {
-    const fullData = fullProductData.get(product._id);
-    const brandData = fullData?.brand || product.brand;
-    
-    if (!brandData) return '';
-    
-    if (typeof brandData === 'object') {
-      return brandData.name || '';
-    }
-    
-    return brandData || '';
-  };
-
   const getColorName = (color: any): string => {
     if (!color) return 'N/A';
     
@@ -277,7 +264,6 @@ const FavoriteScreen = () => {
       ? item.productId.price - (item.productId.price * discount / 100)
       : item.productId.price;
 
-    const brandName = getBrandName(productData);
     const inStock = isInStock(productData);
     
     const selectedColor = item.selectedColor || productData.colors?.[0] || null;
@@ -309,12 +295,14 @@ const FavoriteScreen = () => {
             </View>
           )}
           
+          {/* Discount Badge - Top Left */}
           {discount > 0 && (
             <View style={styles.discountBadgeContainer}>
               <Text style={styles.discountBadgeText}>{discount}% OFF</Text>
             </View>
           )}
           
+          {/* Remove from Wishlist - Heart Icon - Top Right */}
           <TouchableOpacity
             style={styles.heartIconContainer}
             onPress={() => handleRemoveFavorite(productId)}
@@ -325,16 +313,14 @@ const FavoriteScreen = () => {
         </View>
 
         <View style={styles.itemDetails}>
-          {brandName && (
-            <Text style={styles.brandText} numberOfLines={1}>
-              {brandName}
+          {/* Product Name - Fixed height */}
+          <View style={styles.nameContainer}>
+            <Text style={styles.itemName} numberOfLines={2}>
+              {item.productId.name}
             </Text>
-          )}
+          </View>
           
-          <Text style={styles.itemName} numberOfLines={1}>
-            {item.productId.name}
-          </Text>
-          
+          {/* Color and Size - Fixed height */}
           <View style={styles.variantsRow}>
             {colorHex && (
               <View style={[styles.colorDot, { backgroundColor: colorHex }]} />
@@ -346,6 +332,7 @@ const FavoriteScreen = () => {
             </Text>
           </View>
           
+          {/* Price - Fixed height */}
           <View style={styles.priceContainer}>
             <Text style={styles.itemPrice}>
               ₹{discountedPrice.toFixed(0)}
@@ -357,16 +344,18 @@ const FavoriteScreen = () => {
             )}
           </View>
           
+          {/* Rating - Fixed height */}
           <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={11} color="#FFB800" />
+            <Ionicons name="star" size={12} color="#FFB800" />
             <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             <Text style={styles.ratingCount}>({ratingCount})</Text>
           </View>
           
+          {/* Stock - Fixed height */}
           <View style={styles.stockContainer}>
             <Ionicons 
               name={inStock ? "lock-closed-outline" : "lock-open-outline"} 
-              size={11} 
+              size={12} 
               color={inStock ? "#4CAF50" : "#E53935"} 
             />
             <Text style={[styles.stockText, !inStock && styles.outOfStockText]}>
@@ -374,6 +363,7 @@ const FavoriteScreen = () => {
             </Text>
           </View>
           
+          {/* Button - Fixed height */}
           <TouchableOpacity 
             style={[styles.actionButton, !inStock && styles.notifyButton]}
             onPress={() => {
@@ -395,7 +385,6 @@ const FavoriteScreen = () => {
 
   const ListHeaderComponent = () => (
     <View style={styles.headerContainer}>
-      {/* <Text style={styles.headerTitle}>Wishlist</Text> */}
       <View style={styles.headerSub}>
         <Text style={styles.itemCountText}>{favoriteData.length} items saved</Text>
         <View style={styles.sortContainer}>
@@ -487,7 +476,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 15,
     paddingBottom: 20,
   },
   emptyListContent: {
@@ -495,16 +484,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   
+  // Header Styles
   headerContainer: {
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: '#f8f8f8',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#151515',
-    marginBottom: 4,
   },
   headerSub: {
     flexDirection: 'row',
@@ -535,32 +519,38 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   
+  // Grid Row
   row: {
     justifyContent: 'space-between',
   },
   
+  // Item Container
   itemContainer: {
-    width: CARD_WIDTH,
+    width: '48%',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 16,
     overflow: 'hidden',
+    elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
+  
+  // Image Container
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 140,
+    height: 180,
     backgroundColor: '#f9f9f9',
   },
   itemImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
   },
   placeholderImage: {
     justifyContent: 'center',
@@ -573,138 +563,155 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   
+  // Discount Badge - Top Left
   discountBadgeContainer: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: '#E53935',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    top: 10,
+    left: 0,
+    backgroundColor: '#96252A',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 4,
+    zIndex: 5,
   },
   discountBadgeText: {
     color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   
+  // Heart Icon - Top Right
   heartIconContainer: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: 10,
+    right: 10,
+    backgroundColor: '#fff',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    zIndex: 5,
   },
   
+  // Item Details - Fixed heights for consistent alignment
   itemDetails: {
     padding: 10,
-    paddingTop: 8,
+    paddingBottom: 10,
   },
-  brandText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#D4A017',
-    textTransform: 'uppercase',
-    marginBottom: 1,
+  
+  // Product Name - Fixed height container
+  nameContainer: {
+    height: 40,
+    justifyContent: 'flex-start',
   },
   itemName: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#151515',
-    marginBottom: 2,
-    lineHeight: 16,
+    color: '#222',
+    lineHeight: 20,
   },
+  
+  // Variants Row - Fixed height
   variantsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 20,
     marginBottom: 2,
   },
   colorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     marginRight: 4,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   variantText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#888',
     flex: 1,
   },
+  
+  // Price - Fixed height
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    height: 24,
+    marginBottom: 1,
   },
   itemPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#151515',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginRight: 8,
   },
   originalPrice: {
-    fontSize: 10,
-    color: '#999',
+    fontSize: 14,
+    color: '#888',
     textDecorationLine: 'line-through',
-    marginLeft: 5,
   },
   
+  // Rating - Fixed height
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 20,
     marginBottom: 1,
   },
   ratingText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     color: '#151515',
-    marginLeft: 2,
+    marginLeft: 3,
   },
   ratingCount: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#888',
-    marginLeft: 2,
+    marginLeft: 3,
   },
   
+  // Stock - Fixed height
   stockContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 20,
     marginBottom: 6,
   },
   stockText: {
-    fontSize: 10,
+    fontSize: 12,
     color: '#4CAF50',
     fontWeight: '500',
-    marginLeft: 2,
+    marginLeft: 3,
   },
   outOfStockText: {
     color: '#E53935',
   },
   
+  // Action Button - Fixed height
   actionButton: {
-    backgroundColor: 'black',
-    paddingVertical: 6,
+    backgroundColor: '#000',
+    paddingVertical: 8,
     borderRadius: 6,
     alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
   },
   notifyButton: {
     backgroundColor: '#FF6F00',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '600',
   },
   
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -738,6 +745,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   
+  // Loading & Error
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -757,7 +765,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   errorMessage: {
-    color: '#E53935',
+    color: '#96252A',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,

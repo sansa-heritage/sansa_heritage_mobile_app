@@ -233,12 +233,7 @@ const NotificationScreen: React.FC = () => {
     <View style={styles.container}>
       {/* TITLE SECTION */}
       <View style={styles.titleSection}>
-        <View style={styles.titleLeft}>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>
-            Stay updated with your orders and offers
-          </Text>
-        </View>
+        
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={markAllAsRead}

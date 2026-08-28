@@ -38,6 +38,7 @@ import { NotificationProvider } from "./src/context/NotificationContext";
 import ReturnRefundPolicyScreen from "./src/screens/Info/Refund&ReturnPage";
 
 import AnimatedLogoLoader from "./src/components/common/AnimatedLogoLoader";
+import OrderDetailsScreen from "./src/screens/Profile/OrderDetails";
 
 const Stack = createStackNavigator();
 
@@ -158,6 +159,10 @@ const App = () => {
                 <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
                 <Stack.Screen name="CardsScreen" component={CardsScreen} />
                 <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
+
+                                {/* ✅ Add OrderDetails Screen here */}
+                <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+
 
                 <Stack.Screen name="AccountPage">
                   {(props) => <AccountPage {...props} onLogout={logout} />}
