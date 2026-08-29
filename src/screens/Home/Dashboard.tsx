@@ -24,18 +24,12 @@ import eventBus from '../../services/eventBus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
+import { getActiveBanners } from '../../api/bannerApi';
 
 // Base URL for images
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-// Banner images - replace with your actual images
-const bannerImages = [
-  require('../../../assets/images/banner1.jpg'),
-  require('../../../assets/images/banner2.jpg'),
-  require('../../../assets/images/banner3.jpg'),
-];
-
-// Category icons mapping - add your actual icon images
+// Category icons mapping
 const categoryIcons: { [key: string]: any } = {
   'All': require('../../../assets/icons/all.png'),
   'Sarees': require('../../../assets/icons/saree.png'),
@@ -45,7 +39,7 @@ const categoryIcons: { [key: string]: any } = {
   'Dupattas': require('../../../assets/icons/dupatta.png'),
 };
 
-// ✅ FEATURE ICONS
+// Feature Icons
 const featureIcons = {
   deals: require('../../../assets/icons/deals.png'),
   shipping: require('../../../assets/icons/shipping.png'),
@@ -78,15 +72,275 @@ const getCategoryIcon = (categoryName: string) => {
   return categoryIcons[categoryName] || categoryIcons['All'];
 };
 
+// ============================================
+// BANNER SLIDER COMPONENT - COMPLETE FIX
+// ============================================
+interface BannerSliderProps {
+  bannerImages: any[];
+  currentBannerIndex: number;
+  onBannerPress: (banner: any) => void;
+  setCurrentBannerIndex: (index: number) => void;
+}
+
+const BannerSlider: React.FC<BannerSliderProps> = ({
+  bannerImages,
+  currentBannerIndex,
+  onBannerPress,
+  setCurrentBannerIndex,
+}) => {
+  const flatListRef = useRef<FlatList>(null);
+
+  if (bannerImages.length === 0) {
+    return null;
+  }
+
+  // ✅ Fix: Handle scroll end properly
+  const handleScrollEnd = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / (width - 30));
+    if (index !== currentBannerIndex && index < bannerImages.length) {
+      setCurrentBannerIndex(index);
+    }
+  };
+
+  // ✅ Fix: Scroll to index when index changes
+  useEffect(() => {
+    if (flatListRef.current && currentBannerIndex < bannerImages.length) {
+      flatListRef.current.scrollToIndex({
+        index: currentBannerIndex,
+        animated: true,
+      });
+    }
+  }, [currentBannerIndex]);
+
+  return (
+    <View style={styles.bannerWrapper}>
+      <FlatList
+        ref={flatListRef}
+        data={bannerImages}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item, index) => item?._id || item?.id || `banner-${index}`}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={styles.bannerItem}
+            onPress={() => onBannerPress(item)}
+            activeOpacity={0.9}
+          >
+            <Image 
+              source={{ uri: item.image || item.uri }}
+              style={styles.bannerImage}
+              resizeMode="cover"
+              onError={(e) => {
+                console.log('Banner image load error:', e.nativeEvent);
+              }}
+            />
+            {/* {(item.title || item.description) && (
+              <View style={styles.bannerOverlay}>
+                {item.title && <Text style={styles.bannerTitle}>{item.title}</Text>}
+                {item.description && (
+                  <Text style={styles.bannerDescription}>{item.description}</Text>
+                )}
+              </View>
+            )} */}
+          </TouchableOpacity>
+        )}
+        onMomentumScrollEnd={handleScrollEnd}
+        getItemLayout={(data, index) => ({
+          length: width - 30,
+          offset: (width - 30) * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise(resolve => setTimeout(resolve, 500));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: true,
+            });
+          });
+        }}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        initialNumToRender={2}
+        scrollEventThrottle={16}
+        decelerationRate="fast"
+        initialScrollIndex={0}
+        // ✅ Fix: Use viewability config for better performance
+        viewabilityConfig={{
+          itemVisiblePercentThreshold: 50,
+        }}
+      />
+      {/* Dots */}
+      {bannerImages.length > 1 && (
+        <View style={styles.dotsContainer}>
+          {bannerImages.map((_, index) => (
+            <View
+              key={`dot-${index}`}
+              style={[
+                styles.dot,
+                currentBannerIndex === index && styles.activeDot,
+              ]}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// ============================================
+// CATEGORY ITEM COMPONENT
+// ============================================
+interface CategoryItemProps {
+  item: any;
+  selectedCategory: string;
+  onPress: (item: any) => void;
+}
+
+const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onPress }) => {
+  const isActive = selectedCategory === item._id;
+  const iconSource = getCategoryIcon(item.name);
+  
+  return (
+    <TouchableOpacity
+      onPress={() => onPress(item)}
+      style={[
+        styles.categoryItem,
+        isActive && styles.categoryItemActive,
+      ]}
+    >
+      <View style={[
+        styles.categoryIconWrapper,
+        isActive && styles.categoryIconWrapperActive,
+      ]}>
+        <Image 
+          source={iconSource} 
+          style={[
+            styles.categoryIcon,
+            isActive && styles.categoryIconActive,
+          ]} 
+          resizeMode="contain"
+        />
+      </View>
+      <Text
+        style={[
+          styles.categoryName,
+          isActive && styles.categoryNameActive,
+        ]}
+      >
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// ============================================
+// FEATURE BADGES COMPONENT
+// ============================================
+const FeatureBadges: React.FC = () => (
+  <View style={styles.featuresContainer}>
+    <View style={styles.featureItem}>
+      <Image source={featureIcons.deals} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureTextWrapper}>
+        <Text style={styles.featureTitle}>Exclusive Deals</Text>
+        <Text style={styles.featureSubtext}>Best Prices</Text>
+      </View>
+    </View>
+    
+    <View style={styles.featureItem}>
+      <Image source={featureIcons.shipping} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureTextWrapper}>
+        <Text style={styles.featureTitle}>Free Shipping</Text>
+        <Text style={styles.featureSubtext}>On orders above 999</Text>
+      </View>
+    </View>
+    
+    <View style={styles.featureItem}>
+      <Image source={featureIcons.quality} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureTextWrapper}>
+        <Text style={styles.featureTitle}>Quality Assured</Text>
+        <Text style={styles.featureSubtext}>100% Original</Text>
+      </View>
+    </View>
+    
+    <View style={styles.featureItem}>
+      <Image source={featureIcons.heritage} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureTextWrapper}>
+        <Text style={styles.featureTitle}>Handpicked Heritage</Text>
+        <Text style={styles.featureSubtext}>Styles for you</Text>
+      </View>
+    </View>
+  </View>
+);
+
+// ============================================
+// PRODUCT CARD COMPONENT
+// ============================================
+interface ProductCardProps {
+  item: any;
+  onPress: (item: any) => void;
+  onFavoritePress: (id: string) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, onFavoritePress }) => (
+  <TouchableOpacity
+    style={styles.productCard}
+    onPress={() => onPress(item)}
+    activeOpacity={0.8}
+  >
+    <View style={styles.imageWrapper}>
+      <Image source={getImageSource(item)} style={styles.productImage} />
+      <TouchableOpacity
+        style={styles.favoriteBtn}
+        onPress={() => onFavoritePress(item._id)}
+      >
+        <MaterialIcons name="favorite-border" size={20} color="#000" />
+      </TouchableOpacity>
+      {item.discountPercent > 0 && (
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountBadgeText}>
+            {item.discountPercent}% OFF
+          </Text>
+        </View>
+      )}
+    </View>
+    <View style={styles.productInfo}>
+      <Text numberOfLines={1} style={styles.productTitle}>
+        {item.name}
+      </Text>
+      <View style={styles.priceRow}>
+        <Text style={styles.finalPrice}>
+          ₹
+          {(
+            item?.price -
+            (item?.price * (item?.discountPercent || 0)) / 100
+          )?.toFixed(0)}
+        </Text>
+        <Text style={styles.strikePrice}>₹{item?.price}</Text>
+      </View>
+      {item.rating !== undefined && item.rating > 0 && (
+        <Rating value={item.rating} />
+      )}
+    </View>
+  </TouchableOpacity>
+);
+
+// ============================================
+// MAIN DASHBOARD COMPONENT
+// ============================================
 export default function Dashboard() {
   const [newArrivals, setNewArrivals] = useState([]);
   const [trendingItems, setTrendingItems] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<any[]>([]);
   
-  // Banner slider state
+  // Banner slider state - DYNAMIC
+  const [bannerImages, setBannerImages] = useState<any[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
 
   const [showAllNew, setShowAllNew] = useState(false);
   const [showAllTrending, setShowAllTrending] = useState(false);
@@ -104,20 +358,35 @@ export default function Dashboard() {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // ✅ Auto-scroll banner
+  // ✅ Fetch dynamic banners from API
+  const fetchBanners = async () => {
+    try {
+      const banners = await getActiveBanners();
+      if (banners && banners.length > 0) {
+        setBannerImages(banners);
+        setCurrentBannerIndex(0);
+      } else {
+        setBannerImages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      setBannerImages([]);
+    }
+  };
+
+  // ✅ Auto-scroll banner - FIXED
   useEffect(() => {
+    if (bannerImages.length <= 1 || !isAutoScrolling) return;
+    
     const interval = setInterval(() => {
       const nextIndex = (currentBannerIndex + 1) % bannerImages.length;
       setCurrentBannerIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({
-        index: nextIndex,
-        animated: true,
-      });
-    }, 3000);
+    }, 4000);
+    
     return () => clearInterval(interval);
-  }, [currentBannerIndex]);
+  }, [bannerImages.length, currentBannerIndex, isAutoScrolling]);
 
-  // ✅ Debounce search - wait for user to stop typing
+  // ✅ Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchText(searchText);
@@ -125,7 +394,7 @@ export default function Dashboard() {
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // ✅ Fetch categories from API
+  // ✅ Fetch categories
   const fetchCategories = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -135,7 +404,6 @@ export default function Dashboard() {
       const data = await response.json();
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
       setCategories([{ _id: '', name: 'All', isActive: true }, ...activeCategories]);
-      console.log('📂 Categories loaded:', activeCategories.length);
     } catch (error) {
       console.error('Error fetching categories:', error);
       setCategories([
@@ -149,7 +417,7 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Fetch products with category filter
+  // ✅ Fetch products
   const fetchNewArrivals = async ({
     searchText,
     selectedCategory,
@@ -216,12 +484,15 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Load categories and products on mount
+  // ✅ Load all data
   useEffect(() => {
     const loadData = async () => {
       LoadingService.show();
       setLoading(true);
-      await fetchCategories();
+      await Promise.all([
+        fetchBanners(),
+        fetchCategories(),
+      ]);
       await Promise.all([
         fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange }),
         fetchTrending({ searchText: '', selectedCategory: '', priceRange }),
@@ -258,15 +529,6 @@ export default function Dashboard() {
     navigation.navigate('ProductDetails', { itemId: id });
   };
 
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
-  };
-
-  const assignFilterItem = (categoryId: string) => {
-    console.log('🔍 Category selected (ID):', categoryId);
-    setSelectedCategory(categoryId);
-  };
-
   const applyFilter = async () => {
     setModalVisible(false);
     LoadingService.show();
@@ -293,188 +555,55 @@ export default function Dashboard() {
     navigation.navigate('CategoryScreen', { mainCategory: categoryName });
   };
 
+  // Handle banner press
+  const handleBannerPress = (banner: any) => {
+    if (banner.linkType === 'collection' && banner.link) {
+      navigation.navigate('CategoryScreen', { mainCategory: banner.link });
+    } else if (banner.linkType === 'product' && banner.linkId) {
+      navigation.navigate('ProductDetails', { itemId: banner.linkId });
+    } else if (banner.link) {
+      console.log('Banner pressed:', banner.link);
+    }
+  };
+
+  // Handle banner scroll - FIXED
+  const handleBannerScroll = (index: number) => {
+    if (index !== currentBannerIndex && index < bannerImages.length) {
+      // Pause auto-scroll when user interacts
+      setIsAutoScrolling(false);
+      setCurrentBannerIndex(index);
+      // Resume auto-scroll after 5 seconds
+      setTimeout(() => {
+        setIsAutoScrolling(true);
+      }, 5000);
+    }
+  };
+
   const itemsToShowNew = showAllNew ? newArrivals : newArrivals.slice(0, 4);
   const itemsToShowTrending = showAllTrending ? trendingItems : trendingItems.slice(0, 4);
 
-  const renderProductCard = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.productCard}
-      onPress={() => redirectToProductDetails(item._id)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.imageWrapper}>
-        <Image source={getImageSource(item)} style={styles.productImage} />
-        <TouchableOpacity
-          style={styles.favoriteBtn}
-          onPress={() => addToFavorites(item._id)}
-        >
-          <MaterialIcons name="favorite-border" size={20} color="#000" />
-        </TouchableOpacity>
-        {item.discountPercent > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountBadgeText}>
-              {item.discountPercent}% OFF
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.productInfo}>
-        <Text numberOfLines={1} style={styles.productTitle}>
-          {item.name}
-        </Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.finalPrice}>
-            ₹
-            {(
-              item?.price -
-              (item?.price * (item?.discountPercent || 0)) / 100
-            )?.toFixed(0)}
-          </Text>
-          <Text style={styles.strikePrice}>₹{item?.price}</Text>
-        </View>
-        {item.rating !== undefined && item.rating > 0 && (
-          <Rating value={item.rating} />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  // ✅ Banner Slider Component - FIXED
-  const BannerSlider = () => (
-    <View style={styles.bannerWrapper}>
-      <FlatList
-        ref={flatListRef}
-        data={bannerImages}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <Image source={item} style={styles.bannerImage} resizeMode="cover" />
-        )}
-        keyExtractor={(_, index) => index.toString()}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / (width - 30));
-          setCurrentBannerIndex(index);
-        }}
-        // ✅ FIX: Add these props to prevent scrollToIndex error
-        getItemLayout={(data, index) => ({
-          length: width - 30,
-          offset: (width - 30) * index,
-          index,
-        })}
-        onScrollToIndexFailed={(info) => {
-          const wait = new Promise(resolve => setTimeout(resolve, 500));
-          wait.then(() => {
-            flatListRef.current?.scrollToIndex({
-              index: info.index,
-              animated: true,
-            });
-          });
-        }}
-      />
-      {/* Dots */}
-      <View style={styles.dotsContainer}>
-        {bannerImages.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              currentBannerIndex === index && styles.activeDot,
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-
-  // ✅ Category Item Component with Icon
-  const CategoryItem = ({ item }: { item: any }) => {
-    const isActive = selectedCategory === item._id;
-    const iconSource = getCategoryIcon(item.name);
-    
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          navigateToCategory(item.name);
-        }}
-        style={[
-          styles.categoryItem,
-          isActive && styles.categoryItemActive,
-        ]}
-      >
-        <View style={[
-          styles.categoryIconWrapper,
-          isActive && styles.categoryIconWrapperActive,
-        ]}>
-          <Image 
-            source={iconSource} 
-            style={[
-              styles.categoryIcon,
-              isActive && styles.categoryIconActive,
-            ]} 
-            resizeMode="contain"
-          />
-        </View>
-        <Text
-          style={[
-            styles.categoryName,
-            isActive && styles.categoryNameActive,
-          ]}
-        >
-          {item.name}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  // ✅ Feature Badges Component
-  const FeatureBadges = () => (
-    <View style={styles.featuresContainer}>
-      <View style={styles.featureItem}>
-        <Image source={featureIcons.deals} style={styles.featureIconImage} resizeMode="contain" />
-        <View style={styles.featureTextWrapper}>
-          <Text style={styles.featureTitle}>Exclusive Deals</Text>
-          <Text style={styles.featureSubtext}>Best Prices</Text>
-        </View>
-      </View>
-      
-      <View style={styles.featureItem}>
-        <Image source={featureIcons.shipping} style={styles.featureIconImage} resizeMode="contain" />
-        <View style={styles.featureTextWrapper}>
-          <Text style={styles.featureTitle}>Free Shipping</Text>
-          <Text style={styles.featureSubtext}>On orders above 999</Text>
-        </View>
-      </View>
-      
-      <View style={styles.featureItem}>
-        <Image source={featureIcons.quality} style={styles.featureIconImage} resizeMode="contain" />
-        <View style={styles.featureTextWrapper}>
-          <Text style={styles.featureTitle}>Quality Assured</Text>
-          <Text style={styles.featureSubtext}>100% Original</Text>
-        </View>
-      </View>
-      
-      <View style={styles.featureItem}>
-        <Image source={featureIcons.heritage} style={styles.featureIconImage} resizeMode="contain" />
-        <View style={styles.featureTextWrapper}>
-          <Text style={styles.featureTitle}>Handpicked Heritage</Text>
-          <Text style={styles.featureSubtext}>Styles for you</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  // ✅ Header component with dynamic categories
+  // ✅ Header component
   const ListHeaderComponent = () => (
     <>
-      <BannerSlider />
+      <BannerSlider
+        bannerImages={bannerImages}
+        currentBannerIndex={currentBannerIndex}
+        onBannerPress={handleBannerPress}
+        setCurrentBannerIndex={handleBannerScroll}
+      />
       <View style={styles.categoryWrapper}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           data={categories}
           keyExtractor={item => item._id || 'all'}
-          renderItem={({ item }) => <CategoryItem item={item} />}
+          renderItem={({ item }) => (
+            <CategoryItem 
+              item={item} 
+              selectedCategory={selectedCategory}
+              onPress={(category) => navigateToCategory(category.name)}
+            />
+          )}
           contentContainerStyle={styles.categoryList}
         />
       </View>
@@ -482,19 +611,15 @@ export default function Dashboard() {
     </>
   );
 
-  // Footer component
+  // ✅ Footer component
   const ListFooterComponent = () => (
     <>
       {/* New Arrival Section */}
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity onPress={() => {
-            navigateToCategory('New Arrival');
-          }}>
-            <Text style={styles.seeAllText}>
-              See All
-            </Text>
+          <TouchableOpacity onPress={() => navigateToCategory('New Arrival')}>
+            <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
         {itemsToShowNew.length === 0 ? (
@@ -505,7 +630,13 @@ export default function Dashboard() {
             keyExtractor={(item, index) => `${item._id}-${index}`}
             numColumns={2}
             columnWrapperStyle={styles.columnWrapper}
-            renderItem={renderProductCard}
+            renderItem={({ item }) => (
+              <ProductCard 
+                item={item} 
+                onPress={(product) => redirectToProductDetails(product._id)}
+                onFavoritePress={(id) => addToFavorites(id)}
+              />
+            )}
             scrollEnabled={false}
           />
         )}
@@ -515,12 +646,8 @@ export default function Dashboard() {
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => {
-            navigateToCategory('Trending');
-          }}>
-            <Text style={styles.seeAllText}>
-              See All
-            </Text>
+          <TouchableOpacity onPress={() => navigateToCategory('Trending')}>
+            <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
         {itemsToShowTrending.length === 0 ? (
@@ -531,7 +658,13 @@ export default function Dashboard() {
             keyExtractor={(item, index) => `${item._id}-${index}`}
             numColumns={2}
             columnWrapperStyle={styles.columnWrapper}
-            renderItem={renderProductCard}
+            renderItem={({ item }) => (
+              <ProductCard 
+                item={item} 
+                onPress={(product) => redirectToProductDetails(product._id)}
+                onFavoritePress={(id) => addToFavorites(id)}
+              />
+            )}
             scrollEnabled={false}
           />
         )}
@@ -552,7 +685,7 @@ export default function Dashboard() {
         keyboardShouldPersistTaps="handled"
       />
 
-      {/* ✅ Filter Modal */}
+      {/* Filter Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -633,8 +766,11 @@ export default function Dashboard() {
       </Modal>
     </View>
   );
-};
+}
 
+// ============================================
+// STYLES
+// ============================================
 const styles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
@@ -725,9 +861,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   
-  // ============================================
-  // CATEGORY STYLES - With Icons
-  // ============================================
+  // CATEGORY STYLES
   categoryWrapper: {
     marginVertical: 10,
   },
@@ -739,9 +873,7 @@ const styles = StyleSheet.create({
     marginRight: 20,
     paddingVertical: 6,
   },
-  categoryItemActive: {
-    // Active state styling
-  },
+  categoryItemActive: {},
   categoryIconWrapper: {
     width: 56,
     height: 56,
@@ -776,9 +908,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ============================================
-  // FEATURE BADGES - With Image Icons
-  // ============================================
+  // FEATURE BADGES
   featuresContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1031,19 +1161,45 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // ============================================
   // BANNER SLIDER STYLES
-  // ============================================
   bannerWrapper: {
     marginVertical: 10,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#f5f5f5',
   },
-  bannerImage: {
+  bannerItem: {
     width: width - 30,
     height: 180,
     borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+  },
+  bannerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  bannerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  bannerDescription: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   dotsContainer: {
     position: 'absolute',
@@ -1063,5 +1219,3 @@ const styles = StyleSheet.create({
     width: 20,
   },
 });
-
-// export default Dashboard;
