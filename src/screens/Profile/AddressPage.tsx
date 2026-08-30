@@ -362,7 +362,7 @@ export default function AddressScreen({ navigation }) {
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeft}>
                         <Ionicons name="location" size={24} color="#96252A" />
-                        <Text style={styles.headerTitle}>My Addresses</Text>
+                        {/* <Text style={styles.headerTitle}>My Addresses</Text> */}
                         <View style={styles.addressCount}>
                             <Text style={styles.addressCountText}>{addresses.length}</Text>
                         </View>

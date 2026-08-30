@@ -49,7 +49,7 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
   // Split menu items into two groups
   const firstMenuItems = [
     { label: 'Orders', icon: 'receipt-outline', screen: 'OrdersPage' },
-    { label: 'Address', icon: 'location-outline', screen: 'AddressFormPage' },
+    { label: 'Address', icon: 'location-outline', screen: 'AddressScreen' },
     { label: 'Settings', icon: 'settings-outline', screen: 'SettingsPage' },
   ];
 

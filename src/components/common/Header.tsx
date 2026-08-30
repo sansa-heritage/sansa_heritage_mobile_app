@@ -98,6 +98,53 @@ import { NotificationBadge } from "../NotificationBadge";
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
+// Route name to display name mapping
+const getDisplayName = (routeName: string): string => {
+  const routeMap: { [key: string]: string } = {
+    // Profile related
+    'Profile': 'My Profile',
+    'AccountPage': 'My Account',
+    'AddressScreen': 'My Address',
+    'AddressPage': 'My Address',
+    'OrdersPage': 'My Orders',
+    'OrderDetails': 'Order Details',
+    'SettingsPage': 'My Settings',
+    'WalletsPage': 'My Wallet',
+    'FavoritesPage': 'My Favourites',
+    'FavoriteScreen': 'My Favourites',
+    'NotificationScreen': 'My Notifications',
+    
+    // Cart related
+    'CartPage': 'My Cart',
+    'CheckoutPage': 'Checkout',
+    'PaymentPage': 'Payment',
+    
+    // Info pages
+    'PrivacyPolicy': 'Privacy Policy',
+    'AboutUs': 'About Us',
+    'TermsScreen': 'Terms & Conditions',
+    'FAQScreen': 'FAQ',
+    'ReturnRefundScreen': 'Return & Refund Policy',
+    
+    // Product related
+    'ProductDetails': 'Product Details',
+    'CategoryScreen': 'Categories',
+    
+    // Dashboard
+    'Dashboard': 'Dashboard',
+  };
+
+  // If no mapping found, format the route name nicely
+  if (!routeMap[routeName]) {
+    return routeName
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/Screen$/, '')
+      .trim() || routeName;
+  }
+
+  return routeMap[routeName];
+};
+
 const Header = ({ currentRoute }) => {
   const navigation = useNavigation<NavigationProp>();
   const isDashboard = currentRoute === "Dashboard";
@@ -116,6 +163,9 @@ const Header = ({ currentRoute }) => {
     }
   };
 
+  // Check if we should show the back button
+  const shouldShowBack = !isDashboard && currentRoute !== "Dashboard";
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar 
@@ -132,11 +182,13 @@ const Header = ({ currentRoute }) => {
           />
         ) : (
           <View style={styles.leftRow}>
-            <TouchableOpacity onPress={goBack} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color="#151515" />
-            </TouchableOpacity>
+            {shouldShowBack && (
+              <TouchableOpacity onPress={goBack} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={24} color="#151515" />
+              </TouchableOpacity>
+            )}
             <Text style={styles.pageTitle}>
-              {currentRoute?.replace(/([A-Z])/g, ' $1').trim() || ''}
+              {getDisplayName(currentRoute)}
             </Text>
           </View>
         )}
@@ -175,7 +227,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#FFFFFF",
-    // Remove border and shadow
     borderBottomWidth: 0,
     shadowOpacity: 0,
     elevation: 0,
@@ -194,7 +245,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#151515",
     marginLeft: 4,
-    textTransform: "capitalize",
   },
   logo: {
     width: 100,
