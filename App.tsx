@@ -47,6 +47,8 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [currentRoute, setCurrentRoute] = useState<string>("");
+  const [currentRouteParams, setCurrentRouteParams] = useState<any>({});
+
 
 
   useEffect(() => {
@@ -98,10 +100,14 @@ const App = () => {
           onReady={() => {
             const route = navigationRef.getCurrentRoute();
             setCurrentRoute(route?.name ?? "");
+            setCurrentRouteParams(route?.params ?? {});
+
           }}
           onStateChange={() => {
             const route = navigationRef.getCurrentRoute();
             setCurrentRoute(route?.name ?? "");
+            setCurrentRouteParams(route?.params ?? {});
+
           }}>
           {showIntro ? (
             <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -135,7 +141,7 @@ const App = () => {
             </Stack.Navigator>
           ) : (
             <>
-              <Header currentRoute={currentRoute} />
+              <Header currentRoute={currentRoute} routeParams={currentRouteParams} />
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Dashboard" component={Dashboard} />
                 <Stack.Screen name="ProductDetails" component={ProductDetails} />
@@ -160,7 +166,7 @@ const App = () => {
                 <Stack.Screen name="CardsScreen" component={CardsScreen} />
                 <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
 
-                                {/* ✅ Add OrderDetails Screen here */}
+                {/* ✅ Add OrderDetails Screen here */}
                 <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
 
 

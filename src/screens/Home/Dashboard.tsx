@@ -206,7 +206,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onP
   
   return (
     <TouchableOpacity
-      onPress={() => onPress(item)}
+      onPress={() => onPress(item.name, item.name)}
       style={[
         styles.categoryItem,
         isActive && styles.categoryItemActive,
@@ -551,10 +551,16 @@ export default function Dashboard() {
   };
 
   // ✅ Navigate to CategoryScreen
-  const navigateToCategory = (categoryName: string) => {
-    navigation.navigate('CategoryScreen', { mainCategory: categoryName });
-  };
-
+  // const navigateToCategory = (categoryName: string) => {
+  //   navigation.navigate('CategoryScreen', { mainCategory: categoryName });
+  // };
+// ✅ Navigate to CategoryScreen with display title
+const navigateToCategory = (categoryName: string, displayTitle?: string) => {
+  navigation.navigate('CategoryScreen', { 
+    mainCategory: categoryName,
+    displayTitle: displayTitle || categoryName
+  });
+};
   // Handle banner press
   const handleBannerPress = (banner: any) => {
     if (banner.linkType === 'collection' && banner.link) {
@@ -601,7 +607,7 @@ export default function Dashboard() {
             <CategoryItem 
               item={item} 
               selectedCategory={selectedCategory}
-              onPress={(category) => navigateToCategory(category.name)}
+              onPress={(categoryName, displayTitle) => navigateToCategory(categoryName, displayTitle)}
             />
           )}
           contentContainerStyle={styles.categoryList}
@@ -618,7 +624,7 @@ export default function Dashboard() {
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity onPress={() => navigateToCategory('New Arrival')}>
+          <TouchableOpacity onPress={() => navigateToCategory('New Arrival', 'New Arrivals')}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -646,7 +652,7 @@ export default function Dashboard() {
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => navigateToCategory('Trending')}>
+          <TouchableOpacity onPress={() => navigateToCategory('Trending', 'Trending Now')}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>

@@ -8,10 +8,19 @@ import {
   RefreshControl,
   ActivityIndicator,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNotifications } from "../../context/NotificationContext";
 import { Notification } from "../../models/notification.model";
+
+const { width } = Dimensions.get('window');
+
+// Responsive font size scaling
+const scale = (size: number) => {
+  const baseWidth = 375;
+  return Math.round((width / baseWidth) * size);
+};
 
 const NotificationScreen: React.FC = () => {
   const {
@@ -144,8 +153,11 @@ const NotificationScreen: React.FC = () => {
 
     return (
       <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.notificationCard}
+        activeOpacity={0.7}
+        style={[
+          styles.notificationCard,
+          !item.read && styles.unreadCard
+        ]}
         onPress={() => handleNotificationPress(item)}
       >
         {/* ICON */}
@@ -159,7 +171,7 @@ const NotificationScreen: React.FC = () => {
         >
           <Ionicons
             name={notificationIcon.icon}
-            size={40}
+            size={scale(22)}
             color={notificationIcon.color}
           />
         </View>
@@ -168,7 +180,7 @@ const NotificationScreen: React.FC = () => {
         <View style={styles.cardContent}>
           <View style={styles.cardTopRow}>
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               style={[
                 styles.notificationTitle,
                 !item.read && styles.unreadTitle,
@@ -201,7 +213,7 @@ const NotificationScreen: React.FC = () => {
               }}
             >
               <Text style={styles.actionText}>
-                {getActionText(item.type)}
+                {getActionText(item.type)} →
               </Text>
             </TouchableOpacity>
           )}
@@ -225,22 +237,32 @@ const NotificationScreen: React.FC = () => {
         <Text style={[styles.tabText, active && styles.activeTabText]}>
           {tab}
         </Text>
+        {active && <View style={styles.tabIndicator} />}
       </TouchableOpacity>
     );
   };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <View style={styles.container}>
       {/* TITLE SECTION */}
       <View style={styles.titleSection}>
-        
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={markAllAsRead}
-          style={styles.markAllButton}
-        >
-          <Text style={styles.markAllText}>Mark all as read</Text>
-        </TouchableOpacity>
+        {/* <View style={styles.titleLeft}>
+          <Text style={styles.title}>Notifications</Text>
+          <Text style={styles.subtitle}>
+            Stay updated with your orders and offers
+          </Text>
+        </View> */}
+        {unreadCount > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={markAllAsRead}
+            style={styles.markAllButton}
+          >
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* FILTER TABS */}
@@ -261,11 +283,13 @@ const NotificationScreen: React.FC = () => {
         </View>
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons
-            name="notifications-off-outline"
-            size={60}
-            color="#CCCCCC"
-          />
+          <View style={styles.emptyIconContainer}>
+            <Ionicons
+              name="notifications-off-outline"
+              size={scale(50)}
+              color="#D1D5DB"
+            />
+          </View>
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptySubtitle}>
             We'll notify you when something new arrives
@@ -295,7 +319,7 @@ const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8F9FA",
   },
 
   /* ==========================================
@@ -303,11 +327,12 @@ const styles = StyleSheet.create({
   ========================================== */
   titleSection: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: scale(16),
+    paddingTop: scale(12),
+    paddingBottom: scale(8),
+    backgroundColor: "#F8F9FA",
   },
 
   titleLeft: {
@@ -315,52 +340,56 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: "700",
     color: "#151515",
+    letterSpacing: -0.5,
   },
 
   subtitle: {
-    fontSize: 14,
+    fontSize: scale(12),
     color: "#6B7280",
     fontWeight: "400",
-    marginTop: 4,
+    marginTop: 2,
   },
 
   markAllButton: {
-    marginLeft: 12,
-    paddingBottom: 2,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: 16,
+    backgroundColor: "#96252A",
   },
 
   markAllText: {
-    fontSize: 13,
-    color: "#96252A",
-    fontWeight: "500",
+    fontSize: scale(10),
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 
   /* ==========================================
      TABS
   ========================================== */
   tabsWrapper: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(10),
+    backgroundColor: "#F8F9FA",
   },
 
   tabsContent: {
-    paddingRight: 20,
+    paddingRight: scale(16),
+    gap: 6,
   },
 
   tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#96252A",
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(6),
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    position: "relative",
   },
 
   activeTab: {
@@ -369,7 +398,7 @@ const styles = StyleSheet.create({
   },
 
   tabText: {
-    fontSize: 14,
+    fontSize: scale(11),
     color: "#6B7280",
     fontWeight: "500",
   },
@@ -379,13 +408,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  tabIndicator: {
+    position: "absolute",
+    bottom: -2,
+    left: "50%",
+    marginLeft: -3,
+    width: 6,
+    height: 2.5,
+    borderRadius: 1.5,
+    backgroundColor: "#96252A",
+  },
+
   /* ==========================================
      LIST
   ========================================== */
   listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingHorizontal: scale(16),
+    paddingTop: scale(4),
+    paddingBottom: scale(20),
   },
 
   /* ==========================================
@@ -395,31 +435,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 10,
+    padding: scale(10),
+    marginBottom: scale(8),
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
     shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowRadius: 2,
     elevation: 1,
+  },
+
+  unreadCard: {
+    backgroundColor: "#FAF5F5",
+    borderLeftWidth: 2.5,
+    borderLeftColor: "#96252A",
   },
 
   /* ==========================================
      ICON
   ========================================== */
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: scale(10),
     flexShrink: 0,
   },
 
@@ -437,52 +481,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 2,
+    marginBottom: 1,
   },
 
   notificationTitle: {
     flex: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: scale(13),
+    lineHeight: 18,
     color: "#111827",
     fontWeight: "600",
-    marginRight: 8,
+    marginRight: 6,
   },
 
   unreadTitle: {
     fontWeight: "700",
+    color: "#151515",
   },
 
   notificationTime: {
-    fontSize: 13,
+    fontSize: scale(10),
     color: "#9CA3AF",
     fontWeight: "400",
     flexShrink: 0,
+    marginTop: 1,
   },
 
   notificationBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#4B5563",
+    fontSize: scale(12),
+    lineHeight: 17,
+    color: "#6B7280",
     fontWeight: "400",
-    marginBottom: 4,
+    marginBottom: 3,
   },
 
   actionText: {
-    fontSize: 14,
-    color: "#2563EB",
-    fontWeight: "500",
+    fontSize: scale(12),
+    color: "#96252A",
+    fontWeight: "600",
   },
 
   /* ==========================================
      UNREAD DOT
   ========================================== */
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EF4444",
-    marginLeft: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#96252A",
+    marginLeft: 6,
     flexShrink: 0,
   },
 
@@ -505,18 +551,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
 
+  emptyIconContainer: {
+    width: scale(70),
+    height: scale(70),
+    borderRadius: scale(35),
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+
   emptyTitle: {
-    fontSize: 20,
+    fontSize: scale(16),
     fontWeight: "600",
-    color: "#111827",
-    marginTop: 16,
+    color: "#151515",
+    marginTop: 8,
   },
 
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: scale(12),
     color: "#9CA3AF",
     textAlign: "center",
-    marginTop: 8,
+    marginTop: 4,
+    lineHeight: 18,
   },
 });
 

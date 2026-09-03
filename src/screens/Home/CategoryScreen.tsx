@@ -50,7 +50,7 @@ const getImageSource = (item: any) => {
 export default function CategoryScreen() {
     const route = useRoute();
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-    const { mainCategory } = route.params as { mainCategory: string };
+    const { mainCategory, displayTitle } = route.params as { mainCategory: string; displayTitle?: string };
 
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -60,11 +60,22 @@ export default function CategoryScreen() {
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
 
+    // ✅ Get display title - use passed displayTitle or derive from mainCategory
     const getDisplayTitle = () => {
+        if (displayTitle) return displayTitle;
         if (mainCategory === "New Arrival") return "New Arrivals";
         if (mainCategory === "Trending") return "Trending Now";
         return mainCategory;
     };
+
+    // ✅ Update header title when component mounts or displayTitle changes
+    useEffect(() => {
+        const title = getDisplayTitle();
+        // Update the header title by setting route params
+        navigation.setParams({ 
+            displayTitle: title 
+        });
+    }, [displayTitle, mainCategory]);
 
     const addToFavorites = (_id: number | undefined) => {
         addToFavoritesList(_id);
@@ -129,7 +140,6 @@ export default function CategoryScreen() {
                 params.category = mainCategory;
             }
 
-            // ✅ Add search text to params (only if not empty)
             if (searchText && searchText.trim()) {
                 params.search = searchText.trim();
             }
@@ -146,8 +156,6 @@ export default function CategoryScreen() {
 
             const url = `${config.baseURL}api/products${queryString ? "?" + queryString : ""}`;
 
-            console.log("CATEGORY API:", url);
-
             const res = await fetch(url, { headers });
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
@@ -162,15 +170,12 @@ export default function CategoryScreen() {
         }
     };
 
-    // ✅ Manual search handler
-    const handleSearch = () => {
+    const handleSearchSubmit = () => {
         fetchProducts();
     };
 
-    // ✅ Clear search handler
     const handleClearSearch = () => {
         setSearchText("");
-        // Fetch products without search filter
         fetchProducts();
     };
 
@@ -222,7 +227,6 @@ export default function CategoryScreen() {
         </TouchableOpacity>
     );
 
-    // Render dynamic category tabs
     const renderCategoryTab = (tab: any) => {
         const isActive = selectedCategory === tab._id || (tab._id === '' && !selectedCategory);
         return (
@@ -253,16 +257,6 @@ export default function CategoryScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Header with Back Button */}
-                {/* <View style={styles.header}>
-                    <TouchableOpacity onPress={goBack} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color="#151515" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{getDisplayTitle()}</Text>
-                    <View style={{ width: 24 }} />
-                </View> */}
-
-                {/* ✅ Search Bar with Manual Search Button */}
                 <View style={styles.searchSection}>
                     <Ionicons name="search-outline" size={20} color="#999" />
                     <TextInput
@@ -272,22 +266,15 @@ export default function CategoryScreen() {
                         value={searchText}
                         onChangeText={setSearchText}
                         returnKeyType="search"
-                        onSubmitEditing={handleSearch} // ✅ Search on keyboard enter
+                        onSubmitEditing={handleSearchSubmit}
                     />
                     {searchText.length > 0 && (
                         <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
                             <Ionicons name="close-circle" size={20} color="#999" />
                         </TouchableOpacity>
                     )}
-                    <TouchableOpacity 
-                        style={styles.searchButton} 
-                        onPress={handleSearch}
-                    >
-                        <Text style={styles.searchButtonText}>Search</Text>
-                    </TouchableOpacity>
                 </View>
 
-                {/* Dynamic Category Tabs */}
                 <View style={styles.categoryTabsContainer}>
                     <FlatList
                         horizontal
@@ -299,7 +286,6 @@ export default function CategoryScreen() {
                     />
                 </View>
 
-                {/* Products Grid - Proper scrolling */}
                 {products.length > 0 ? (
                     <FlatList
                         data={products}
@@ -357,22 +343,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#666',
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        backgroundColor: '#F8F8F8',
-    },
-    backButton: {
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#151515',
-    },
-    // ✅ Search Bar Styles
     searchSection: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -381,7 +351,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 4,
         marginBottom: 8,
-        marginTop:8,
+        marginTop: 8,
     },
     searchInput: {
         flex: 1,
@@ -389,18 +359,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 8,
         color: '#151515',
-    },
-    searchButton: {
-        backgroundColor: '#96252A',
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 8,
-        marginLeft: 8,
-    },
-    searchButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
     },
     clearButton: {
         padding: 4,

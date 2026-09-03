@@ -24,7 +24,6 @@ import { addToCart } from '../../api/cartApi';
 import LoadingService from '../../services/LoadingService';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
 
 interface FavoriteItem {
   _id: string;
@@ -308,31 +307,17 @@ const FavoriteScreen = () => {
             onPress={() => handleRemoveFavorite(productId)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="heart" size={18} color="#96252A" />
+            <Ionicons name="heart" size={16} color="#96252A" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.itemDetails}>
-          {/* Product Name - Fixed height */}
-          <View style={styles.nameContainer}>
-            <Text style={styles.itemName} numberOfLines={2}>
-              {item.productId.name}
-            </Text>
-          </View>
+          {/* Product Name */}
+          <Text style={styles.itemName} numberOfLines={2}>
+            {item.productId.name}
+          </Text>
           
-          {/* Color and Size - Fixed height */}
-          <View style={styles.variantsRow}>
-            {colorHex && (
-              <View style={[styles.colorDot, { backgroundColor: colorHex }]} />
-            )}
-            <Text style={styles.variantText} numberOfLines={1}>
-              {colorName !== 'N/A' ? `Color: ${colorName}` : ''}
-              {sizeLabel !== 'N/A' && colorName !== 'N/A' ? ' | ' : ''}
-              {sizeLabel !== 'N/A' ? `Size: ${sizeLabel}` : ''}
-            </Text>
-          </View>
-          
-          {/* Price - Fixed height */}
+          {/* Price */}
           <View style={styles.priceContainer}>
             <Text style={styles.itemPrice}>
               ₹{discountedPrice.toFixed(0)}
@@ -344,26 +329,27 @@ const FavoriteScreen = () => {
             )}
           </View>
           
-          {/* Rating - Fixed height */}
+          {/* Rating */}
           <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={12} color="#FFB800" />
+            <Ionicons name="star" size={10} color="#FFB800" />
             <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             <Text style={styles.ratingCount}>({ratingCount})</Text>
           </View>
           
-          {/* Stock - Fixed height */}
+          {/* Stock Status */}
           <View style={styles.stockContainer}>
             <Ionicons 
-              name={inStock ? "lock-closed-outline" : "lock-open-outline"} 
-              size={12} 
+              name="ellipse" 
+              size={6} 
               color={inStock ? "#4CAF50" : "#E53935"} 
+              style={styles.stockDot}
             />
             <Text style={[styles.stockText, !inStock && styles.outOfStockText]}>
               {inStock ? 'In Stock' : 'Out of Stock'}
             </Text>
           </View>
           
-          {/* Button - Fixed height */}
+          {/* Button */}
           <TouchableOpacity 
             style={[styles.actionButton, !inStock && styles.notifyButton]}
             onPress={() => {
@@ -391,7 +377,7 @@ const FavoriteScreen = () => {
           <Text style={styles.sortLabel}>Sort by:</Text>
           <TouchableOpacity style={styles.sortButton}>
             <Text style={styles.sortText}>{sortBy}</Text>
-            <Ionicons name="chevron-down" size={16} color="#333" />
+            <Ionicons name="chevron-down" size={14} color="#666" />
           </TouchableOpacity>
         </View>
       </View>
@@ -400,7 +386,7 @@ const FavoriteScreen = () => {
 
   const ListEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="heart-outline" size={80} color="#ddd" />
+      <Ionicons name="heart-outline" size={60} color="#ddd" />
       <Text style={styles.emptyTitle}>No Favorites Yet</Text>
       <Text style={styles.emptySubtitle}>
         Start adding items you love to your favorites list
@@ -426,7 +412,7 @@ const FavoriteScreen = () => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={80} color="#E53935" />
+        <Ionicons name="alert-circle-outline" size={60} color="#E53935" />
         <Text style={styles.errorMessage}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={getFavorites}>
           <Text style={styles.retryButtonText}>RETRY</Text>
@@ -476,7 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
   },
   listContent: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     paddingBottom: 20,
   },
   emptyListContent: {
@@ -486,8 +472,8 @@ const styles = StyleSheet.create({
   
   // Header Styles
   headerContainer: {
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 4,
+    paddingBottom: 10,
     backgroundColor: '#f8f8f8',
   },
   headerSub: {
@@ -496,16 +482,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemCountText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '500',
   },
   sortContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   sortLabel: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 11,
+    color: '#888',
     marginRight: 4,
   },
   sortButton: {
@@ -513,7 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sortText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#151515',
     fontWeight: '500',
     marginRight: 2,
@@ -528,29 +515,29 @@ const styles = StyleSheet.create({
   itemContainer: {
     width: '48%',
     backgroundColor: '#fff',
-    borderRadius: 14,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 12,
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   
-  // Image Container
+  // Image Container - Full width, square
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 180,
+    aspectRatio: 1,
     backgroundColor: '#f9f9f9',
+    overflow: 'hidden',
   },
   itemImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    backgroundColor: '#f9f9f9',
   },
   placeholderImage: {
     justifyContent: 'center',
@@ -559,155 +546,131 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: '#999',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
   },
   
-  // Discount Badge - Top Left
+  // Discount Badge
   discountBadgeContainer: {
     position: 'absolute',
-    top: 10,
+    top: 8,
     left: 0,
     backgroundColor: '#96252A',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
     zIndex: 5,
   },
   discountBadgeText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   
-  // Heart Icon - Top Right
+  // Heart Icon
   heartIconContainer: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     backgroundColor: '#fff',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     zIndex: 5,
   },
   
-  // Item Details - Fixed heights for consistent alignment
+  // Item Details
   itemDetails: {
-    padding: 10,
+    padding: 8,
     paddingBottom: 10,
   },
   
-  // Product Name - Fixed height container
-  nameContainer: {
-    height: 40,
-    justifyContent: 'flex-start',
-  },
+  // Product Name
   itemName: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '600',
     color: '#222',
-    lineHeight: 20,
-  },
-  
-  // Variants Row - Fixed height
-  variantsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 20,
+    lineHeight: 16,
     marginBottom: 2,
-  },
-  colorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 4,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  variantText: {
-    fontSize: 11,
-    color: '#888',
-    flex: 1,
+    minHeight: 32,
   },
   
-  // Price - Fixed height
+  // Price
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 24,
-    marginBottom: 1,
+    marginBottom: 2,
   },
   itemPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
-    marginRight: 8,
+    marginRight: 6,
   },
   originalPrice: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#888',
     textDecorationLine: 'line-through',
   },
   
-  // Rating - Fixed height
+  // Rating
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20,
-    marginBottom: 1,
+    marginBottom: 2,
   },
   ratingText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#151515',
-    marginLeft: 3,
+    marginLeft: 2,
   },
   ratingCount: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#888',
-    marginLeft: 3,
+    marginLeft: 2,
   },
   
-  // Stock - Fixed height
+  // Stock
   stockContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20,
     marginBottom: 6,
   },
+  stockDot: {
+    marginRight: 4,
+  },
   stockText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#4CAF50',
     fontWeight: '500',
-    marginLeft: 3,
   },
   outOfStockText: {
     color: '#E53935',
   },
   
-  // Action Button - Fixed height
+  // Action Button
   actionButton: {
     backgroundColor: '#000',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 6,
     alignItems: 'center',
-    height: 36,
     justifyContent: 'center',
+    minHeight: 32,
   },
   notifyButton: {
     backgroundColor: '#FF6F00',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
   },
   
@@ -716,32 +679,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    marginTop: 40,
+    padding: 30,
+    marginTop: 20,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#151515',
-    marginTop: 16,
+    marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 6,
+    marginBottom: 20,
   },
   shopBtn: {
     backgroundColor: '#96252A',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   shopBtnText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 12,
     letterSpacing: 0.5,
   },
   
@@ -753,8 +716,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 10,
+    fontSize: 13,
     color: '#666',
   },
   errorContainer: {
@@ -766,19 +729,20 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     color: '#96252A',
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: 12,
+    marginBottom: 16,
   },
   retryButton: {
     backgroundColor: '#96252A',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   retryButtonText: {
     color: '#fff',
     fontWeight: '600',
+    fontSize: 12,
   },
 });

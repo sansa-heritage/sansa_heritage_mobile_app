@@ -7,7 +7,7 @@
 //   const isDashboard = currentRoute === "Dashboard";
 //   useEffect(() => {
 //     console.log(currentRoute);
-    
+
 // },[currentRoute])
 
 //   return (
@@ -80,11 +80,11 @@
 // });
 
 import React, { useEffect } from "react";
-import { 
-  View, 
-  Image, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
   Text,
   SafeAreaView,
   StatusBar,
@@ -99,7 +99,12 @@ import { NotificationBadge } from "../NotificationBadge";
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 // Route name to display name mapping
-const getDisplayName = (routeName: string): string => {
+const getDisplayName = (routeName: string, params?: any): string => {
+  // ✅ Check if we have a displayTitle from route params (for CategoryScreen)
+  if (routeName === 'CategoryScreen' && params?.displayTitle) {
+    return params.displayTitle;
+  }
+
   const routeMap: { [key: string]: string } = {
     // Profile related
     'Profile': 'My Profile',
@@ -113,23 +118,23 @@ const getDisplayName = (routeName: string): string => {
     'FavoritesPage': 'My Favourites',
     'FavoriteScreen': 'My Favourites',
     'NotificationScreen': 'My Notifications',
-    
+
     // Cart related
     'CartPage': 'My Cart',
     'CheckoutPage': 'Checkout',
     'PaymentPage': 'Payment',
-    
+
     // Info pages
     'PrivacyPolicy': 'Privacy Policy',
     'AboutUs': 'About Us',
     'TermsScreen': 'Terms & Conditions',
     'FAQScreen': 'FAQ',
     'ReturnRefundScreen': 'Return & Refund Policy',
-    
+
     // Product related
     'ProductDetails': 'Product Details',
-    'CategoryScreen': 'Categories',
-    
+    'CategoryScreen': 'Categories', // Fallback
+
     // Dashboard
     'Dashboard': 'Dashboard',
   };
@@ -145,13 +150,21 @@ const getDisplayName = (routeName: string): string => {
   return routeMap[routeName];
 };
 
-const Header = ({ currentRoute }) => {
+// ✅ Add routeParams to props
+interface HeaderProps {
+  currentRoute: string;
+  routeParams?: any;
+}
+
+// ✅ Update component to accept routeParams
+const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const navigation = useNavigation<NavigationProp>();
   const isDashboard = currentRoute === "Dashboard";
-  
+
   useEffect(() => {
-    console.log(currentRoute);
-  }, [currentRoute]);
+    console.log("Current Route:", currentRoute);
+    console.log("Route Params:", routeParams);
+  }, [currentRoute, routeParams]);
 
   const navigateToNotifications = () => {
     navigation.navigate('NotificationScreen');
@@ -168,8 +181,8 @@ const Header = ({ currentRoute }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar 
-        barStyle="dark-content" 
+      <StatusBar
+        barStyle="dark-content"
         backgroundColor="#FFFFFF"
         translucent={false}
       />
@@ -188,20 +201,20 @@ const Header = ({ currentRoute }) => {
               </TouchableOpacity>
             )}
             <Text style={styles.pageTitle}>
-              {getDisplayName(currentRoute)}
+              {getDisplayName(currentRoute, routeParams)}
             </Text>
           </View>
         )}
 
         <View style={styles.rightSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={() => navigation.navigate('FavoritesPage')}
           >
             <MaterialIcons name="favorite-border" size={24} color="#151515" />
           </TouchableOpacity>
-          <NotificationBadge 
-            size={24} 
+          <NotificationBadge
+            size={24}
             color="#151515"
             onPress={navigateToNotifications}
           />

@@ -611,27 +611,12 @@ const CartScreen: React.FC = () => {
         />
 
         <View style={styles.info}>
-          <View style={styles.titleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name} numberOfLines={2}>
-                {item.name || 'Product'}
-              </Text>
-              <View style={styles.variantRow}>
-                {colorHex && (
-                  <View style={[styles.colorDot, { backgroundColor: colorHex }]} />
-                )}
-                <Text style={styles.variantText}>
-                  Color: {colorDisplay}
-                </Text>
-              </View>
-              {item.size && (
-                <Text style={styles.variantText}>Size: {sizeDisplay}</Text>
-              )}
-            </View>
-            <TouchableOpacity onPress={() => removeItem(index)} style={styles.deleteBtn}>
-              <Ionicons name="trash-outline" size={18} color="#d32f2f" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.name} numberOfLines={2}>
+            {item.name || 'Product'}
+          </Text>
+          <Text style={styles.variantText}>
+            Color: {colorDisplay} | Size: {sizeDisplay}
+          </Text>
 
           <View style={styles.priceRow}>
             <Text style={styles.price}>
@@ -643,30 +628,28 @@ const CartScreen: React.FC = () => {
             )}
           </View>
 
-          <View style={styles.variantContainer}>
-            <View style={styles.qtyRow}>
-              <TouchableOpacity
-                style={styles.qtyBtn}
-                onPress={() => {
-                  const currentQty = Number(item.quantity);
-                  if (currentQty > 1) {
-                    updateQuantity(currentQty - 1, index);
-                  }
-                }}
-              >
-                <Ionicons name="remove" size={16} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.qtyText}>{item.quantity}</Text>
-              <TouchableOpacity
-                style={styles.qtyBtn}
-                onPress={() => {
-                  const currentQty = Number(item.quantity);
-                  updateQuantity(currentQty + 1, index);
-                }}
-              >
-                <Ionicons name="add" size={16} color="#333" />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.qtyRow}>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={() => {
+                const currentQty = Number(item.quantity);
+                if (currentQty > 1) {
+                  updateQuantity(currentQty - 1, index);
+                }
+              }}
+            >
+              <Text style={styles.qtyBtnText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.qtyText}>{item.quantity}</Text>
+            <TouchableOpacity
+              style={styles.qtyBtn}
+              onPress={() => {
+                const currentQty = Number(item.quantity);
+                updateQuantity(currentQty + 1, index);
+              }}
+            >
+              <Text style={styles.qtyBtnText}>+</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -687,10 +670,10 @@ const CartScreen: React.FC = () => {
               {/* Delivery Address Section */}
               <View style={styles.sectionCard}>
                 <View style={styles.addressRow}>
-                  <Ionicons name="location-outline" size={18} color="#333" />
-                  <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Ionicons name="location-outline" size={18} color="#96252A" />
+                  <View style={{ flex: 1, marginLeft: 6 }}>
                     <Text style={styles.smallLabel}>Deliver to</Text>
-                    <Text style={styles.boldText} numberOfLines={2}>
+                    <Text style={styles.boldText} numberOfLines={1}>
                       {deliveryAddress
                         ? `${deliveryAddress.street}, ${deliveryAddress.city}`
                         : 'Select delivery address'}
@@ -710,16 +693,20 @@ const CartScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.couponHeader}
                   onPress={() => setShowCouponInput(!showCouponInput)}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.couponHeaderLeft}>
-                    <Ionicons name="pricetag-outline" size={18} color="#96252A" />
-                    <Text style={styles.couponTitle}>Apply Coupon Code</Text>
+                  <View style={styles.couponLeft}>
+                    <Ionicons name="pricetag-outline" size={20} color="#96252A" />
+                    <View style={styles.couponTextContainer}>
+                      <Text style={styles.couponTitle}>Apply Coupon Code</Text>
+                      <Text style={styles.couponSubtext}>Get extra discounts on your order</Text>
+                    </View>
                   </View>
-                  <View style={styles.couponHeaderRight}>
-                    {/* <Text style={styles.couponSubtext}>Get extra discounts on your order</Text> */}
+                  <View style={styles.couponRight}>
+                    <Text style={styles.couponApplyText}>Apply</Text>
                     <Ionicons
                       name={showCouponInput ? "chevron-up" : "chevron-forward"}
-                      size={18}
+                      size={16}
                       color="#96252A"
                     />
                   </View>
@@ -749,26 +736,23 @@ const CartScreen: React.FC = () => {
                           style={styles.couponApplyBtn}
                           onPress={handleApplyCoupon}
                         >
-                          <Text style={styles.couponApplyText}>Apply</Text>
+                          <Text style={styles.couponApplyBtnText}>Apply</Text>
                         </TouchableOpacity>
                       )}
                     </View>
                     {couponApplied && (
                       <View style={styles.couponAppliedInfo}>
-                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
                         <Text style={styles.couponAppliedText}>
                           Coupon applied! You saved ₹{couponDiscount.toFixed(0)}
                         </Text>
                       </View>
                     )}
-                    <View style={styles.couponHint}>
-                      <Text style={styles.couponHintText}>Try: SAVE10 (10% off) or SAVE20 (20% off)</Text>
-                    </View>
                   </View>
                 )}
               </View>
 
-              {/* Free Shipping Progress Bar - Below Coupon */}
+              {/* Free Shipping Progress Bar */}
               {cartItems.length > 0 && !isFreeShipping && (
                 <View style={styles.freeShippingCard}>
                   <View style={styles.shippingRow}>
@@ -796,14 +780,14 @@ const CartScreen: React.FC = () => {
               {cartItems.length > 0 && isFreeShipping && (
                 <View style={[styles.freeShippingCard, styles.shippingAchieved]}>
                   <View style={styles.shippingRow}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
                     <Text style={styles.shippingAchievedText}>🎉 Free Shipping Applied!</Text>
                   </View>
                 </View>
               )}
 
               {/* Order Details */}
-              <View style={styles.sectionCard}>
+              <View style={styles.orderDetailsCard}>
                 <Text style={styles.sectionTitle}>Order Details</Text>
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Bag Total</Text>
@@ -832,21 +816,25 @@ const CartScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Return/Refund Policy with Icon */}
+              {/* Return/Refund Policy - FIXED DESIGN */}
               <View style={styles.policyCard}>
                 <View style={styles.policyHeader}>
-                  <Ionicons name="shield-checkmark-outline" size={30} color="#96252A" />
-                  <Text style={styles.policyTitle}>Return/Refund policy</Text>
+                  <View style={styles.policyIconCircle}>
+                    <Ionicons name="shield-checkmark-outline" size={24} color="#96252A" />
+                  </View>
+                  <View style={styles.policyTextContainer}>
+                    <Text style={styles.policyTitle}>Return/Refund policy</Text>
+                    <Text style={styles.policyDesc}>
+                      In case of return, we ensure quick refunds. Full amount will be refunded excluding convenience fee.
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.policyRight}>
+                    <Text style={styles.readPolicy}>Read policy</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#96252A" />
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.policyDesc}>
-                  In case of return, we ensure quick refunds. Full amount will be
-                  refunded excluding convenience fee.
-                </Text>
-                <TouchableOpacity style={styles.readPolicyContainer}>
-                  <Text style={styles.readPolicy}>Read policy</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#1e88e5" />
-                </TouchableOpacity>
               </View>
+
               <View style={styles.footerSpacer} />
             </>
           }
@@ -906,7 +894,7 @@ const CartScreen: React.FC = () => {
           </View>
         </Modal>
 
-        {/* QTY MODAL - Keep for fallback */}
+        {/* QTY MODAL */}
         <Modal visible={qtyModalVisible} transparent animationType="slide">
           <View style={styles.qtyModalOverlay}>
             <View style={styles.qtyModal}>
@@ -954,19 +942,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f6f6f6',
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
   flatListContent: {
     paddingBottom: 140,
   },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     marginBottom: 10,
     marginHorizontal: 16,
     shadowColor: '#000',
@@ -981,24 +963,115 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   smallLabel: {
-    fontSize: 12,
-    color: '#666'
+    fontSize: 11,
+    color: '#888'
   },
   boldText: {
-    fontWeight: '700',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 13,
+    color: '#333',
   },
   changeText: {
-    color: '#1e88e5',
-    fontWeight: '700',
+    color: '#96252A',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+
+  // Coupon Styles
+  couponHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  couponLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  couponTextContainer: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  couponTitle: {
     fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+  },
+  couponSubtext: {
+    fontSize: 10,
+    color: '#999',
+    marginTop: 1,
+  },
+  couponRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  couponApplyText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#96252A',
+    marginRight: 4,
+  },
+  couponInputContainer: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 10,
+  },
+  couponInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  couponInput: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  couponApplyBtn: {
+    backgroundColor: '#96252A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  couponApplyBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  couponRemoveBtn: {
+    backgroundColor: '#E53935',
+  },
+  couponRemoveText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  couponAppliedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  couponAppliedText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 
   // Free Shipping Styles
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     marginBottom: 10,
     marginHorizontal: 16,
     borderWidth: 1,
@@ -1012,12 +1085,13 @@ const styles = StyleSheet.create({
   shippingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   shippingText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#333',
-    marginLeft: 8,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   shippingAmount: {
     fontWeight: '700',
@@ -1028,22 +1102,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F8E9',
   },
   shippingAchievedText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#2E7D32',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   progressBarContainer: {
-    height: 6,
+    height: 5,
     backgroundColor: '#E0E0E0',
-    borderRadius: 3,
+    borderRadius: 2.5,
     overflow: 'hidden',
     marginVertical: 4,
   },
   progressBar: {
     height: '100%',
     backgroundColor: '#96252A',
-    borderRadius: 3,
+    borderRadius: 2.5,
   },
   progressLabels: {
     flexDirection: 'row',
@@ -1051,98 +1125,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   progressLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#999',
   },
 
-  // Coupon Styles
-  couponHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  couponHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  couponHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  couponTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 8,
-  },
-  couponSubtext: {
-    fontSize: 11,
-    color: '#999',
-    marginRight: 6,
-  },
-  couponInputContainer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingTop: 12,
-  },
-  couponInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  couponInput: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  couponApplyBtn: {
-    backgroundColor: '#96252A',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginLeft: 10,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  couponApplyText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  couponRemoveBtn: {
-    backgroundColor: '#E53935',
-  },
-  couponRemoveText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  couponAppliedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  couponAppliedText: {
-    fontSize: 13,
-    color: '#2E7D32',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  couponHint: {
-    marginTop: 6,
-  },
-  couponHintText: {
-    fontSize: 11,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-
+  // Product Card
   card: {
     backgroundColor: '#fff',
     flexDirection: 'row',
@@ -1157,51 +1144,34 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   image: {
-    width: 90,
-    height: 110,
+    width: 80,
+    height: 100,
     resizeMode: 'contain',
     borderRadius: 8
   },
   info: {
     flex: 1,
-    marginLeft: 12
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    marginLeft: 10
   },
   name: {
     fontWeight: '600',
-    flex: 1,
-    marginRight: 8,
-    fontSize: 14
-  },
-  variantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    fontSize: 13,
+    color: '#151515',
+    marginBottom: 2,
   },
   variantText: {
-    fontSize: 12,
-    color: '#666'
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4
+    marginBottom: 6,
   },
   price: {
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 15,
     color: '#96252A',
   },
   mrp: {
@@ -1213,19 +1183,13 @@ const styles = StyleSheet.create({
   discountBadge: {
     backgroundColor: '#FFEBEE',
     color: '#E53935',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
     marginLeft: 6,
     overflow: 'hidden',
-  },
-  variantContainer: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   qtyRow: {
     flexDirection: 'row',
@@ -1234,24 +1198,41 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 6,
     overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   qtyBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     backgroundColor: '#F5F5F5',
+  },
+  qtyBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
   qtyText: {
     paddingHorizontal: 12,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    minWidth: 30,
+    minWidth: 25,
     textAlign: 'center',
   },
-  deleteBtn: {
-    padding: 4,
+
+  // Order Details
+  orderDetailsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     marginBottom: 8,
     color: '#333',
@@ -1259,20 +1240,20 @@ const styles = StyleSheet.create({
   billRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   billLabel: {
     color: '#666',
-    fontSize: 14,
+    fontSize: 13,
   },
   billValue: {
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: 13,
   },
   savingsValue: {
     color: '#4CAF50',
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: 13,
   },
   freeText: {
     color: '#4CAF50',
@@ -1281,25 +1262,27 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginVertical: 8
+    marginVertical: 6
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#333',
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: '#96252A',
   },
+
+  // Footer
   footer: {
     position: 'absolute',
     bottom: 80,
     left: 0,
     right: 0,
-    padding: 14,
-    paddingBottom: 16,
+    padding: 12,
+    paddingBottom: 14,
     backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1313,31 +1296,120 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   subTotal: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#96252A',
   },
   subLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
-    marginTop: 2
+    marginTop: 1
   },
   checkoutBtn: {
-    backgroundColor: 'black',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    backgroundColor: '#000000',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 8,
-    minWidth: 150,
+    minWidth: 130,
     alignItems: 'center',
   },
   checkoutText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
+
+  // Return/Refund Policy - FIXED
+  policyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  policyHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  policyIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F0EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  policyTextContainer: {
+    flex: 1,
+  },
+  policyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 2,
+  },
+  policyDesc: {
+    fontSize: 10,
+    color: '#666',
+    lineHeight: 16,
+    alignItems:'flex-start'
+  },
+  policyRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 5,
+    paddingTop: 2,
+    color:'#96252A',
+  },
+  readPolicy: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#96252A',
+    marginRight: 2,
+  },
+
   footerSpacer: {
-    height: 100,
+    height: 80,
   },
+
+  // Empty State
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f6f6f6',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#777',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  shopBtn: {
+    marginTop: 20,
+    backgroundColor: '#96252A',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  shopBtnText: {
+    color: '#fff',
+    fontWeight: '700'
+  },
+
+  // Modals
   qtyModalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -1374,74 +1446,5 @@ const styles = StyleSheet.create({
   cancelText: {
     color: '#E53935',
     fontWeight: '500'
-  },
-  policyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  policyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  policyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 8,
-    color: '#333',
-  },
-  policyDesc: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 18,
-    marginLeft: 32,
-  },
-  readPolicyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    marginLeft: 32,
-  },
-  readPolicy: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1e88e5',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f6f6f6',
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 16
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#777',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  shopBtn: {
-    marginTop: 20,
-    backgroundColor: '#96252A',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  shopBtnText: {
-    color: '#fff',
-    fontWeight: '700'
   },
 });

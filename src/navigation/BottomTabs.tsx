@@ -14,14 +14,13 @@ const { width: screenWidth } = Dimensions.get('window');
 type Tab = {
   name: 'Dashboard' | 'CartPage' | 'FavoritesPage' | 'AccountPage';
   icon: 'home-outline' | 'cart-outline' | 'heart-outline' | 'person-outline';
-  activeIcon: 'home' | 'cart' | 'heart' | 'person';
 };
 
 const tabs: Tab[] = [
-  { name: 'Dashboard', icon: 'home-outline', activeIcon: 'home' },
-  { name: 'CartPage', icon: 'cart-outline', activeIcon: 'cart' },
-  { name: 'FavoritesPage', icon: 'heart-outline', activeIcon: 'heart' },
-  { name: 'AccountPage', icon: 'person-outline', activeIcon: 'person' },
+  { name: 'Dashboard', icon: 'home-outline' },
+  { name: 'CartPage', icon: 'cart-outline' },
+  { name: 'FavoritesPage', icon: 'heart-outline' },
+  { name: 'AccountPage', icon: 'person-outline' },
 ];
 
 interface Props {
@@ -134,7 +133,7 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
             >
               <View style={{ position: "relative" }}>
                 <Ionicons
-                  name={isActive ? tab.activeIcon : tab.icon}
+                  name={tab.icon}
                   size={28}
                   color={isActive ? "#96252A" : "#adadad"}
                 />
@@ -181,12 +180,12 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <TouchableOpacity onPress={redirectToFavorites} style={styles.menuItem}>
-                <MaterialIcons name="favorite" size={24} color="#96252A" />
+                <MaterialIcons name="favorite-border" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>My Favorites</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToWallets} style={styles.menuItem}>
-                <Ionicons name="wallet" size={24} color="#96252A" />
+                <Ionicons name="wallet-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Wallets</Text>
               </TouchableOpacity>
 
@@ -196,22 +195,22 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToProfile} style={styles.menuItem}>
-                <Ionicons name="person" size={24} color="#96252A" />
+                <Ionicons name="person-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Profiles</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToAboutUs}>
-                <Ionicons name="document" size={24} color="#96252A" />
+                <Ionicons name="document-text-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>About Us</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToPrivacy}>
-                <Ionicons name="lock-closed" size={24} color="#96252A" />
+                <Ionicons name="lock-closed-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Privacy policy</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToSettings} style={styles.menuItem}>
-                <Ionicons name="settings" size={24} color="#96252A" />
+                <Ionicons name="settings-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Settings</Text>
               </TouchableOpacity>
 
@@ -219,7 +218,7 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 onPress={handleLogout}
                 style={styles.logOut}
               >
-                <Ionicons name="log-out" size={24} color="#96252A" />
+                <Ionicons name="log-out-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Log out</Text>
               </TouchableOpacity>
 
