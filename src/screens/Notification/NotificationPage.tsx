@@ -171,7 +171,7 @@ const NotificationScreen: React.FC = () => {
         >
           <Ionicons
             name={notificationIcon.icon}
-            size={scale(22)}
+            size={40}
             color={notificationIcon.color}
           />
         </View>
@@ -435,16 +435,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    padding: scale(10),
-    marginBottom: scale(8),
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
       height: 1,
     },
     shadowOpacity: 0.04,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 1,
   },
 
@@ -458,9 +460,9 @@ const styles = StyleSheet.create({
      ICON
   ========================================== */
   iconCircle: {
-    width: scale(40),
-    height: scale(40),
-    borderRadius: scale(20),
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginRight: scale(10),
