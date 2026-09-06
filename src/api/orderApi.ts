@@ -1,7 +1,6 @@
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 export const placeOrder = async orderData => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
@@ -50,7 +49,29 @@ export const getOrders = async () => {
     console.error('Error fetching orders:', error);
   }
 };
+// ✅ NEW: Get single order by ID
+export const getOrderById = async orderId => {
+  try {
+    const storedToken = await AsyncStorage.getItem('authToken');
+    const response = await fetch(`${config.baseURL}api/order/${orderId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${storedToken}`,
+      },
+    });
 
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching order details:', error);
+    throw error;
+  }
+};
 export const cancelOrder = async orderId => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
