@@ -24,7 +24,6 @@ import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
 
-import BrandLogo from '../../../assets/images/SANSA-final-logo.svg';
 
 
 // ✅ Configure Google Sign-In with account picker support
