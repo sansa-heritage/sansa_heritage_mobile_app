@@ -86,9 +86,7 @@ const MyOrdersScreen: React.FC = () => {
         ordersData = [];
       }
 
-      // Sort orders by date (newest first)
       ordersData.sort((a, b) => {
-        // Handle date comparison safely
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
@@ -162,41 +160,23 @@ const MyOrdersScreen: React.FC = () => {
     return statusMap[status] || '#666';
   };
 
-  const getStatusIcon = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      'Delivered': 'checkmark-circle',
-      'Shipped': 'car-outline',
-      'Processing': 'time-outline',
-      'Cancelled': 'close-circle-outline',
-      'Completed': 'checkmark-circle',
-      'Pending': 'time-outline',
-    };
-    return statusMap[status] || 'ellipse-outline';
-  };
-
-  // ✅ FIXED: Format date from API response
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
-      // If date is already formatted (contains "at" or is a string), try to extract date
       if (typeof dateString === 'string' && dateString.includes('at')) {
-        // Try to parse the formatted string
         const parts = dateString.split(' at ');
         if (parts.length === 2) {
-          return parts[0]; // Return just the date part
+          return parts[0];
         }
-        // Try to extract date from string like "November 30, 2025 at 06:41:24 PM"
         const match = dateString.match(/([A-Za-z]+ \d{1,2}, \d{4})/);
         if (match) {
           return match[1];
         }
         return dateString;
       }
-      
-      // Try parsing as ISO date
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return dateString; // Return as-is if can't parse
+        return dateString;
       }
       return date.toLocaleDateString('en-IN', {
         day: 'numeric',
@@ -208,24 +188,20 @@ const MyOrdersScreen: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Format time from API response
   const formatTime = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
-      // If date is already formatted (contains "at" or is a string)
       if (typeof dateString === 'string' && dateString.includes('at')) {
         const parts = dateString.split(' at ');
         if (parts.length === 2) {
           return parts[1];
         }
-        // Try to extract time from string
         const match = dateString.match(/at (\d{1,2}:\d{2}:\d{2} (?:AM|PM))/);
         if (match) {
           return match[1];
         }
         return dateString;
       }
-      
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return 'N/A';
@@ -274,31 +250,30 @@ const MyOrdersScreen: React.FC = () => {
   const renderItem = ({ item }: { item: Order }) => {
     const product = item.products[0] || {};
     const statusColor = getStatusColor(item.status);
-    const statusIcon = getStatusIcon(item.status);
-    const statusText = getStatusText(item);
     const imageSource = getImageSource(product?.image);
-    const canCancel = ['Processing', 'Pending'].includes(item.status);
 
     return (
-      <View style={styles.orderCard}>
-        <View style={styles.orderHeader}>
-          <View style={styles.orderHeaderLeft}>
-            <Text style={styles.orderId}>Order #{item._id.slice(-6)}</Text>
-          </View>
-          <View style={styles.orderHeaderRight}>
-            <TouchableOpacity
-              style={styles.orderDetailsBtn}
-              onPress={() => navigateToOrderDetails(item._id)}
-            >
-              <Ionicons name="chevron-forward" size={20} color="#151515" />
-            </TouchableOpacity>
-          </View>
+      <TouchableOpacity 
+        style={styles.orderCard}
+        onPress={() => navigateToOrderDetails(item._id)}
+        activeOpacity={0.7}
+      >
+        {/* Status Badge - Top */}
+        <View style={[styles.statusBadge, { backgroundColor: statusColor + '15' }]}>
+          <Text style={[styles.statusText, { color: statusColor }]}>
+            {item.status || 'Processing'}
+          </Text>
         </View>
 
+        {/* Date */}
         <Text style={styles.orderDate}>
-          Placed on {formatDate(item.createdAt)} · {formatTime(item.createdAt)}
+          on {formatDate(item.createdAt)}, {formatTime(item.createdAt)} As per your request
         </Text>
 
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Product Info */}
         <View style={styles.productContainer}>
           {imageSource ? (
             <Image
@@ -312,34 +287,35 @@ const MyOrdersScreen: React.FC = () => {
             </View>
           )}
           <View style={styles.productInfo}>
+            <Text style={styles.productBrand}>Sansa Heritage</Text>
             <Text style={styles.productName} numberOfLines={2}>
               {product?.name || 'Product Name'}
             </Text>
             <Text style={styles.productMeta}>
-              Qty: {product?.quantity || 1}
+              Size: {product?.size || 'M'} • Qty: {product?.quantity || 1}
             </Text>
-            <Text style={styles.productPrice}>₹{(product?.price || 0).toFixed(2)}</Text>
           </View>
         </View>
 
-       
+        {/* Add Profile Button */}
+        <TouchableOpacity style={styles.addProfileBtn}>
+          <Text style={styles.addProfileText}>Who is this purchased for?</Text>
+          <Text style={styles.addProfileLink}>Add Profile</Text>
+        </TouchableOpacity>
 
+        {/* Action Buttons */}
         <View style={styles.actionContainer}>
-          {canCancel && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.cancelBtn]}
-              onPress={() => handleCancelOrder(item._id)}
-            >
-              <Text style={styles.cancelBtnText}>Cancel Order</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'Shipped' && (
-            <TouchableOpacity style={[styles.actionBtn, styles.trackBtn]}>
-              <Text style={styles.trackBtnText}>Track Order</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.buyAgainBtn}>
+            <Text style={styles.buyAgainText}>BUY AGAIN</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.cancelOrderBtn}
+            onPress={() => handleCancelOrder(item._id)}
+          >
+            <Text style={styles.cancelOrderText}>CANCEL ORDER</Text>
+          </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -372,6 +348,7 @@ const MyOrdersScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
       <View style={styles.container}>
+        {/* Search Bar */}
         <View style={styles.searchSection}>
           <Ionicons name="search-outline" size={20} color="#999" />
           <TextInput
@@ -389,10 +366,12 @@ const MyOrdersScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Orders Count */}
         <Text style={styles.orderCountText}>
           {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
         </Text>
 
+        {/* Orders List */}
         {filteredOrders.length > 0 ? (
           <FlatList
             data={filteredOrders}
@@ -407,24 +386,12 @@ const MyOrdersScreen: React.FC = () => {
           <ListEmptyComponent />
         )}
 
-        <View style={styles.helpSection}>
-          <View style={styles.helpRow}>
-            <View style={styles.helpLeft}>
-              <View style={styles.helpIconContainer}>
-                <Ionicons name="headset" size={28} color="#96252A" />
-              </View>
-              <View style={styles.helpTextContainer}>
-                <Text style={styles.helpTitle}>Need help with your order?</Text>
-                <Text style={styles.helpSubtitle}>
-                  Our customer care team is here to help you.
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.contactBtn}>
-              <Text style={styles.contactBtnText}>Contact Us</Text>
-            </TouchableOpacity>
+        {/* End of Orders */}
+        {filteredOrders.length > 0 && (
+          <View style={styles.endContainer}>
+            <Text style={styles.endText}>You have reached the end of your orders</Text>
           </View>
-        </View>
+        )}
 
         <View style={styles.bottomSpacer} />
       </View>
@@ -482,51 +449,43 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     marginBottom: 4,
   },
-  orderHeaderLeft: {
-    flex: 1,
-  },
-  orderHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  orderId: {
-    fontSize: 15,
+  statusText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#151515',
-  },
-  orderDetailsBtn: {
-    padding: 4,
   },
   orderDate: {
     fontSize: 12,
     color: '#888',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 8,
   },
   productContainer: {
     flexDirection: 'row',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   productImage: {
     width: 70,
@@ -548,6 +507,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  productBrand: {
+    fontSize: 12,
+    color: '#96252A',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
   productName: {
     fontSize: 14,
     fontWeight: '600',
@@ -557,62 +522,63 @@ const styles = StyleSheet.create({
   productMeta: {
     fontSize: 12,
     color: '#888',
-    marginBottom: 2,
   },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#151515',
-  },
-  statusBadge: {
+  addProfileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-    gap: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    marginBottom: 8,
   },
-  statusText: {
+  addProfileText: {
     fontSize: 12,
-    fontWeight: '600',
+    color: '#666',
   },
-  statusInfoText: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 12,
+  addProfileLink: {
+    fontSize: 12,
+    color: '#96252A',
+    fontWeight: '600',
   },
   actionContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  actionBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  buyAgainBtn: {
+    flex: 1,
+    backgroundColor: '#96252A',
+    paddingVertical: 10,
     borderRadius: 6,
     alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
-  trackBtn: {
-    backgroundColor: '#96252A',
-  },
-  trackBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
+  buyAgainText: {
     color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  cancelBtn: {
+  cancelOrderBtn: {
+    flex: 1,
     backgroundColor: '#fff',
-    borderWidth: 1.5,
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
     borderColor: '#E53935',
   },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
+  cancelOrderText: {
     color: '#E53935',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  endContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  endText: {
+    fontSize: 12,
+    color: '#888',
   },
   helpSection: {
     backgroundColor: '#fff',

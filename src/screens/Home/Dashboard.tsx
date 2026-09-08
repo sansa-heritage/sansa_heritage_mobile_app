@@ -93,7 +93,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS COMPONENT - EXPERIENCE SWITCHER (AJIO STYLE)
+// TOP TABS COMPONENT - AJIO STYLE (Dark Active Tab)
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -101,58 +101,37 @@ interface TopTabsProps {
 }
 
 const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
-  const translateX = useRef(new Animated.Value(activeTab === 'home' ? 0 : width * 0.5)).current;
-
-  useEffect(() => {
-    Animated.spring(translateX, {
-      toValue: activeTab === 'home' ? 0 : width * 0.5,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 25,
-    }).start();
-  }, [activeTab]);
-
   return (
     <View style={styles.topTabsContainer}>
       <View style={styles.topTabsWrapper}>
-        {/* SansaHome Tab - Main Shopping Experience */}
+        {/* SansaHome Tab */}
         <TouchableOpacity
-          style={styles.tabItem}
+          style={[styles.tabItem, activeTab === 'home' && styles.tabItemActive]}
           onPress={() => onTabChange('home')}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'home' && styles.tabTextActive]}>
             SansaHome
           </Text>
         </TouchableOpacity>
 
-        {/* Premium Tab - Luxury/High-end Experience */}
+        {/* Premium Tab */}
         <TouchableOpacity
-          style={styles.tabItem}
+          style={[styles.tabItem, activeTab === 'premium' && styles.tabItemActive]}
           onPress={() => onTabChange('premium')}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <View style={styles.premiumTabLabel}>
+          <View style={styles.tabContent}>
             <Text style={[styles.tabText, activeTab === 'premium' && styles.tabTextActive]}>
               Premium
             </Text>
             <MaterialIcons
               name="stars"
-              size={12}
-              color={activeTab === 'premium' ? '#96252A' : '#888'}
+              size={14}
+              color={activeTab === 'premium' ? '#FFFFFF' : '#888'}
             />
           </View>
         </TouchableOpacity>
-
-        {/* Sliding Indicator - Bottom underline */}
-        <Animated.View
-          style={[
-            styles.slidingIndicator,
-            {
-              transform: [{ translateX }],
-            },
-          ]}
-        />
       </View>
     </View>
   );
@@ -882,7 +861,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      {/* Top Tabs - Experience Switcher (AJIO Style) */}
+      {/* Top Tabs - AJIO Style */}
       <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Content */}
@@ -1031,32 +1010,45 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // TOP TABS STYLES - EXPERIENCE SWITCHER (AJIO STYLE)
+  // TOP TABS STYLES - AJIO STYLE (Dark Active Tab)
   // ============================================
   topTabsContainer: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 0,
-    paddingVertical: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    paddingVertical: 12,
     marginHorizontal: -15,
     paddingHorizontal: 15,
     marginTop: 0,
-    marginBottom: 0,
+    marginBottom: 4,
+    borderBottomWidth: 0,
   },
   topTabsWrapper: {
     flexDirection: 'row',
-    position: 'relative',
     backgroundColor: 'transparent',
     paddingVertical: 0,
-    height: 44,
+    gap: 10,
   },
   tabItem: {
-    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 0,
-    zIndex: 1,
+    minWidth: 80,
+  },
+  tabItemActive: {
+    backgroundColor: '#1a1a1a',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   tabText: {
     fontSize: 14,
@@ -1065,23 +1057,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   tabTextActive: {
-    color: '#96252A',
+    color: '#FFFFFF',
     fontWeight: '600',
-  },
-  slidingIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: '50%',
-    height: 2.5,
-    backgroundColor: '#96252A',
-    zIndex: 0,
-    borderRadius: 0,
-  },
-  premiumTabLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
 
   // ============================================
@@ -1545,9 +1522,4 @@ const styles = StyleSheet.create({
   // ============================================
   // LOADING
   // ============================================
-  // loadingContainer: {
-  //   flex: 1,
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  // },
 });
