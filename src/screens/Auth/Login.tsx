@@ -24,6 +24,9 @@ import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
 
+import BrandLogo from '../../../assets/images/SANSA-final-logo.svg';
+
+
 // ✅ Configure Google Sign-In with account picker support
 GoogleSignin.configure({
   webClientId: '782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com',
@@ -184,7 +187,7 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     <View style={styles.container}>
       <Image
         style={styles.brandLogo}
-        source={require('../../../assets/images/logo.png')}
+        source={require('../../../assets/images/SANSA-final-logo.png')}
       />
 
       <View style={styles.card}>
@@ -281,11 +284,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   brandLogo: {
-    width: 220,
-    height: 45,
+    width: 310,
+    height: 130,
     resizeMode: 'contain',
     alignSelf: 'center',
-    marginBottom: 30,
+    marginBottom: 0,
   },
   card: {
     backgroundColor: '#fff',

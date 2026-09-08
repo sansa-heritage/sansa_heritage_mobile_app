@@ -30,22 +30,11 @@ import { getActiveBanners } from '../../api/bannerApi';
 // Base URL for images
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-// Category icons mapping
-const categoryIcons: { [key: string]: any } = {
-  'All': require('../../../assets/icons/all.png'),
-  'Sarees': require('../../../assets/icons/saree.png'),
-  'Kurtis': require('../../../assets/icons/kurti.png'),
-  'Lehengas': require('../../../assets/icons/lehenga.png'),
-  'Ethnic Sets': require('../../../assets/icons/ethnic-set.png'),
-  'Dupattas': require('../../../assets/icons/dupatta.png'),
-};
-
 // Feature Icons
 const featureIcons = {
   deals: require('../../../assets/icons/deals.png'),
   shipping: require('../../../assets/icons/shipping.png'),
   quality: require('../../../assets/icons/quality.png'),
-  heritage: require('../../../assets/icons/heritage.png'),
 };
 
 // Premium static product data
@@ -159,11 +148,6 @@ const getImageSource = (item: any) => {
   return require('../../../assets/images/logo.png');
 };
 
-// Helper function to get category icon
-const getCategoryIcon = (categoryName: string) => {
-  return categoryIcons[categoryName] || categoryIcons['All'];
-};
-
 // ============================================
 // BANNER SLIDER COMPONENT
 // ============================================
@@ -272,7 +256,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
 };
 
 // ============================================
-// CATEGORY ITEM COMPONENT
+// CATEGORY ITEM COMPONENT - Name Only with Black Box
 // ============================================
 interface CategoryItemProps {
   item: any;
@@ -282,29 +266,15 @@ interface CategoryItemProps {
 
 const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onPress }) => {
   const isActive = selectedCategory === item._id;
-  const iconSource = getCategoryIcon(item.name);
 
   return (
     <TouchableOpacity
-      onPress={() => onPress(item.name, item.name)}
+      onPress={() => onPress(item)}
       style={[
         styles.categoryItem,
         isActive && styles.categoryItemActive,
       ]}
     >
-      <View style={[
-        styles.categoryIconWrapper,
-        isActive && styles.categoryIconWrapperActive,
-      ]}>
-        <Image
-          source={iconSource}
-          style={[
-            styles.categoryIcon,
-            isActive && styles.categoryIconActive,
-          ]}
-          resizeMode="contain"
-        />
-      </View>
       <Text
         style={[
           styles.categoryName,
@@ -318,7 +288,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onP
 };
 
 // ============================================
-// FEATURE BADGES COMPONENT
+// FEATURE BADGES COMPONENT - Only 3 Items
 // ============================================
 const FeatureBadges: React.FC = () => (
   <View style={styles.featuresContainer}>
@@ -343,14 +313,6 @@ const FeatureBadges: React.FC = () => (
       <View style={styles.featureTextWrapper}>
         <Text style={styles.featureTitle}>Quality Assured</Text>
         <Text style={styles.featureSubtext}>100% Original</Text>
-      </View>
-    </View>
-
-    <View style={styles.featureItem}>
-      <Image source={featureIcons.heritage} style={styles.featureIconImage} resizeMode="contain" />
-      <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle}>Handpicked Heritage</Text>
-        <Text style={styles.featureSubtext}>Styles for you</Text>
       </View>
     </View>
   </View>
@@ -733,10 +695,11 @@ export default function Dashboard() {
   };
 
   // Navigate to CategoryScreen
-  const navigateToCategory = (categoryName: string, displayTitle?: string) => {
+  const navigateToCategory = (item: any) => {
+    setSelectedCategory(item._id);
     navigation.navigate('CategoryScreen', {
-      mainCategory: categoryName,
-      displayTitle: displayTitle || categoryName
+      mainCategory: item.name,
+      displayTitle: item.name
     });
   };
 
@@ -784,7 +747,7 @@ export default function Dashboard() {
             <CategoryItem
               item={item}
               selectedCategory={selectedCategory}
-              onPress={(categoryName, displayTitle) => navigateToCategory(categoryName, displayTitle)}
+              onPress={navigateToCategory}
             />
           )}
           contentContainerStyle={styles.categoryList}
@@ -796,7 +759,10 @@ export default function Dashboard() {
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity onPress={() => navigateToCategory('New Arrival', 'New Arrivals')}>
+          <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { 
+            mainCategory: 'New Arrival', 
+            displayTitle: 'New Arrivals' 
+          })}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -824,7 +790,10 @@ export default function Dashboard() {
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => navigateToCategory('Trending', 'Trending Now')}>
+          <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { 
+            mainCategory: 'Trending', 
+            displayTitle: 'Trending Now' 
+          })}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -1062,93 +1031,82 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // CATEGORY STYLES
+  // CATEGORY STYLES - Name Only with Black Box
   // ============================================
   categoryWrapper: {
     marginVertical: 8,
   },
   categoryList: {
     paddingHorizontal: 2,
+    gap: 8,
   },
   categoryItem: {
+    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 25,
+    marginRight: 10,
     alignItems: 'center',
-    marginRight: 20,
-    paddingVertical: 4,
-  },
-  categoryItemActive: {},
-  categoryIconWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
+    minWidth: 60,
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  categoryIconWrapperActive: {
+  categoryItemActive: {
     backgroundColor: '#96252A',
     borderColor: '#96252A',
   },
-  categoryIcon: {
-    width: 26,
-    height: 26,
-    tintColor: '#96252A',
-  },
-  categoryIconActive: {
-    tintColor: '#FFFFFF',
-  },
   categoryName: {
-    fontSize: 11,
-    color: '#666',
+    fontSize: 13,
     fontWeight: '500',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   categoryNameActive: {
-    color: '#96252A',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 
   // ============================================
-  // FEATURE BADGES
+  // FEATURE BADGES - 3 Items
   // ============================================
   featuresContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     backgroundColor: '#F8F4F0',
     borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-    marginVertical: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginVertical: 4,
     marginHorizontal: 2,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    paddingHorizontal: 1,
+    paddingHorizontal: 4,
   },
   featureIconImage: {
     width: 22,
     height: 22,
     tintColor: '#96252A',
-    marginRight: 2,
+    marginRight: 4,
   },
   featureTextWrapper: {
     flex: 1,
   },
   featureTitle: {
-    fontSize: 8,
+    fontSize: 9,
     color: '#96252A',
     fontWeight: '700',
     lineHeight: 11,
   },
   featureSubtext: {
-    fontSize: 7,
+    fontSize: 7.5,
     color: '#888',
     fontWeight: '400',
-    lineHeight: 9,
+    lineHeight: 10,
   },
 
   // ============================================

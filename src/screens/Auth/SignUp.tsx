@@ -79,7 +79,7 @@ const SignUpPage = () => {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.brandLogo} source={require('../../../assets/images/Sansa_1.svg')} />
+      <Image style={styles.brandLogo} source={require('../../../assets/images/SANSA-final-logo.png')} />
       <Text style={styles.title}>Sign up</Text>
       <View style={styles.inputContainer}>
         <FontAwesome name="user" size={24} color="#151515" style={styles.icon} />
@@ -247,9 +247,9 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
   },
   brandLogo: {
-    marginBottom: 20,
-    height: 70,
-    width: 100,
+    marginBottom: 0,
+    height: 120,
+    width: 310,
   },
 });
 
