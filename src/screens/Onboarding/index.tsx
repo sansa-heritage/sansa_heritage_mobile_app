@@ -1,79 +1,3 @@
-// import React, { useState } from 'react';
-// import { View,Text, Image, TouchableOpacity } from 'react-native';
-// import { useNavigation } from '@react-navigation/native';
-// import { StackNavigationProp } from '@react-navigation/stack';
-// import { RootStackParamList } from '../../models/types';
-
-
-// const slides = [
-//   {
-//     index: 1,
-//     title: 'Choose Product',
-//     text: 'A product is the item offered for sale. A product can be a service or an item. It can be physical or in virtual or cyber form',
-
-//     backgroundColor: 'white',
-//   },
-//   {
-//     index: 2,
-//     title: 'Make Payment',
-//     text: 'Payment is the transfer of money services in exchange product or Payments typically made terms agreed ',
-//     image: require('../../../assets/images/c.png'),
-//     backgroundColor: 'white',
-//   },
-//   {
-//     index: 3,
-//     title: 'Get Your Order',
-//     text: 'Business or commerce an order is a stated intention either spoken to engage in a commercial transaction specific products ',
-//     image: require('../../../assets/images/a.png'),
-//     backgroundColor: 'white',
-//   },
-// ];
-// interface IntroSlidesProps {
-//   onFinishIntro: () => Promise<void>;
-// }
-// const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
-//   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Login'>>();
-//   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-
-//   const handleNext = () => {
-//     if (currentSlideIndex === slides.length - 1) {
-//       navigation.navigate('Login'); // Navigate to Login on the last slide
-//       onFinishIntro()
-//     } else {
-//       setCurrentSlideIndex(currentSlideIndex + 1); // Move to the next slide
-//     }
-//   };
-
-//   const handleSkip = () => {
-//     navigation.navigate('Login'); // Skip to the Login page
-//   };
-
-//   const currentSlide = slides[currentSlideIndex];
-
-//   return (
-//     <View style={{ flex: 1, backgroundColor: currentSlide.backgroundColor, justifyContent: 'center', alignItems: 'center' }}>
-//       <Image source={currentSlide.image} style={{ width: 300, height: 450 }} />
-//       {/* <Image  style={{ width: 300, height: 300, marginBottom: 20 }} /> */}
-//       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{currentSlide.title}</Text>
-//       <Text style={{ textAlign: 'center', marginVertical: 10, width: 350 }}>{currentSlide.text}</Text>
-
-//       <View style={{ position: 'absolute', bottom: 50, alignSelf: 'center' }}>
-//         <TouchableOpacity style={{
-//           width: 218,
-//           height: 40,
-//           borderRadius: 133,
-//           backgroundColor: '#151515'
-//         }}
-          
-//           onPress={handleNext}
-//         >
-//           <Text style={{textAlign: 'center',paddingTop: 10,color: '#FFFFFF'}}>{currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}</Text>
-//         </TouchableOpacity>
-//       </View>
-//     </View>
-//   );
-// };
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -84,8 +8,6 @@ import {
   Dimensions,
   FlatList,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../models/types';
 
 const { width, height } = Dimensions.get('window');
@@ -123,20 +45,13 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   const flatListRef = useRef<FlatList>(null);
   const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-scroll functionality
   useEffect(() => {
     startAutoScroll();
-    return () => {
-      if (autoScrollInterval.current) {
-        clearInterval(autoScrollInterval.current);
-      }
-    };
-  }, []);
+    return () => stopAutoScroll();
+  }, [currentSlideIndex]);
 
   const startAutoScroll = () => {
-    if (autoScrollInterval.current) {
-      clearInterval(autoScrollInterval.current);
-    }
+    stopAutoScroll();
     autoScrollInterval.current = setInterval(() => {
       const nextIndex = (currentSlideIndex + 1) % slides.length;
       setCurrentSlideIndex(nextIndex);
@@ -152,12 +67,10 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   };
 
   const scrollToSlide = (index: number) => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToIndex({
-        index: index,
-        animated: true,
-      });
-    }
+    flatListRef.current?.scrollToIndex({
+      index,
+      animated: true,
+    });
   };
 
   const handleNext = () => {
@@ -168,7 +81,6 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
       const nextIndex = currentSlideIndex + 1;
       setCurrentSlideIndex(nextIndex);
       scrollToSlide(nextIndex);
-      startAutoScroll();
     }
   };
 
@@ -178,85 +90,25 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   };
 
   const handleMomentumScrollEnd = (event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / width);
-    if (index !== currentSlideIndex && index >= 0 && index < slides.length) {
+    const index = Math.round(event.nativeEvent.contentOffset.x / width);
+    if (index !== currentSlideIndex) {
       setCurrentSlideIndex(index);
-      stopAutoScroll();
-      startAutoScroll();
     }
   };
 
-  const handleScrollBeginDrag = () => {
-    stopAutoScroll();
-  };
-
-  const handleScrollEndDrag = () => {
-    startAutoScroll();
-  };
-
-  const renderSlide = ({ item }: { item: typeof slides[0] }) => {
-    return (
-      <View style={[styles.slideContainer, { backgroundColor: item.backgroundColor }]}>
-        {/* Image - Centered */}
-        <View style={styles.imageContainer}>
-          <Image 
-            source={item.image} 
-            style={styles.image}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>
-          {item.title}
-        </Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          {item.text}
-        </Text>
-
-        {/* Slide indicators */}
-        <View style={styles.indicatorContainer}>
-          {slides.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                { backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc' },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Buttons - Centered */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>
-              {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={handleSkip}
-          >
-            <Text style={styles.skipButtonText}>
-              Skip
-            </Text>
-          </TouchableOpacity>
-        </View>
+  const renderSlide = ({ item }: { item: typeof slides[0] }) => (
+    <View style={styles.slideContainer}>
+      <View style={styles.imageContainer}>
+        <Image source={item.image} style={styles.image} resizeMode="contain" />
       </View>
-    );
-  };
+      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.description}>{item.text}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Slides - FlatList for swipe support */}
+      {/* ✅ Swipe only this part */}
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -266,17 +118,43 @@ const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.index.toString()}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        onScrollBeginDrag={handleScrollBeginDrag}
-        onScrollEndDrag={handleScrollEndDrag}
-        scrollEventThrottle={16}
+        onScrollBeginDrag={stopAutoScroll}
+        onScrollEndDrag={startAutoScroll}
         bounces={false}
-        initialScrollIndex={0}
-        getItemLayout={(data, index) => ({
+        getItemLayout={(_, index) => ({
           length: width,
           offset: width * index,
           index,
         })}
       />
+
+      {/* ✅ Fixed indicators + buttons (NOT swipeable) */}
+      <View style={styles.indicatorContainer}>
+        {slides.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.indicator,
+              {
+                backgroundColor:
+                  index === currentSlideIndex ? '#151515' : '#ccc',
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.nextButtonText}>
+            {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -289,7 +167,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   slideContainer: {
-    width: width,
+    width,
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -304,7 +182,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width * 30,
-    height: height * 0.80,
+    height: height * 0.8,
   },
   title: {
     fontSize: 24,
@@ -322,8 +200,8 @@ const styles = StyleSheet.create({
   },
   indicatorContainer: {
     flexDirection: 'row',
-    marginTop: 20,
-    marginBottom: 30,
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   indicator: {
     width: 8,
@@ -332,7 +210,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   buttonContainer: {
-    width: '100%',
     alignItems: 'center',
     marginBottom: 40,
   },
