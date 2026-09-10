@@ -39,6 +39,7 @@ import ReturnRefundPolicyScreen from "./src/screens/Info/Refund&ReturnPage";
 
 import AnimatedLogoLoader from "./src/components/common/AnimatedLogoLoader";
 import OrderDetailsScreen from "./src/screens/Profile/OrderDetails";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const Stack = createStackNavigator();
 
@@ -93,101 +94,104 @@ const App = () => {
   }
 
   return (
-    <NotificationProvider>
-      <View style={{ flex: 1 }}>
+    <SafeAreaProvider>
 
-        <NavigationContainer ref={navigationRef}
-          onReady={() => {
-            const route = navigationRef.getCurrentRoute();
-            setCurrentRoute(route?.name ?? "");
-            setCurrentRouteParams(route?.params ?? {});
+      <NotificationProvider>
+        <View style={{ flex: 1 }}>
 
-          }}
-          onStateChange={() => {
-            const route = navigationRef.getCurrentRoute();
-            setCurrentRoute(route?.name ?? "");
-            setCurrentRouteParams(route?.params ?? {});
+          <NavigationContainer ref={navigationRef}
+            onReady={() => {
+              const route = navigationRef.getCurrentRoute();
+              setCurrentRoute(route?.name ?? "");
+              setCurrentRouteParams(route?.params ?? {});
 
-          }}>
-          {showIntro ? (
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="IntroSlides">
-                {(props) => (
-                  <BasicExample
-                    {...props}
-                    onFinishIntro={async () => {
-                      await AsyncStorage.setItem("introSeen", "true");
-                      setShowIntro(false);
-                    }}
-                  />
-                )}
-              </Stack.Screen>
-            </Stack.Navigator>
-          ) : !isLoggedIn ? (
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Login">
-                {(props) => (
-                  <Login
-                    {...props}
-                    onLoginSuccess={() => {
-                      setIsLoggedIn(true);
-                    }}
-                  />
-                )}
-              </Stack.Screen>
-              <Stack.Screen name="SignUp" component={SignUp} />
-              <Stack.Screen name="ForgotPassword" component={OTPLogin} />
-              <Stack.Screen name="ResetPassword" component={ResetPassword} />
-            </Stack.Navigator>
-          ) : (
-            <>
-              <Header currentRoute={currentRoute} routeParams={currentRouteParams} />
+            }}
+            onStateChange={() => {
+              const route = navigationRef.getCurrentRoute();
+              setCurrentRoute(route?.name ?? "");
+              setCurrentRouteParams(route?.params ?? {});
+
+            }}>
+            {showIntro ? (
               <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Dashboard" component={Dashboard} />
-                <Stack.Screen name="ProductDetails" component={ProductDetails} />
-                <Stack.Screen name="CartPage" component={CartPage} />
-                <Stack.Screen name="CheckoutPage" component={CheckoutPage} />
-                <Stack.Screen name="PaymentPage" component={PaymentPage} />
-                <Stack.Screen name="Profile">
-                  {(props) => <Profile {...props} onLogout={logout} />}
-                </Stack.Screen>
-                <Stack.Screen name="WalletsPage" component={WalletsPage} />
-                <Stack.Screen name="OrdersPage" component={OrdersPage} />
-                <Stack.Screen name="SettingsPage" component={SettingsPage} />
-                <Stack.Screen name="FavoritesPage" component={FavoriteScreen} />
-                <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
-                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-                <Stack.Screen name="AboutUs" component={AboutUsScreen} />
-                <Stack.Screen name="TermsScreen" component={TermsScreen} />
-                <Stack.Screen name="FAQScreen" component={FAQScreen} />
-                <Stack.Screen name="AddressScreen" component={AddressScreen} />
-                <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
-                <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
-                <Stack.Screen name="CardsScreen" component={CardsScreen} />
-                <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
-
-                {/* ✅ Add OrderDetails Screen here */}
-                <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-
-
-                <Stack.Screen name="AccountPage">
-                  {(props) => <AccountPage {...props} onLogout={logout} />}
+                <Stack.Screen name="IntroSlides">
+                  {(props) => (
+                    <BasicExample
+                      {...props}
+                      onFinishIntro={async () => {
+                        await AsyncStorage.setItem("introSeen", "true");
+                        setShowIntro(false);
+                      }}
+                    />
+                  )}
                 </Stack.Screen>
               </Stack.Navigator>
-              <AlertComponent />
+            ) : !isLoggedIn ? (
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Login">
+                  {(props) => (
+                    <Login
+                      {...props}
+                      onLoginSuccess={() => {
+                        setIsLoggedIn(true);
+                      }}
+                    />
+                  )}
+                </Stack.Screen>
+                <Stack.Screen name="SignUp" component={SignUp} />
+                <Stack.Screen name="ForgotPassword" component={OTPLogin} />
+                <Stack.Screen name="ResetPassword" component={ResetPassword} />
+              </Stack.Navigator>
+            ) : (
+              <>
+                <Header currentRoute={currentRoute} routeParams={currentRouteParams} />
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="Dashboard" component={Dashboard} />
+                  <Stack.Screen name="ProductDetails" component={ProductDetails} />
+                  <Stack.Screen name="CartPage" component={CartPage} />
+                  <Stack.Screen name="CheckoutPage" component={CheckoutPage} />
+                  <Stack.Screen name="PaymentPage" component={PaymentPage} />
+                  <Stack.Screen name="Profile">
+                    {(props) => <Profile {...props} onLogout={logout} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="WalletsPage" component={WalletsPage} />
+                  <Stack.Screen name="OrdersPage" component={OrdersPage} />
+                  <Stack.Screen name="SettingsPage" component={SettingsPage} />
+                  <Stack.Screen name="FavoritesPage" component={FavoriteScreen} />
+                  <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                  <Stack.Screen name="AboutUs" component={AboutUsScreen} />
+                  <Stack.Screen name="TermsScreen" component={TermsScreen} />
+                  <Stack.Screen name="FAQScreen" component={FAQScreen} />
+                  <Stack.Screen name="AddressScreen" component={AddressScreen} />
+                  <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
+                  <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
+                  <Stack.Screen name="CardsScreen" component={CardsScreen} />
+                  <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
 
-              {/* <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} /> */}
-              {/* Only show tabs when NOT on ProductDetails */}
-              {currentRoute !== "ProductDetails" && (
-                <CustomBottomTabs activeRoute={currentRoute} onLogout={logout} />
-              )}
-            </>
-          )}
-        </NavigationContainer>
-        <AnimatedLogoLoader />
-      </View>
+                  {/* ✅ Add OrderDetails Screen here */}
+                  <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
 
-    </NotificationProvider>
+
+                  <Stack.Screen name="AccountPage">
+                    {(props) => <AccountPage {...props} onLogout={logout} />}
+                  </Stack.Screen>
+                </Stack.Navigator>
+                <AlertComponent />
+
+                {/* <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} /> */}
+                {/* Only show tabs when NOT on ProductDetails */}
+                {(currentRoute === "Dashboard" || currentRoute === "AccountPage") && (
+                  <CustomBottomTabs activeRoute={currentRoute} onLogout={logout} />
+                )}
+              </>
+            )}
+          </NavigationContainer>
+          <AnimatedLogoLoader />
+        </View>
+
+      </NotificationProvider>
+    </SafeAreaProvider>
   );
 
 

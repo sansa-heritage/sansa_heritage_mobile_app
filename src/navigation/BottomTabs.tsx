@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Modal, SafeAreaView, ScrollView, Image, Dimensions } from 'react-native';
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import {
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+  Modal,
+  ScrollView,
+  Image,
+  Dimensions,
+} from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { StackActions, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authService } from '../../src/services/AuthService';
 import { getCartItems } from '../api/cartApi';
 import { getFavoriteProducts } from '../api/favoriteApi';
@@ -30,6 +40,8 @@ interface Props {
 
 export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -51,78 +63,88 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
 
         const favItems = await getFavoriteProducts();
         setFavoriteCount(favItems.length || 0);
-
       } catch (err) {
-        console.log("Error fetching counts:", err);
+        console.log('Error fetching counts:', err);
       }
     };
 
-    const listener = (data) => {
-      console.log("item removed", data);
+    const listener = (data: any) => {
+      console.log('item removed', data);
       fetchCounts();
     };
 
-    eventBus.on("ITEM_REMOVED", listener);
+    eventBus.on('ITEM_REMOVED', listener);
 
     fetchCounts();
     loadUserData();
 
     return () => {
-      eventBus.off("ITEM_REMOVED", listener);
+      eventBus.off('ITEM_REMOVED', listener);
     };
-
   }, []);
 
   const redirectToProfile = () => {
     navigation.navigate('Profile');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToWallets = () => {
     navigation.navigate('WalletsPage');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToOrders = () => {
     navigation.navigate('OrdersPage');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToSettings = () => {
     navigation.navigate('SettingsPage');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToFavorites = () => {
     navigation.navigate('FavoritesPage');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToPrivacy = () => {
     navigation.navigate('PrivacyPolicy');
-    setMenuVisible(false)
-  }
+    setMenuVisible(false);
+  };
   const redirectToAboutUs = () => {
     navigation.navigate('AboutUs');
-    setMenuVisible(false)
-  }
-  const navigateTab = (tabName: string) => {
-    if (tabName === 'Account') {
-      navigation.navigate("AccountPage")
-    } else {
-      navigation.navigate(tabName);
-    }
+    setMenuVisible(false);
   };
+
+  const navigateTab = (tabName: string) => {
+    navigation.navigate(tabName);
+  };
+
   const handleLogout = async () => {
     await authService.logout();
-    onLogout()
+    onLogout();
     navigation.dispatch(StackActions.replace('Login'));
   };
+
+  // ✅ Bottom safe area handling
+  const bottomInset = Math.max(insets.bottom, 8);
+
   return (
     <>
       {/* Bottom Tab Overlay */}
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingBottom: bottomInset,
+            height: 60 + bottomInset,
+          },
+        ]}
+      >
         {tabs.map((tab) => {
           const isActive = activeRoute === tab.name;
           const badgeCount =
-            tab.name === "CartPage" ? cartCount :
-              tab.name === "FavoritesPage" ? favoriteCount :
-                0;
+            tab.name === 'CartPage'
+              ? cartCount
+              : tab.name === 'FavoritesPage'
+              ? favoriteCount
+              : 0;
 
           return (
             <TouchableOpacity
@@ -131,11 +153,11 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
               onPress={() => navigateTab(tab.name)}
               activeOpacity={0.7}
             >
-              <View style={{ position: "relative" }}>
+              <View style={{ position: 'relative' }}>
                 <Ionicons
                   name={tab.icon}
-                  size={28}
-                  color={isActive ? "#96252A" : "#adadad"}
+                  size={26}
+                  color={isActive ? '#96252A' : '#adadad'}
                 />
                 {badgeCount > 0 && (
                   <View style={styles.badge}>
@@ -144,15 +166,20 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 )}
               </View>
 
-              <Text style={[styles.label, { color: isActive ? "#96252A" : "#adadad" }]}>
-                {tab.name.replace("Page", "")}
+              <Text
+                style={[
+                  styles.label,
+                  { color: isActive ? '#96252A' : '#adadad' },
+                ]}
+              >
+                {tab.name.replace('Page', '')}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* Side Menu Modal */}
+      {/* Side Menu Modal (Unchanged) */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -179,7 +206,10 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <TouchableOpacity onPress={redirectToFavorites} style={styles.menuItem}>
+              <TouchableOpacity
+                onPress={redirectToFavorites}
+                style={styles.menuItem}
+              >
                 <MaterialIcons name="favorite-border" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>My Favorites</Text>
               </TouchableOpacity>
@@ -214,10 +244,7 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 <Text style={styles.menuItemText}>Settings</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleLogout}
-                style={styles.logOut}
-              >
+              <TouchableOpacity onPress={handleLogout} style={styles.logOut}>
                 <Ionicons name="log-out-outline" size={24} color="#96252A" />
                 <Text style={styles.menuItemText}>Log out</Text>
               </TouchableOpacity>
@@ -238,19 +265,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    height: 60,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
     position: 'absolute',
-    bottom: 35,
+    bottom: 0,                 // ✅ anchored to bottom
     left: 0,
     right: 0,
     zIndex: 10,
     elevation: 10,
+    paddingTop: 6,             // ✅ top padding so icons aren't tight
   },
   tab: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 4,
   },
   label: {
@@ -315,27 +344,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
-    marginTop: 60
+    marginTop: 60,
   },
   brandLogo: {
     marginTop: '43%',
   },
   badge: {
-    position: "absolute",
+    position: 'absolute',
     top: -5,
     right: -10,
-    backgroundColor: "#0C0C0C",
+    backgroundColor: '#0C0C0C',
     borderRadius: 20,
     minWidth: 18,
     height: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 10,
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: "white",
+    color: 'white',
     fontSize: 10,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

@@ -1278,7 +1278,7 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 40,
     left: 0,
     right: 0,
     padding: 12,
@@ -1375,7 +1375,7 @@ const styles = StyleSheet.create({
   },
 
   footerSpacer: {
-    height: 80,
+    height: 60,
   },
 
   // Empty State

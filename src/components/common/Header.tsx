@@ -1,85 +1,4 @@
-// import React, { useEffect } from "react";
-// import { View, Image, TouchableOpacity, StyleSheet, Text } from "react-native";
-// import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-// import { navigationRef } from "../../services/NavigationService";
-
-// const Header = ({ currentRoute }) => {
-//   const isDashboard = currentRoute === "Dashboard";
-//   useEffect(() => {
-//     console.log(currentRoute);
-
-// },[currentRoute])
-
-//   return (
-//     <View style={styles.header}>
-//       {isDashboard ? (
-//         <Image
-//           source={require("../../../assets/images/logo.png")}
-//           style={styles.logo}
-//         />
-//       ) : (
-//         <View style={styles.leftRow}>
-//           <TouchableOpacity onPress={() => navigationRef.goBack()}>
-//             <MaterialIcons name="arrow-back" size={24} color="black" />
-//           </TouchableOpacity>
-//           <Text style={styles.pageTitle}>{currentRoute}</Text>
-//         </View>
-//       )}
-
-//       <View style={{ flex: 1 }} />
-
-//       <View style={styles.iconRow}>
-//         <TouchableOpacity style={{ marginRight: 15 }}>
-//           <MaterialIcons name="favorite-border" size={24} />
-//         </TouchableOpacity>
-//         <TouchableOpacity>
-//           <MaterialIcons name="notifications-none" size={24} />
-//         </TouchableOpacity>
-//       </View>
-//     </View>
-//   );
-// };
-
-
-// const styles = StyleSheet.create({
-//   header: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     paddingHorizontal: 15,
-//     paddingVertical: 10,
-//     backgroundColor: "#fff",
-//     elevation: 3,
-//     shadowColor: "#000",
-//     shadowOpacity: 0.1,
-//     shadowOffset: { width: 0, height: 2 },
-//     shadowRadius: 2,
-//   },
-
-//   leftRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//   },
-
-//   pageTitle: {
-//     fontSize: 18,
-//     fontWeight: "600",
-//     color: "#000",
-//     marginLeft: 10,
-//   },
-
-//   logo: {
-//     width: 100,
-//     height: 40,
-//     resizeMode: "contain",
-//   },
-
-//   iconRow: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//   },
-// });
-
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Image,
@@ -95,12 +14,13 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from "../../models/types";
 import { NotificationBadge } from "../NotificationBadge";
+import { getFavoriteProducts } from "../../api/favoriteApi";
+import eventBus from "../../services/eventBus";
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 // Route name to display name mapping
 const getDisplayName = (routeName: string, params?: any): string => {
-  // ✅ Check if we have a displayTitle from route params (for CategoryScreen)
   if (routeName === 'CategoryScreen' && params?.displayTitle) {
     return params.displayTitle;
   }
@@ -115,8 +35,8 @@ const getDisplayName = (routeName: string, params?: any): string => {
     'OrderDetails': 'Order Details',
     'SettingsPage': 'My Settings',
     'WalletsPage': 'My Wallet',
-    'FavoritesPage': 'My Favourites',
-    'FavoriteScreen': 'My Favourites',
+    'FavoritesPage': 'Wishlist',
+    'FavoriteScreen': 'Wishlist',
     'NotificationScreen': 'My Notifications',
 
     // Cart related
@@ -133,38 +53,63 @@ const getDisplayName = (routeName: string, params?: any): string => {
 
     // Product related
     'ProductDetails': 'Product Details',
-    'CategoryScreen': 'Categories', // Fallback
+    'CategoryScreen': 'Categories',
 
     // Dashboard
     'Dashboard': 'Dashboard',
   };
 
-  // If no mapping found, format the route name nicely
   if (!routeMap[routeName]) {
-    return routeName
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/Screen$/, '')
-      .trim() || routeName;
+    return (
+      routeName
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/Screen$/, '')
+        .trim() || routeName
+    );
   }
 
   return routeMap[routeName];
 };
 
-// ✅ Add routeParams to props
 interface HeaderProps {
   currentRoute: string;
   routeParams?: any;
 }
 
-// ✅ Update component to accept routeParams
 const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const navigation = useNavigation<NavigationProp>();
   const isDashboard = currentRoute === "Dashboard";
+  const isWishlist =
+    currentRoute === "FavoritesPage" || currentRoute === "FavoriteScreen";
 
+  // ✅ Wishlist count state
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  // ✅ Fetch count on route change + listen for updates
   useEffect(() => {
-    console.log("Current Route:", currentRoute);
-    console.log("Route Params:", routeParams);
-  }, [currentRoute, routeParams]);
+    let mounted = true;
+
+    const fetchCount = async () => {
+      try {
+        const items = await getFavoriteProducts();
+        if (mounted) setWishlistCount(items?.length || 0);
+      } catch {
+        if (mounted) setWishlistCount(0);
+      }
+    };
+
+    fetchCount();
+
+    const listener = () => fetchCount();
+    eventBus.on("ITEM_REMOVED", listener);
+    eventBus.on("FAVORITE_UPDATED", listener);
+
+    return () => {
+      mounted = false;
+      eventBus.off("ITEM_REMOVED", listener);
+      eventBus.off("FAVORITE_UPDATED", listener);
+    };
+  }, [currentRoute]);
 
   const navigateToNotifications = () => {
     navigation.navigate('NotificationScreen');
@@ -176,8 +121,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
     }
   };
 
-  // Check if we should show the back button
-  const shouldShowBack = !isDashboard && currentRoute !== "Dashboard";
+  const shouldShowBack = !isDashboard;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -200,8 +144,13 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
                 <MaterialIcons name="arrow-back" size={24} color="#151515" />
               </TouchableOpacity>
             )}
+
+            {/* ✅ Title + (count) for Wishlist only */}
             <Text style={styles.pageTitle}>
               {getDisplayName(currentRoute, routeParams)}
+              {isWishlist && wishlistCount > 0 && (
+                <Text style={styles.countText}> ({wishlistCount})</Text>
+              )}
             </Text>
           </View>
         )}
@@ -240,9 +189,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#FFFFFF",
-    borderBottomWidth: 0,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   leftRow: {
     flexDirection: "row",
@@ -258,6 +204,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#151515",
     marginLeft: 4,
+  },
+  // ✅ Count style inside the title
+  countText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#888",
   },
   logo: {
     width: 100,

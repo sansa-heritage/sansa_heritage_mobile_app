@@ -11,6 +11,7 @@ import {
   Dimensions,
   Alert,
   StatusBar,
+  Share,
 } from 'react-native';
 import { getFavoriteProducts, removeFromFavoritesList } from '../../api/favoriteApi';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,7 @@ import eventBus from '../../services/eventBus';
 import config from '../../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { addToCart } from '../../api/cartApi';
 import LoadingService from '../../services/LoadingService';
 
@@ -66,11 +68,12 @@ interface FullProductDetails {
 
 const FavoriteScreen = () => {
   const [favoriteData, setFavoriteData] = useState<FavoriteItem[]>([]);
-  const [fullProductData, setFullProductData] = useState<Map<string, FullProductDetails>>(new Map());
+  const [fullProductData, setFullProductData] = useState<Map<string, FullProductDetails>>(
+    new Map(),
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [sortBy, setSortBy] = useState('Recently Added');
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
@@ -81,22 +84,36 @@ const FavoriteScreen = () => {
   const handleRemoveFavorite = async (productId: string) => {
     try {
       await removeFromFavoritesList(productId);
-      setFavoriteData(prev => prev.filter((f: any) => f.productId._id !== productId));
+      setFavoriteData(prev =>
+        prev.filter((f: any) => f.productId._id !== productId),
+      );
       setFullProductData(prev => {
         const newMap = new Map(prev);
         newMap.delete(productId);
         return newMap;
       });
-      eventBus.emit("ITEM_REMOVED", { id: 123 });
+
+      eventBus.emit('ITEM_REMOVED', { id: 123 });
+      eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       console.log('❌ Error removing favorite:', err);
+    }
+  };
+
+  const handleShare = async (item: FavoriteItem) => {
+    try {
+      await Share.share({
+        message: `Check out ${item.productId.name} on Sansa Heritage!\nPrice: ₹${item.productId.price}`,
+      });
+    } catch (err) {
+      console.log('Share error:', err);
     }
   };
 
   const handleAddToCart = async (item: FavoriteItem) => {
     const productId = item.productId._id;
     const productData = fullProductData.get(productId) || item.productId;
-    
+
     let colorValue = item.selectedColor || productData.colors?.[0] || null;
     let sizeValue = item.selectedSize || productData.sizes?.[0] || null;
 
@@ -111,7 +128,7 @@ const FavoriteScreen = () => {
       LoadingService.show('Adding to cart...');
       await addToCart(productId, 1, colorValue, sizeValue);
       Alert.alert('Success', 'Item added to cart successfully!');
-      eventBus.emit("CART_UPDATED", {});
+      eventBus.emit('CART_UPDATED', {});
     } catch (error) {
       Alert.alert('Error', 'Failed to add item to cart. Please try again.');
     } finally {
@@ -119,19 +136,19 @@ const FavoriteScreen = () => {
     }
   };
 
-  const fetchProductDetails = async (productId: string): Promise<FullProductDetails | null> => {
+  const fetchProductDetails = async (
+    productId: string,
+  ): Promise<FullProductDetails | null> => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${config.baseURL}api/products/${productId}`, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
+          Authorization: token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) {
-        return null;
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
       return data;
@@ -146,10 +163,10 @@ const FavoriteScreen = () => {
     try {
       setError('');
       const data = await getFavoriteProducts();
-      
+
       if (data && data.length > 0) {
         const fullDataMap = new Map<string, FullProductDetails>();
-        
+
         for (const item of data) {
           const productId = item.productId._id;
           const fullDetails = await fetchProductDetails(productId);
@@ -157,11 +174,12 @@ const FavoriteScreen = () => {
             fullDataMap.set(productId, fullDetails);
           }
         }
-        
+
         setFullProductData(fullDataMap);
       }
-      
+
       setFavoriteData(data || []);
+      eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       setError('Error fetching favorites');
     } finally {
@@ -203,193 +221,138 @@ const FavoriteScreen = () => {
     return '';
   };
 
-  const getColorName = (color: any): string => {
-    if (!color) return 'N/A';
-    
-    if (typeof color === 'object' && color.name) {
-      return color.name;
-    }
-    
-    if (typeof color === 'string') {
-      return color;
-    }
-    
-    return 'N/A';
-  };
-
-  const getSizeLabel = (size: any): string => {
-    if (!size) return 'N/A';
-    
-    if (typeof size === 'object' && size.label) {
-      return size.label.toUpperCase();
-    }
-    
-    if (typeof size === 'string') {
-      return size.toUpperCase();
-    }
-    
-    return 'N/A';
-  };
-
-  const getColorHex = (color: any): string | null => {
-    if (!color) return null;
-    
-    if (typeof color === 'object' && color.hexCode) {
-      return color.hexCode;
-    }
-    
-    return null;
-  };
-
-  const isInStock = (product: any): boolean => {
+  const isOutOfStock = (product: any): boolean => {
     const fullData = fullProductData.get(product._id);
-    const stock = fullData?.stock || product.stock;
-    return stock !== undefined && stock > 0;
+    const stock = fullData?.stock ?? product.stock;
+    return stock === 0;
   };
 
   const getDiscount = (product: any): number => {
     const fullData = fullProductData.get(product._id);
-    const discount = fullData?.discount || fullData?.discountPercent || product.discount || product.discountPercent || 0;
+    const discount =
+      fullData?.discount ||
+      fullData?.discountPercent ||
+      product.discount ||
+      product.discountPercent ||
+      0;
     return Number(discount);
   };
 
   const renderItem = ({ item }: { item: FavoriteItem }) => {
     const productId = item.productId._id;
     const productData = fullProductData.get(productId) || item.productId;
-    
+
     const imageUrl = getImageUrl(productData);
     const discount = getDiscount(productData);
-    const discountedPrice = discount > 0 
-      ? item.productId.price - (item.productId.price * discount / 100)
-      : item.productId.price;
+    const discountedPrice =
+      discount > 0
+        ? item.productId.price - (item.productId.price * discount) / 100
+        : item.productId.price;
 
-    const inStock = isInStock(productData);
-    
-    const selectedColor = item.selectedColor || productData.colors?.[0] || null;
-    const colorName = getColorName(selectedColor);
-    const colorHex = getColorHex(selectedColor);
-    
-    const selectedSize = item.selectedSize || productData.sizes?.[0] || null;
-    const sizeLabel = getSizeLabel(selectedSize);
-
-    const rating = productData.rating || (4 + Math.random() * 0.9);
-    const ratingCount = Math.floor(Math.random() * 100) + 20;
+    const outOfStock = isOutOfStock(productData);
+    const rating = productData.rating || 4.3;
 
     return (
       <TouchableOpacity
-        style={styles.itemContainer}
+        style={styles.card}
         onPress={() => redirectToProductDetails(productId)}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
       >
-        <View style={styles.imageContainer}>
+        <View style={styles.imageWrap}>
           {imageUrl ? (
-            <Image 
-              source={{ uri: imageUrl }} 
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
           ) : (
-            <View style={[styles.itemImage, styles.placeholderImage]}>
+            <View style={[styles.image, styles.placeholder]}>
               <Text style={styles.placeholderText}>No Image</Text>
             </View>
           )}
-          
-          {/* Discount Badge - Top Left */}
-          {discount > 0 && (
-            <View style={styles.discountBadgeContainer}>
-              <Text style={styles.discountBadgeText}>{discount}% OFF</Text>
+
+          {/* Out-of-stock overlay */}
+          {outOfStock && (
+            <>
+              <View style={styles.oosOverlay} />
+              <View style={styles.oosBadge}>
+                <Text style={styles.oosBadgeText}>OUT OF STOCK</Text>
+              </View>
+            </>
+          )}
+
+          {/* Rating pill top-left */}
+          {!outOfStock && (
+            <View style={styles.ratingPill}>
+              <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+              <MaterialIcons name="star" size={9} color="#fff" />
             </View>
           )}
-          
-          {/* Remove from Wishlist - Heart Icon - Top Right */}
+
+          {/* ✅ Wishlist heart — no white bg, just floating filled heart */}
           <TouchableOpacity
-            style={styles.heartIconContainer}
+            style={styles.heartBtn}
             onPress={() => handleRemoveFavorite(productId)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="heart" size={16} color="#96252A" />
+            <Ionicons name="heart" size={22} color="#E9445A" />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.itemDetails}>
-          {/* Product Name */}
-          <Text style={styles.itemName} numberOfLines={2}>
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>
             {item.productId.name}
           </Text>
-          
-          {/* Price */}
-          <View style={styles.priceContainer}>
-            <Text style={styles.itemPrice}>
-              ₹{discountedPrice.toFixed(0)}
-            </Text>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>₹{discountedPrice.toFixed(0)}</Text>
             {discount > 0 && (
-              <Text style={styles.originalPrice}>
-                ₹{item.productId.price}
-              </Text>
+              <>
+                <Text style={styles.mrp}>₹{item.productId.price}</Text>
+                <Text style={styles.off}>({discount}% OFF)</Text>
+              </>
             )}
           </View>
-          
-          {/* Rating */}
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={10} color="#FFB800" />
-            <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({ratingCount})</Text>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={() => handleShare(item)}
+              hitSlop={6}
+            >
+              <Ionicons name="share-social-outline" size={14} color="#666" />
+              <Text style={styles.shareText}>Share</Text>
+            </TouchableOpacity>
+
+            {/* ✅ Add to Cart — bag icon instead of text */}
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => {
+                if (outOfStock) {
+                  Alert.alert(
+                    'Out of Stock',
+                    'We will notify you when this item is back in stock.',
+                  );
+                } else {
+                  handleAddToCart(item);
+                }
+              }}
+              hitSlop={6}
+            >
+              <Ionicons
+                name={outOfStock ? 'notifications-outline' : 'bag-outline'}
+                size={18}
+                color="#fff"
+              />
+            </TouchableOpacity>
           </View>
-          
-          {/* Stock Status */}
-          <View style={styles.stockContainer}>
-            <Ionicons 
-              name="ellipse" 
-              size={6} 
-              color={inStock ? "#4CAF50" : "#E53935"} 
-              style={styles.stockDot}
-            />
-            <Text style={[styles.stockText, !inStock && styles.outOfStockText]}>
-              {inStock ? 'In Stock' : 'Out of Stock'}
-            </Text>
-          </View>
-          
-          {/* Button */}
-          <TouchableOpacity 
-            style={[styles.actionButton, !inStock && styles.notifyButton]}
-            onPress={() => {
-              if (inStock) {
-                handleAddToCart(item);
-              } else {
-                Alert.alert('Notify Me', 'We will notify you when this item is back in stock.');
-              }
-            }}
-          >
-            <Text style={styles.actionButtonText}>
-              {inStock ? 'Add to Cart' : 'Notify Me'}
-            </Text>
-          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
   };
 
-  const ListHeaderComponent = () => (
-    <View style={styles.headerContainer}>
-      <View style={styles.headerSub}>
-        <Text style={styles.itemCountText}>{favoriteData.length} items saved</Text>
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
-          <TouchableOpacity style={styles.sortButton}>
-            <Text style={styles.sortText}>{sortBy}</Text>
-            <Ionicons name="chevron-down" size={14} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-
   const ListEmptyComponent = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="heart-outline" size={60} color="#ddd" />
-      <Text style={styles.emptyTitle}>No Favorites Yet</Text>
+      <Text style={styles.emptyTitle}>Your Wishlist is Empty</Text>
       <Text style={styles.emptySubtitle}>
-        Start adding items you love to your favorites list
+        Start adding items you love to your wishlist
       </Text>
       <TouchableOpacity
         style={styles.shopBtn}
@@ -404,7 +367,7 @@ const FavoriteScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#96252A" />
-        <Text style={styles.loadingText}>Loading your favorites...</Text>
+        <Text style={styles.loadingText}>Loading your wishlist...</Text>
       </View>
     );
   }
@@ -423,24 +386,23 @@ const FavoriteScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.screen}>
         <FlatList
           data={favoriteData}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id || item.productId._id}
+          keyExtractor={item => item._id || item.productId._id}
           numColumns={2}
-          columnWrapperStyle={favoriteData.length > 0 ? styles.row : null}
+          columnWrapperStyle={favoriteData.length > 0 ? styles.row : undefined}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.listContent,
-            favoriteData.length === 0 && styles.emptyListContent
+            favoriteData.length === 0 && styles.emptyListContent,
           ]}
-          ListHeaderComponent={ListHeaderComponent}
           ListEmptyComponent={ListEmptyComponent}
           refreshing={refreshing}
           onRefresh={onRefresh}
-          removeClippedSubviews={true}
+          removeClippedSubviews
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={6}
@@ -452,229 +414,168 @@ const FavoriteScreen = () => {
 
 export default FavoriteScreen;
 
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
+  screen: { flex: 1, backgroundColor: '#fff' },
+
   listContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 20,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 90,
   },
   emptyListContent: {
     flex: 1,
     justifyContent: 'center',
   },
-  
-  // Header Styles
-  headerContainer: {
-    paddingTop: 4,
-    paddingBottom: 10,
-    backgroundColor: '#f8f8f8',
-  },
-  headerSub: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemCountText: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '500',
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sortLabel: {
-    fontSize: 11,
-    color: '#888',
-    marginRight: 4,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sortText: {
-    fontSize: 12,
-    color: '#151515',
-    fontWeight: '500',
-    marginRight: 2,
-  },
-  
-  // Grid Row
+
   row: {
     justifyContent: 'space-between',
   },
-  
-  // Item Container
-  itemContainer: {
-    width: '48%',
+
+  // Myntra compact card
+  card: {
+    width: '48.5%',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 8,
+    marginBottom: 8,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  
-  // Image Container - Full width, square
-  imageContainer: {
+  imageWrap: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#f9f9f9',
+    aspectRatio: 0.78,
+    backgroundColor: '#F5F5F5',
     overflow: 'hidden',
   },
-  itemImage: {
+  image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    backgroundColor: '#f9f9f9',
   },
-  placeholderImage: {
+  placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
   },
-  placeholderText: {
-    color: '#999',
-    fontSize: 10,
-    fontWeight: '500',
+  placeholderText: { color: '#999', fontSize: 10, fontWeight: '500' },
+
+  // Out-of-stock overlay
+  oosOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
-  
-  // Discount Badge
-  discountBadgeContainer: {
+  oosBadge: {
     position: 'absolute',
-    top: 8,
+    bottom: 0,
     left: 0,
-    backgroundColor: '#96252A',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    zIndex: 5,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingVertical: 4,
+    alignItems: 'center',
   },
-  discountBadgeText: {
+  oosBadgeText: {
     color: '#fff',
     fontSize: 9,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  
-  // Heart Icon
-  heartIconContainer: {
+
+  // Rating pill
+  ratingPill: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#fff',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    zIndex: 5,
+    backgroundColor: '#138E4E',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+    gap: 2,
   },
-  
-  // Item Details
-  itemDetails: {
-    padding: 8,
-    paddingBottom: 10,
+  ratingPillText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
-  
-  // Product Name
-  itemName: {
+
+  // ✅ Heart — no white bg, floating filled red heart
+  heartBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    padding: 4,
+    // removed: width, height, borderRadius, backgroundColor, elevation, shadow
+  },
+
+  // Info
+  info: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  name: {
     fontSize: 12,
     fontWeight: '600',
     color: '#222',
-    lineHeight: 16,
-    marginBottom: 2,
-    minHeight: 32,
+    marginBottom: 3,
   },
-  
-  // Price
-  priceContainer: {
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    flexWrap: 'wrap',
   },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  price: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#000',
-    marginRight: 6,
+    marginRight: 5,
   },
-  originalPrice: {
+  mrp: {
     fontSize: 11,
-    color: '#888',
+    color: '#999',
     textDecorationLine: 'line-through',
-  },
-  
-  // Rating
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  ratingText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#151515',
-    marginLeft: 2,
-  },
-  ratingCount: {
-    fontSize: 10,
-    color: '#888',
-    marginLeft: 2,
-  },
-  
-  // Stock
-  stockContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  stockDot: {
     marginRight: 4,
   },
-  stockText: {
+  off: {
     fontSize: 10,
-    color: '#4CAF50',
+    color: '#F5A623',
+    fontWeight: '600',
+  },
+
+  // Action row
+  actionRow: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    gap: 3,
+  },
+  shareText: {
+    fontSize: 10,
+    color: '#666',
     fontWeight: '500',
   },
-  outOfStockText: {
-    color: '#E53935',
-  },
-  
-  // Action Button
-  actionButton: {
-    backgroundColor: '#000',
-    paddingVertical: 6,
+
+  // ✅ Add to Cart button — square icon button
+  addBtn: {
+    backgroundColor: '#111',
+    width: 28,
+    height: 28,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 32,
   },
-  notifyButton: {
-    backgroundColor: '#FF6F00',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  
-  // Empty State
+
+  // Empty
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -707,7 +608,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.5,
   },
-  
+
   // Loading & Error
   loadingContainer: {
     flex: 1,
@@ -715,11 +616,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: '#666',
-  },
+  loadingText: { marginTop: 10, fontSize: 13, color: '#666' },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -740,9 +637,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
-  },
+  retryButtonText: { color: '#fff', fontWeight: '600', fontSize: 12 },
 });

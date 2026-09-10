@@ -1,25 +1,20 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Image,
-  TextInput,
   FlatList,
   Modal,
   Dimensions,
-  ActivityIndicator,
   ScrollView,
-  Animated,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Slider from '@react-native-community/slider';
-const { width } = Dimensions.get('window');
 import { StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { addToFavoritesList } from '../../api/favoriteApi';
-import Rating from '../../components/common/RatingStars';
 import { RootStackParamList } from '../../models/types';
 import eventBus from '../../services/eventBus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,8 +22,10 @@ import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
 
-// Base URL for images
-const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
+const { width } = Dimensions.get('window');
+
+const BASE_URL =
+  config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
 // Premium static product data
 const premiumProducts = [
@@ -38,7 +35,8 @@ const premiumProducts = [
     price: 8999,
     discountPercent: 25,
     rating: 4.8,
-    image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=500&fit=crop&crop=center&q=80',
+    image:
+      'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=500&fit=crop&crop=center&q=80',
     tag: 'PREMIUM',
     isPremium: true,
   },
@@ -48,7 +46,8 @@ const premiumProducts = [
     price: 12999,
     discountPercent: 30,
     rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=500&fit=crop&crop=center&q=80',
+    image:
+      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=500&fit=crop&crop=center&q=80',
     tag: 'LUXURY',
     isPremium: true,
   },
@@ -58,7 +57,8 @@ const premiumProducts = [
     price: 24999,
     discountPercent: 20,
     rating: 4.7,
-    image: 'https://images.unsplash.com/photo-1602810320072-7cf0a1a39348?w=400&h=500&fit=crop&crop=center&q=80',
+    image:
+      'https://images.unsplash.com/photo-1602810320072-7cf0a1a39348?w=400&h=500&fit=crop&crop=center&q=80',
     tag: 'EXCLUSIVE',
     isPremium: true,
   },
@@ -68,14 +68,15 @@ const premiumProducts = [
     price: 5999,
     discountPercent: 15,
     rating: 4.6,
-    image: 'https://images.unsplash.com/photo-1627483298308-6749c9d173a6?w=400&h=500&fit=crop&crop=center&q=80',
+    image:
+      'https://images.unsplash.com/photo-1627483298308-6749c9d173a6?w=400&h=500&fit=crop&crop=center&q=80',
     tag: 'PREMIUM',
     isPremium: true,
   },
 ];
 
 // ============================================
-// AJIO STYLE PILL TABS - EXACT CLONE
+// TOP TABS
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -90,7 +91,6 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabsScrollContent}
       >
-        {/* SansaHome Tab */}
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'home' && styles.tabItemActive]}
           onPress={() => onTabChange('home')}
@@ -101,14 +101,15 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
           </Text>
         </TouchableOpacity>
 
-        {/* Premium Tab */}
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'premium' && styles.tabItemActive]}
           onPress={() => onTabChange('premium')}
           activeOpacity={0.8}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, activeTab === 'premium' && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, activeTab === 'premium' && styles.tabTextActive]}
+            >
               Premium
             </Text>
             <MaterialIcons
@@ -132,21 +133,23 @@ const getImageSource = (item: any) => {
     if (image) {
       if (image.startsWith('data:image')) return { uri: image };
       if (image.startsWith('http')) return { uri: image };
-      if (image.startsWith('/')) return { uri: `${BASE_URL.replace(/\/$/, '')}${image}` };
+      if (image.startsWith('/'))
+        return { uri: `${BASE_URL.replace(/\/$/, '')}${image}` };
       return { uri: `${BASE_URL.replace(/\/$/, '')}/${image}` };
     }
   }
   if (item.image) {
     if (item.image.startsWith('data:image')) return { uri: item.image };
     if (item.image.startsWith('http')) return { uri: item.image };
-    if (item.image.startsWith('/')) return { uri: `${BASE_URL.replace(/\/$/, '')}${item.image}` };
+    if (item.image.startsWith('/'))
+      return { uri: `${BASE_URL.replace(/\/$/, '')}${item.image}` };
     return { uri: `${BASE_URL.replace(/\/$/, '')}/${item.image}` };
   }
   return require('../../../assets/images/logo.png');
 };
 
 // ============================================
-// BANNER SLIDER COMPONENT
+// BANNER SLIDER
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -163,9 +166,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
 }) => {
   const flatListRef = useRef<FlatList>(null);
 
-  if (bannerImages.length === 0) {
-    return null;
-  }
+  if (bannerImages.length === 0) return null;
 
   const handleScrollEnd = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -192,7 +193,9 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item, index) => item?._id || item?.id || `banner-${index}`}
+        keyExtractor={(item, index) =>
+          item?._id || item?.id || `banner-${index}`
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.bannerItem}
@@ -203,9 +206,6 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
               source={{ uri: item.image || item.uri }}
               style={styles.bannerImage}
               resizeMode="cover"
-              onError={(e) => {
-                console.log('Banner image load error:', e.nativeEvent);
-              }}
             />
           </TouchableOpacity>
         )}
@@ -215,25 +215,21 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
           offset: (width - 30) * index,
           index,
         })}
-        onScrollToIndexFailed={(info) => {
-          const wait = new Promise(resolve => setTimeout(resolve, 500));
-          wait.then(() => {
+        onScrollToIndexFailed={info => {
+          setTimeout(() => {
             flatListRef.current?.scrollToIndex({
               index: info.index,
               animated: true,
             });
-          });
+          }, 500);
         }}
-        removeClippedSubviews={true}
+        removeClippedSubviews
         maxToRenderPerBatch={2}
         windowSize={3}
         initialNumToRender={2}
         scrollEventThrottle={16}
         decelerationRate="fast"
         initialScrollIndex={0}
-        viewabilityConfig={{
-          itemVisiblePercentThreshold: 50,
-        }}
       />
       {bannerImages.length > 1 && (
         <View style={styles.dotsContainer}>
@@ -253,7 +249,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
 };
 
 // ============================================
-// CATEGORY ITEM COMPONENT - Name Only with Black Box
+// CATEGORY ITEM
 // ============================================
 interface CategoryItemProps {
   item: any;
@@ -261,23 +257,18 @@ interface CategoryItemProps {
   onPress: (item: any) => void;
 }
 
-const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onPress }) => {
+const CategoryItem: React.FC<CategoryItemProps> = ({
+  item,
+  selectedCategory,
+  onPress,
+}) => {
   const isActive = selectedCategory === item._id;
-
   return (
     <TouchableOpacity
       onPress={() => onPress(item)}
-      style={[
-        styles.categoryItem,
-        isActive && styles.categoryItemActive,
-      ]}
+      style={[styles.categoryItem, isActive && styles.categoryItemActive]}
     >
-      <Text
-        style={[
-          styles.categoryName,
-          isActive && styles.categoryNameActive,
-        ]}
-      >
+      <Text style={[styles.categoryName, isActive && styles.categoryNameActive]}>
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -285,47 +276,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onP
 };
 
 // ============================================
-// FEATURE BADGES COMPONENT - 3 Items with MaterialIcons
-// ============================================
-// const FeatureBadges: React.FC = () => (
-//   <View style={styles.featuresContainer}>
-//     <View style={styles.featureItem}>
-//       <View style={styles.featureIconWrapper}>
-//         <MaterialIcons name="local-shipping" size={20} color="#9E0E26" />
-//       </View>
-//       <View style={styles.featureTextWrapper}>
-//         <Text style={styles.featureTitle}>Free Shipping</Text>
-//         <Text style={styles.featureSubtext}>On orders above ₹999</Text>
-//       </View>
-//     </View>
-
-//     <View style={styles.featureDivider} />
-
-//     <View style={styles.featureItem}>
-//       <View style={styles.featureIconWrapper}>
-//         <MaterialIcons name="verified" size={20} color="#9E0E26" />
-//       </View>
-//       <View style={styles.featureTextWrapper}>
-//         <Text style={styles.featureTitle}>Premium Quality</Text>
-//         <Text style={styles.featureSubtext}>Finest fabrics & comfort</Text>
-//       </View>
-//     </View>
-
-//     <View style={styles.featureDivider} />
-
-//     <View style={styles.featureItem}>
-//       <View style={styles.featureIconWrapper}>
-//         <MaterialIcons name="lock" size={20} color="#9E0E26" />
-//       </View>
-//       <View style={styles.featureTextWrapper}>
-//         <Text style={styles.featureTitle}>Secure Payment</Text>
-//         <Text style={styles.featureSubtext}>100% safe & secure</Text>
-//       </View>
-//     </View>
-//   </View>
-// );
-// ============================================
-// FEATURE BADGES COMPONENT - 3 Items with MaterialIcons
+// FEATURE BADGES
 // ============================================
 const FeatureBadges: React.FC = () => (
   <View style={styles.featuresContainer}>
@@ -334,8 +285,12 @@ const FeatureBadges: React.FC = () => (
         <MaterialIcons name="local-shipping" size={16} color="#9E0E26" />
       </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle} numberOfLines={1}>Free Shipping</Text>
-        <Text style={styles.featureSubtext} numberOfLines={1}>On Orders Above ₹999</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>
+          Free Shipping
+        </Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>
+          On Orders Above ₹999
+        </Text>
       </View>
     </View>
 
@@ -346,8 +301,12 @@ const FeatureBadges: React.FC = () => (
         <MaterialIcons name="verified" size={16} color="#9E0E26" />
       </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle} numberOfLines={1}>Premium Quality</Text>
-        <Text style={styles.featureSubtext} numberOfLines={1}>Finest fabrics & comfort</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>
+          Premium Quality
+        </Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>
+          Finest fabrics & comfort
+        </Text>
       </View>
     </View>
 
@@ -358,23 +317,33 @@ const FeatureBadges: React.FC = () => (
         <MaterialIcons name="lock" size={16} color="#9E0E26" />
       </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle} numberOfLines={1}>Secure Payment</Text>
-        <Text style={styles.featureSubtext} numberOfLines={1}>100% safe & secure</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>
+          Secure Payment
+        </Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>
+          100% safe & secure
+        </Text>
       </View>
     </View>
   </View>
 );
 
 // ============================================
-// PRODUCT CARD COMPONENT
+// PRODUCT CARD
 // ============================================
 interface ProductCardProps {
   item: any;
   onPress: (item: any) => void;
   onFavoritePress: (id: string) => void;
+  isFavorite?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, onFavoritePress }) => (
+const ProductCard: React.FC<ProductCardProps> = ({
+  item,
+  onPress,
+  onFavoritePress,
+  isFavorite = false,
+}) => (
   <TouchableOpacity
     style={styles.productCard}
     onPress={() => onPress(item)}
@@ -382,24 +351,36 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, onFavoritePres
   >
     <View style={styles.imageWrapper}>
       <Image source={getImageSource(item)} style={styles.productImage} />
-      <TouchableOpacity
-        style={styles.favoriteBtn}
-        onPress={() => onFavoritePress(item._id)}
-      >
-        <MaterialIcons name="favorite-border" size={20} color="#000" />
-      </TouchableOpacity>
-      {item.discountPercent > 0 && (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountBadgeText}>
-            {item.discountPercent}% OFF
+
+      {/* ⭐ Rating overlay on image (bottom-left) */}
+      {item.rating !== undefined && item.rating > 0 && (
+        <View style={styles.ratingOverlay}>
+          <MaterialIcons name="star" size={11} color="#FFFFFF" />
+          <Text style={styles.ratingOverlayText}>
+            {Number(item.rating).toFixed(1)}
           </Text>
         </View>
       )}
+
+      {/* ❤️ Wishlist icon */}
+      <TouchableOpacity
+        style={styles.favoriteBtn}
+        onPress={() => onFavoritePress(item._id)}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons
+          name="favorite"
+          size={20}
+          color={isFavorite ? '#9E0E26' : '#FFFFFF'}
+        />
+      </TouchableOpacity>
     </View>
+
     <View style={styles.productInfo}>
       <Text numberOfLines={1} style={styles.productTitle}>
         {item.name}
       </Text>
+
       <View style={styles.priceRow}>
         <Text style={styles.finalPrice}>
           ₹
@@ -410,25 +391,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, onPress, onFavoritePres
         </Text>
         <Text style={styles.strikePrice}>₹{item?.price}</Text>
       </View>
-      {item.rating !== undefined && item.rating > 0 && (
-        <Rating value={item.rating} />
-      )}
     </View>
   </TouchableOpacity>
 );
 
 // ============================================
-// PREMIUM PRODUCT CARD - 2 COLUMN
+// PREMIUM PRODUCT CARD
 // ============================================
 interface PremiumCardProps {
   item: any;
   onPress: (item: any) => void;
   onFavoritePress: (id: string) => void;
+  isFavorite?: boolean;
 }
 
-const PremiumCard: React.FC<PremiumCardProps> = ({ item, onPress, onFavoritePress }) => {
-  const discountedPrice = item.price - (item.price * (item.discountPercent || 0)) / 100;
-  
+const PremiumCard: React.FC<PremiumCardProps> = ({
+  item,
+  onPress,
+  onFavoritePress,
+  isFavorite = false,
+}) => {
+  const discountedPrice =
+    item.price - (item.price * (item.discountPercent || 0)) / 100;
+
   return (
     <TouchableOpacity
       style={styles.premiumCard}
@@ -437,33 +422,46 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ item, onPress, onFavoritePres
     >
       <View style={styles.premiumImageWrapper}>
         <Image source={getImageSource(item)} style={styles.premiumImage} />
-        
+
         {/* Premium Tag */}
         <View style={styles.premiumTag}>
           <Text style={styles.premiumTagText}>{item.tag || 'PREMIUM'}</Text>
         </View>
-        
+
+        {/* ⭐ Rating overlay on image (bottom-left) */}
+        {item.rating !== undefined && item.rating > 0 && (
+          <View style={styles.ratingOverlay}>
+            <MaterialIcons name="star" size={11} color="#FFFFFF" />
+            <Text style={styles.ratingOverlayText}>
+              {Number(item.rating).toFixed(1)}
+            </Text>
+          </View>
+        )}
+
+        {/* ❤️ Wishlist */}
         <TouchableOpacity
           style={styles.premiumFavoriteBtn}
           onPress={() => onFavoritePress(item._id)}
+          activeOpacity={0.7}
         >
-          <MaterialIcons name="favorite-border" size={18} color="#9E0E26" />
+          <MaterialIcons
+            name="favorite"
+            size={18}
+            color={isFavorite ? '#9E0E26' : '#FFFFFF'}
+          />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.premiumInfo}>
         <Text numberOfLines={1} style={styles.premiumName}>
           {item.name}
         </Text>
+
         <View style={styles.premiumPriceRow}>
           <Text style={styles.premiumPrice}>
             ₹{discountedPrice.toFixed(0)}
           </Text>
           <Text style={styles.premiumStrikePrice}>₹{item.price}</Text>
-        </View>
-        <View style={styles.premiumRatingRow}>
-          <Rating value={item.rating || 4.5} />
-          <Text style={styles.premiumRatingText}>({item.rating || 4.5})</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -471,13 +469,14 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ item, onPress, onFavoritePres
 };
 
 // ============================================
-// PREMIUM SECTION COMPONENT - 2 COLUMN
+// PREMIUM SECTION
 // ============================================
 const PremiumSection: React.FC<{
   items: any[];
   onProductPress: (item: any) => void;
   onFavoritePress: (id: string) => void;
-}> = ({ items, onProductPress, onFavoritePress }) => {
+  favorites: string[];
+}> = ({ items, onProductPress, onFavoritePress, favorites }) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   return (
@@ -491,24 +490,26 @@ const PremiumSection: React.FC<{
         </View>
         <TouchableOpacity
           style={styles.premiumSeeAll}
-          onPress={() => navigation.navigate('CategoryScreen' as any, {
-            mainCategory: 'Premium',
-            displayTitle: 'Premium Collection'
-          })}
+          onPress={() =>
+            navigation.navigate('CategoryScreen' as any, {
+              mainCategory: 'Premium',
+              displayTitle: 'Premium Collection',
+            })
+          }
         >
           <Text style={styles.premiumSeeAllText}>See All</Text>
           <MaterialIcons name="arrow-forward" size={14} color="#9E0E26" />
         </TouchableOpacity>
       </View>
 
-      {/* Premium Items - 2 Column Grid */}
       <View style={styles.premiumGrid}>
-        {items.map((item) => (
+        {items.map(item => (
           <PremiumCard
             key={item._id}
             item={item}
             onPress={onProductPress}
             onFavoritePress={onFavoritePress}
+            isFavorite={favorites.includes(item._id)}
           />
         ))}
       </View>
@@ -517,7 +518,7 @@ const PremiumSection: React.FC<{
 };
 
 // ============================================
-// MAIN DASHBOARD COMPONENT
+// MAIN DASHBOARD
 // ============================================
 export default function Dashboard() {
   const [newArrivals, setNewArrivals] = useState([]);
@@ -525,31 +526,58 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<any[]>([]);
 
-  // Banner slider state
+  const [favorites, setFavorites] = useState<string[]>([]);
+
   const [bannerImages, setBannerImages] = useState<any[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
 
-  // Active tab state for TopTabs
   const [activeTab, setActiveTab] = useState<'home' | 'premium'>('home');
 
-  const [showAllNew, setShowAllNew] = useState(false);
-  const [showAllTrending, setShowAllTrending] = useState(false);
+  const [showAllNew] = useState(false);
+  const [showAllTrending] = useState(false);
 
   const [searchText, setSearchText] = useState('');
-  const [mainCategory, setMainCategory] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
-  const [distanceRange, setDistanceRange] = useState([500, 2000]);
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Fetch dynamic banners from API
+  // Favorites
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('favorites');
+      if (stored) setFavorites(JSON.parse(stored));
+    } catch (err) {
+      console.error('Error loading favorites:', err);
+    }
+  };
+
+  const toggleFavorite = async (id: string) => {
+    try {
+      const updated = favorites.includes(id)
+        ? favorites.filter(fav => fav !== id)
+        : [...favorites, id];
+
+      setFavorites(updated);
+      await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+
+      addToFavoritesList(id);
+      eventBus.emit('ITEM_REMOVED', { id: 123 });
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
+
+  // Fetch banners
   const fetchBanners = async () => {
     try {
       const banners = await getActiveBanners();
@@ -565,38 +593,33 @@ export default function Dashboard() {
     }
   };
 
-  // Auto-scroll banner
+  // Auto-scroll
   useEffect(() => {
     if (bannerImages.length <= 1 || !isAutoScrolling) return;
-
     const interval = setInterval(() => {
       const nextIndex = (currentBannerIndex + 1) % bannerImages.length;
       setCurrentBannerIndex(nextIndex);
     }, 4000);
-
     return () => clearInterval(interval);
   }, [bannerImages.length, currentBannerIndex, isAutoScrolling]);
 
-  // Debounce search
+  // Debounce
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchText(searchText);
-    }, 500);
+    const timer = setTimeout(() => setDebouncedSearchText(searchText), 500);
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // Fetch categories
+  // Categories
   const fetchCategories = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${config.baseURL}api/master/category`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await response.json();
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
       setCategories([{ _id: '', name: 'All', isActive: true }, ...activeCategories]);
     } catch (error) {
-      console.error('Error fetching categories:', error);
       setCategories([
         { _id: '', name: 'All' },
         { _id: '1', name: 'Sarees' },
@@ -608,82 +631,59 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch products
-  const fetchNewArrivals = async ({
-    searchText,
-    selectedCategory,
-    priceRange,
-  }: {
-    searchText?: string;
-    selectedCategory?: string;
-    priceRange?: [number, number];
-  }) => {
+  const fetchNewArrivals = async ({ searchText, selectedCategory, priceRange }: any) => {
     try {
       const params: any = { isNewArrival: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
-      if (priceRange?.[0] !== undefined && priceRange?.[0] > 0) params.minPrice = priceRange[0];
-      if (priceRange?.[1] !== undefined && priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
+      if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
 
       const queryString = Object.keys(params)
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
       const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await response.json();
       setNewArrivals(data || []);
     } catch (err) {
-      console.error('Error fetching new arrivals:', err);
       setNewArrivals([]);
     }
   };
 
-  const fetchTrending = async ({
-    searchText,
-    selectedCategory,
-    priceRange,
-  }: {
-    searchText?: string;
-    selectedCategory?: string;
-    priceRange?: [number, number];
-  }) => {
+  const fetchTrending = async ({ searchText, selectedCategory, priceRange }: any) => {
     try {
       const params: any = { isTrending: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
-      if (priceRange?.[0] !== undefined && priceRange?.[0] > 0) params.minPrice = priceRange[0];
-      if (priceRange?.[1] !== undefined && priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
+      if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
 
       const queryString = Object.keys(params)
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
       const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await response.json();
       setTrendingItems(data || []);
     } catch (err) {
-      console.error('Error fetching trending:', err);
       setTrendingItems([]);
     }
   };
 
-  // Load all data
   useEffect(() => {
     const loadData = async () => {
       LoadingService.show();
       setLoading(true);
-      await Promise.all([
-        fetchBanners(),
-        fetchCategories(),
-      ]);
+      await Promise.all([fetchBanners(), fetchCategories()]);
       await Promise.all([
         fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange }),
         fetchTrending({ searchText: '', selectedCategory: '', priceRange }),
@@ -694,7 +694,6 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  // Refetch when filters change
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
@@ -710,11 +709,6 @@ export default function Dashboard() {
       loadData();
     }
   }, [debouncedSearchText, selectedCategory, priceRange]);
-
-  const addToFavorites = (_id: number | undefined) => {
-    addToFavoritesList(_id);
-    eventBus.emit('ITEM_REMOVED', { id: 123 });
-  };
 
   const redirectToProductDetails = (id: string) => {
     navigation.navigate('ProductDetails', { itemId: id });
@@ -737,45 +731,36 @@ export default function Dashboard() {
     setDebouncedSearchText('');
     setSelectedCategory('');
     setPriceRange([0, 10000]);
-    setDistanceRange([500, 2000]);
     setModalVisible(false);
   };
 
-  // Navigate to CategoryScreen
   const navigateToCategory = (item: any) => {
     setSelectedCategory(item._id);
     navigation.navigate('CategoryScreen', {
       mainCategory: item.name,
-      displayTitle: item.name
+      displayTitle: item.name,
     });
   };
 
-  // Handle banner press
   const handleBannerPress = (banner: any) => {
     if (banner.linkType === 'collection' && banner.link) {
       navigation.navigate('CategoryScreen', { mainCategory: banner.link });
     } else if (banner.linkType === 'product' && banner.linkId) {
       navigation.navigate('ProductDetails', { itemId: banner.linkId });
-    } else if (banner.link) {
-      console.log('Banner pressed:', banner.link);
     }
   };
 
-  // Handle banner scroll
   const handleBannerScroll = (index: number) => {
     if (index !== currentBannerIndex && index < bannerImages.length) {
       setIsAutoScrolling(false);
       setCurrentBannerIndex(index);
-      setTimeout(() => {
-        setIsAutoScrolling(true);
-      }, 5000);
+      setTimeout(() => setIsAutoScrolling(true), 5000);
     }
   };
 
   const itemsToShowNew = showAllNew ? newArrivals : newArrivals.slice(0, 4);
   const itemsToShowTrending = showAllTrending ? trendingItems : trendingItems.slice(0, 4);
 
-  // Home Tab Content
   const HomeContent = () => (
     <>
       <BannerSlider
@@ -784,6 +769,7 @@ export default function Dashboard() {
         onBannerPress={handleBannerPress}
         setCurrentBannerIndex={handleBannerScroll}
       />
+
       <View style={styles.categoryWrapper}>
         <FlatList
           horizontal
@@ -800,16 +786,20 @@ export default function Dashboard() {
           contentContainerStyle={styles.categoryList}
         />
       </View>
+
       <FeatureBadges />
 
-      {/* New Arrival Section */}
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { 
-            mainCategory: 'New Arrival', 
-            displayTitle: 'New Arrivals' 
-          })}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('CategoryScreen', {
+                mainCategory: 'New Arrival',
+                displayTitle: 'New Arrivals',
+              })
+            }
+          >
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -824,8 +814,9 @@ export default function Dashboard() {
             renderItem={({ item }) => (
               <ProductCard
                 item={item}
-                onPress={(product) => redirectToProductDetails(product._id)}
-                onFavoritePress={(id) => addToFavorites(id)}
+                onPress={product => redirectToProductDetails(product._id)}
+                onFavoritePress={toggleFavorite}
+                isFavorite={favorites.includes(item._id)}
               />
             )}
             scrollEnabled={false}
@@ -833,14 +824,17 @@ export default function Dashboard() {
         )}
       </View>
 
-      {/* Trending Section */}
       <View style={styles.newArrivalSection}>
         <View style={styles.newArrivalHeader}>
           <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { 
-            mainCategory: 'Trending', 
-            displayTitle: 'Trending Now' 
-          })}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('CategoryScreen', {
+                mainCategory: 'Trending',
+                displayTitle: 'Trending Now',
+              })
+            }
+          >
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -855,8 +849,9 @@ export default function Dashboard() {
             renderItem={({ item }) => (
               <ProductCard
                 item={item}
-                onPress={(product) => redirectToProductDetails(product._id)}
-                onFavoritePress={(id) => addToFavorites(id)}
+                onPress={product => redirectToProductDetails(product._id)}
+                onFavoritePress={toggleFavorite}
+                isFavorite={favorites.includes(item._id)}
               />
             )}
             scrollEnabled={false}
@@ -866,21 +861,19 @@ export default function Dashboard() {
     </>
   );
 
-  // Premium Tab Content - 2 Column
   const PremiumContent = () => (
     <PremiumSection
       items={premiumProducts}
-      onProductPress={(product) => redirectToProductDetails(product._id)}
-      onFavoritePress={(id) => addToFavorites(id)}
+      onProductPress={product => redirectToProductDetails(product._id)}
+      onFavoritePress={toggleFavorite}
+      favorites={favorites}
     />
   );
 
   return (
     <View style={styles.container}>
-      {/* AJIO Style Pill Tabs */}
       <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Content */}
       <FlatList
         data={[]}
         keyExtractor={() => 'main-scroll'}
@@ -912,7 +905,7 @@ export default function Dashboard() {
 
             <Text style={styles.filterSectionTitle}>Category</Text>
             <View style={styles.categoryFilter}>
-              {categories.map((cat) => (
+              {categories.map(cat => (
                 <TouchableOpacity
                   key={cat._id || 'all'}
                   style={[
@@ -925,10 +918,12 @@ export default function Dashboard() {
                     applyFilter();
                   }}
                 >
-                  <Text style={[
-                    styles.categoryFilterText,
-                    selectedCategory === cat._id && styles.categoryFilterTextActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.categoryFilterText,
+                      selectedCategory === cat._id && styles.categoryFilterTextActive,
+                    ]}
+                  >
                     {cat.name}
                   </Text>
                 </TouchableOpacity>
@@ -948,9 +943,7 @@ export default function Dashboard() {
               minimumValue={50}
               maximumValue={10000}
               value={priceRange[0]}
-              onValueChange={value =>
-                setPriceRange([Math.round(value), priceRange[1]])
-              }
+              onValueChange={value => setPriceRange([Math.round(value), priceRange[1]])}
             />
 
             <Text style={styles.sliderTitle}>Maximum Price</Text>
@@ -959,9 +952,7 @@ export default function Dashboard() {
               minimumValue={50}
               maximumValue={10000}
               value={priceRange[1]}
-              onValueChange={value =>
-                setPriceRange([priceRange[0], Math.round(value)])
-              }
+              onValueChange={value => setPriceRange([priceRange[0], Math.round(value)])}
             />
 
             <TouchableOpacity style={styles.applyButton} onPress={applyFilter}>
@@ -972,80 +963,36 @@ export default function Dashboard() {
       </Modal>
     </View>
   );
-};
+}
 
 // ============================================
 // STYLES
 // ============================================
 const styles = StyleSheet.create({
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  discountedPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginRight: 8,
-  },
-  originalPrice: {
-    fontSize: 16,
-    color: '#888',
-    textDecorationLine: 'line-through',
-    marginRight: 8,
-  },
-  discountPercent: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'green',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  menuMaincontainer: {
+  container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 15,
   },
   columnWrapper: {
     justifyContent: 'space-between',
     marginBottom: 15,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingTop: 0,
-  },
 
-  // ============================================
-  // AJIO STYLE PILL TABS - EXACT CLONE
-  // ============================================
+  // Tabs
   topTabsContainer: {
     backgroundColor: '#F7EBD8',
     marginHorizontal: -15,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    marginTop: 0,
-    marginBottom: 0,
-    borderBottomWidth: 0,
     height: 48,
   },
-
   tabsScrollContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
     gap: 4,
   },
-
   tabItem: {
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -1053,48 +1000,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 34,
     minWidth: 70,
-    backgroundColor: 'transparent',
     borderRadius: 8,
   },
-
   tabItemActive: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
     elevation: 1,
   },
+  tabContent: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  tabText: { fontSize: 12, fontWeight: '500', color: '#888888' },
+  tabTextActive: { color: '#1a1a1a', fontWeight: '600' },
 
-  tabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-
-  tabText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#888888',
-    letterSpacing: 0.2,
-  },
-
-  tabTextActive: {
-    color: '#1a1a1a',
-    fontWeight: '600',
-  },
-
-  // ============================================
-  // CATEGORY STYLES - Name Only with Black Box
-  // ============================================
-  categoryWrapper: {
-    marginVertical: 8,
-  },
-  categoryList: {
-    paddingHorizontal: 2,
-    gap: 3,
-  },
+  // Category
+  categoryWrapper: { marginVertical: 8 },
+  categoryList: { paddingHorizontal: 2, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
     paddingHorizontal: 5,
@@ -1107,79 +1026,59 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  categoryItemActive: {
-    backgroundColor: '#9E0E26',
-    borderColor: '#9E0E26',
-  },
+  categoryItemActive: { backgroundColor: '#9E0E26', borderColor: '#9E0E26' },
   categoryName: {
     fontSize: 10,
     fontWeight: '500',
     color: '#FFFFFF',
     textAlign: 'center',
   },
-  categoryNameActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+  categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
+
+  // Feature badges
+  featuresContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#F8F4F0',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    marginVertical: 2,
+    marginHorizontal: 2,
+    minHeight: 38,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: 1,
+  },
+  featureIconWrapper: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FCEBED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 2,
+  },
+  featureDivider: { width: 1, height: 20, backgroundColor: '#E0D6C8' },
+  featureTextWrapper: { flex: 1, justifyContent: 'center' },
+  featureTitle: {
+    fontSize: 9,
+    color: '#9E0E26',
+    fontWeight: '700',
+    lineHeight: 11,
+  },
+  featureSubtext: {
+    fontSize: 6,
+    color: '#888',
+    fontWeight: '400',
+    lineHeight: 9,
   },
 
-  // ============================================
-  // FEATURE BADGES - 3 Items with MaterialIcons
-  // ============================================
- // ============================================
-// FEATURE BADGES - Mobile Optimized
-// ============================================
-featuresContainer: {
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  backgroundColor: '#F8F4F0',
-  borderRadius: 6,
-  paddingVertical: 4,
-  paddingHorizontal: 2,
-  marginVertical: 2,
-  marginHorizontal: 2,
-  minHeight: 38,
-},
-featureItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  flex: 1,
-  paddingHorizontal: 1,
-},
-featureIconWrapper: {
-  width: 22,
-  height: 22,
-  borderRadius: 11,
-  backgroundColor: '#FCEBED',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginRight: 2,
-},
-featureDivider: {
-  width: 1,
-  height: 20,
-  backgroundColor: '#E0D6C8',
-},
-featureTextWrapper: {
-  flex: 1,
-  justifyContent: 'center',
-},
-featureTitle: {
-  fontSize: 9,
-  color: '#9E0E26',
-  fontWeight: '700',
-  lineHeight: 8,
-},
-featureSubtext: {
-  fontSize: 6,
-  color: '#888',
-  fontWeight: '400',
-  lineHeight: 9,
-},
-
-  // ============================================
-  // PRODUCT CARD
-  // ============================================
+  // Product card
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
@@ -1191,9 +1090,7 @@ featureSubtext: {
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
   },
-  imageWrapper: {
-    position: 'relative',
-  },
+  imageWrapper: { position: 'relative' },
   productImage: {
     width: '100%',
     height: 180,
@@ -1207,34 +1104,34 @@ featureSubtext: {
     borderRadius: 20,
     padding: 6,
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  discountBadge: {
+
+  // ⭐ Rating overlay
+  ratingOverlay: {
     position: 'absolute',
     bottom: 10,
     left: 10,
-    backgroundColor: '#950C21',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  discountBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  productInfo: {
-    padding: 10,
-  },
-  productTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#222',
-  },
-  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
+    backgroundColor: '#138E4E',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 2,
   },
+  ratingOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  productInfo: { padding: 10 },
+  productTitle: { fontSize: 15, fontWeight: '600', color: '#222' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   finalPrice: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1247,13 +1144,8 @@ featureSubtext: {
     textDecorationLine: 'line-through',
   },
 
-  // ============================================
-  // PREMIUM SECTION - 2 COLUMN
-  // ============================================
-  premiumSectionWrapper: {
-    marginTop: 8,
-    marginBottom: 10,
-  },
+  // Premium
+  premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
   premiumHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1261,10 +1153,7 @@ featureSubtext: {
     paddingHorizontal: 2,
     marginBottom: 12,
   },
-  premiumHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  premiumHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
   premiumHeaderIcon: {
     width: 28,
     height: 28,
@@ -1280,10 +1169,7 @@ featureSubtext: {
     color: '#1a1a1a',
     letterSpacing: 0.5,
   },
-  premiumSeeAll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  premiumSeeAll: { flexDirection: 'row', alignItems: 'center' },
   premiumSeeAllText: {
     fontSize: 12,
     color: '#9E0E26',
@@ -1295,8 +1181,6 @@ featureSubtext: {
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-
-  // Premium Card - 2 Column
   premiumCard: {
     width: '48%',
     backgroundColor: '#fff',
@@ -1311,15 +1195,8 @@ featureSubtext: {
     borderWidth: 1,
     borderColor: '#FCEBED',
   },
-  premiumImageWrapper: {
-    position: 'relative',
-    height: 180,
-  },
-  premiumImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
+  premiumImageWrapper: { position: 'relative', height: 180 },
+  premiumImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   premiumTag: {
     position: 'absolute',
     top: 10,
@@ -1339,16 +1216,13 @@ featureSubtext: {
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 20,
     padding: 6,
     borderWidth: 1,
-    borderColor: '#FCEBED',
+    borderColor: 'rgba(255,255,255,0.5)',
   },
-  premiumInfo: {
-    padding: 10,
-    backgroundColor: '#fff',
-  },
+  premiumInfo: { padding: 10, backgroundColor: '#fff' },
   premiumName: {
     fontSize: 13,
     fontWeight: '600',
@@ -1371,37 +1245,17 @@ featureSubtext: {
     color: '#888',
     textDecorationLine: 'line-through',
   },
-  premiumRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  premiumRatingText: {
-    fontSize: 11,
-    color: '#888',
-    marginLeft: 4,
-  },
 
-  // ============================================
-  // SECTIONS
-  // ============================================
-  newArrivalSection: {
-    marginTop: 8,
-  },
+  // Sections
+  newArrivalSection: { marginTop: 8 },
   newArrivalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14,
   },
-  newArrivalTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  seeAllText: {
-    fontSize: 13,
-    color: '#9E0E26',
-    fontWeight: '600',
-  },
+  newArrivalTitle: { fontSize: 15, fontWeight: 'bold' },
+  seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
   noRecordsText: {
     fontSize: 14,
     color: '#999',
@@ -1409,9 +1263,7 @@ featureSubtext: {
     marginTop: 20,
   },
 
-  // ============================================
-  // MODAL
-  // ============================================
+  // Modal
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1429,14 +1281,8 @@ featureSubtext: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  clearText: {
-    fontSize: 16,
-    color: '#151515',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  clearText: { fontSize: 16, color: '#151515' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold' },
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1448,16 +1294,8 @@ featureSubtext: {
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  priceText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sliderTitle: {
-    fontSize: 14,
-    marginTop: 10,
-    marginBottom: 5,
-    color: '#555',
-  },
+  priceText: { fontSize: 16, fontWeight: '600' },
+  sliderTitle: { fontSize: 14, marginTop: 10, marginBottom: 5, color: '#555' },
   categoryFilter: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1475,21 +1313,10 @@ featureSubtext: {
     minWidth: 80,
     alignItems: 'center',
   },
-  categoryFilterButtonActive: {
-    backgroundColor: '#9E0E26',
-  },
-  categoryFilterText: {
-    color: '#333',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  categoryFilterTextActive: {
-    color: '#fff',
-  },
-  slider: {
-    flex: 1,
-    marginHorizontal: 20,
-  },
+  categoryFilterButtonActive: { backgroundColor: '#9E0E26' },
+  categoryFilterText: { color: '#333', fontSize: 14, fontWeight: '500' },
+  categoryFilterTextActive: { color: '#fff' },
+  slider: { flex: 1, marginHorizontal: 20 },
   applyButton: {
     backgroundColor: '#9E0E26',
     borderRadius: 35,
@@ -1497,15 +1324,9 @@ featureSubtext: {
     alignItems: 'center',
     marginTop: 10,
   },
-  applyButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  // ============================================
-  // BANNER SLIDER
-  // ============================================
+  // Banner
   bannerWrapper: {
     marginVertical: 8,
     borderRadius: 12,
@@ -1520,12 +1341,7 @@ featureSubtext: {
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
   },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-  },
+  bannerImage: { width: '100%', height: '100%', borderRadius: 12 },
   dotsContainer: {
     position: 'absolute',
     bottom: 10,
@@ -1539,14 +1355,7 @@ featureSubtext: {
     borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
-  activeDot: {
-    backgroundColor: '#9E0E26',
-    width: 20,
-  },
-
-  // ============================================
-  // LOADING
-  // ============================================
+  activeDot: { backgroundColor: '#9E0E26', width: 20 },
 });
 
 // export default Dashboard;

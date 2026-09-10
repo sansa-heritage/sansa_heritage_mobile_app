@@ -6,28 +6,28 @@ import {
     TouchableOpacity,
     Image,
     Dimensions,
-    Modal,
     ActivityIndicator,
     SafeAreaView,
     StyleSheet,
     TextInput,
+    Alert,
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import Slider from "@react-native-community/slider";
-import Rating from "../../components/common/RatingStars";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { addToFavoritesList } from "../../api/favoriteApi";
+import { addToFavoritesList, removeFromFavoritesList } from "../../api/favoriteApi";
+import { addToCart } from "../../api/cartApi";
 import { RootStackParamList } from "../../models/types";
 import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import eventBus from '../../services/eventBus';
 
 const { width } = Dimensions.get("window");
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-// Helper function to get image source
+/* ---------- Helper: image source ---------- */
 const getImageSource = (item: any) => {
     if (item.images && Array.isArray(item.images) && item.images.length > 0) {
         const image = item.images[0];
@@ -52,15 +52,16 @@ export default function CategoryScreen() {
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
     const { mainCategory, displayTitle } = route.params as { mainCategory: string; displayTitle?: string };
 
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [selectedCategory, setSelectedCategory] = useState("");
-    const [priceRange, setPriceRange] = useState([0, 5000]);
-    const [modalVisible, setModalVisible] = useState(false);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
 
-    // ✅ Get display title - use passed displayTitle or derive from mainCategory
+    // ✅ Favorites state
+    const [favorites, setFavorites] = useState<string[]>([]);
+
+    /* ---------- Display title ---------- */
     const getDisplayTitle = () => {
         if (displayTitle) return displayTitle;
         if (mainCategory === "New Arrival") return "New Arrivals";
@@ -68,28 +69,81 @@ export default function CategoryScreen() {
         return mainCategory;
     };
 
-    // ✅ Update header title when component mounts or displayTitle changes
     useEffect(() => {
-        const title = getDisplayTitle();
-        // Update the header title by setting route params
-        navigation.setParams({
-            displayTitle: title
-        });
+        navigation.setParams({ displayTitle: getDisplayTitle() });
     }, [displayTitle, mainCategory]);
 
-    const addToFavorites = (_id: number | undefined) => {
-        addToFavoritesList(_id);
+    /* ---------- Load favorites ---------- */
+    useEffect(() => {
+        loadFavorites();
+    }, []);
+
+    const loadFavorites = async () => {
+        try {
+            const stored = await AsyncStorage.getItem('favorites');
+            if (stored) setFavorites(JSON.parse(stored));
+        } catch (err) {
+            console.error('Error loading favorites:', err);
+        }
     };
 
-    const redirectToProductDetails = (id) => {
+    /* ---------- Toggle favorite (add / remove) ---------- */
+    const toggleFavorite = async (id: string) => {
+        try {
+            const isAlreadyFav = favorites.includes(id);
+
+            if (isAlreadyFav) {
+                await removeFromFavoritesList(id);
+                const updated = favorites.filter(fav => fav !== id);
+                setFavorites(updated);
+                await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+            } else {
+                await addToFavoritesList(id);
+                const updated = [...favorites, id];
+                setFavorites(updated);
+                await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+            }
+
+            eventBus.emit('ITEM_REMOVED', { id: 123 });
+            eventBus.emit('FAVORITE_UPDATED', {});
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+            Alert.alert('Error', 'Failed to update wishlist. Please try again.');
+        }
+    };
+
+    /* ---------- Add to cart ---------- */
+    const handleAddToCart = async (item: any) => {
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                Alert.alert('Login Required', 'Please login to add items to cart.');
+                return;
+            }
+
+            LoadingService.show('Adding to cart...');
+
+            const colorValue = item.colors?.[0]?._id || item.colors?.[0]?.name || null;
+            const sizeValue = item.sizes?.[0]?._id || item.sizes?.[0]?.label || null;
+
+            await addToCart(item._id, 1, colorValue, sizeValue);
+
+            Alert.alert('Success', 'Item added to cart successfully!');
+            eventBus.emit('CART_UPDATED', {});
+            eventBus.emit('ITEM_REMOVED', { id: 123 });
+        } catch (error: any) {
+            console.error('Add to cart error:', error);
+            Alert.alert('Error', error?.message || 'Failed to add item to cart.');
+        } finally {
+            LoadingService.hide();
+        }
+    };
+
+    const redirectToProductDetails = (id: string) => {
         navigation.navigate('ProductDetails', { itemId: id });
     };
 
-    const goBack = () => {
-        navigation.goBack();
-    };
-
-    // Fetch categories from API
+    /* ---------- Fetch categories ---------- */
     const fetchCategories = async () => {
         try {
             const token = await AsyncStorage.getItem('authToken');
@@ -112,43 +166,25 @@ export default function CategoryScreen() {
         }
     };
 
-    useEffect(() => {
-        fetchCategories();
-        fetchProducts();
-    }, [mainCategory]);
-
+    /* ---------- Fetch products ---------- */
     const fetchProducts = async () => {
         try {
             setLoading(true);
             LoadingService.show('Loading products...');
 
             const token = await AsyncStorage.getItem('authToken');
-            const headers: any = {
-                'Content-Type': 'application/json',
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const params: any = {};
+            if (mainCategory === "Trending") params.isTrending = true;
+            else if (mainCategory === "New Arrival") params.isNewArrival = true;
+            else params.category = mainCategory;
 
-            if (mainCategory === "Trending") {
-                params.isTrending = true;
-            } else if (mainCategory === "New Arrival") {
-                params.isNewArrival = true;
-            } else {
-                params.category = mainCategory;
-            }
-
-            if (searchText && searchText.trim()) {
-                params.search = searchText.trim();
-            }
-
+            if (searchText && searchText.trim()) params.search = searchText.trim();
             if (selectedCategory && selectedCategory !== 'All' && selectedCategory !== '') {
                 params.category = selectedCategory;
             }
-            if (priceRange?.[0] && priceRange[0] > 0) params.minPrice = priceRange[0];
-            if (priceRange?.[1] && priceRange[1] > 0) params.maxPrice = priceRange[1];
 
             const queryString = Object.keys(params)
                 .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -170,16 +206,19 @@ export default function CategoryScreen() {
         }
     };
 
-    const handleSearchSubmit = () => {
+    useEffect(() => {
+        fetchCategories();
         fetchProducts();
-    };
+    }, [mainCategory]);
+
+    const handleSearchSubmit = () => fetchProducts();
 
     const handleClearSearch = () => {
         setSearchText("");
         fetchProducts();
     };
 
-    const renderPrice = (price, discount) => {
+    const renderPrice = (price: number, discount: number) => {
         const discountedPrice = price - (price * discount / 100);
         return (
             <View style={styles.priceContainer}>
@@ -189,44 +228,82 @@ export default function CategoryScreen() {
         );
     };
 
-    const renderProductCard = ({ item }) => (
-        <TouchableOpacity
-            style={styles.productCard}
-            onPress={() => redirectToProductDetails(item._id)}
-            activeOpacity={0.8}
-        >
-            <View style={styles.imageWrapper}>
-                <Image
-                    source={getImageSource(item)}
-                    style={styles.productImage}
-                />
-                {item.discountPercent > 0 && (
-                    <View style={styles.discountBadge}>
-                        <Text style={styles.discountBadgeText}>{item.discountPercent}% OFF</Text>
-                    </View>
-                )}
-                <TouchableOpacity
-                    style={styles.favoriteIcon}
-                    onPress={() => addToFavorites(item._id)}
-                >
-                    <Ionicons name="heart-outline" size={22} color="#96252A" />
-                </TouchableOpacity>
-            </View>
-            <View style={styles.productInfo}>
-                <Text numberOfLines={1} style={styles.productTitle}>
-                    {item.name}
-                </Text>
-                {renderPrice(item.price, item.discountPercent)}
-                {item.rating !== undefined && item.rating > 0 && (
-                    <View style={styles.ratingContainer}>
-                        <Rating value={item.rating} />
-                        <Text style={styles.ratingCount}>({Math.floor(Math.random() * 100) + 20})</Text>
-                    </View>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
+    /* ---------- Product card ---------- */
+    const renderProductCard = ({ item }: { item: any }) => {
+        const isFav = favorites.includes(item._id);
 
+        return (
+            <TouchableOpacity
+                style={styles.productCard}
+                onPress={() => redirectToProductDetails(item._id)}
+                activeOpacity={0.8}
+            >
+                <View style={styles.imageWrapper}>
+                    <Image source={getImageSource(item)} style={styles.productImage} />
+
+                    {item.discountPercent > 0 && (
+                        <View style={styles.discountBadge}>
+                            <Text style={styles.discountBadgeText}>
+                                {item.discountPercent}% OFF
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* ✅ Wishlist heart (floating on image, top-right) */}
+                    <TouchableOpacity
+                        style={styles.favoriteIcon}
+                        onPress={() => toggleFavorite(item._id)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <Ionicons
+                            name="heart"
+                            size={20}
+                            color={isFav ? "#96252A" : "#FFFFFF"}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.productInfo}>
+                    <Text numberOfLines={1} style={styles.productTitle}>
+                        {item.name}
+                    </Text>
+
+                    {renderPrice(item.price, item.discountPercent)}
+
+                    {/* ✅ Rating (left) + Bag icon (right) */}
+                    <View style={styles.bottomRow}>
+                        {/* Rating */}
+                        {item.rating !== undefined && item.rating > 0 ? (
+                            <View style={styles.ratingRow}>
+                                <MaterialIcons name="star" size={13} color="#138E4E" />
+                                <Text style={styles.ratingText}>
+                                    {Number(item.rating).toFixed(1)}
+                                </Text>
+                            </View>
+                        ) : (
+                            <View style={styles.ratingRow} />
+                        )}
+
+                        {/* Bag icon */}
+                        <TouchableOpacity
+                            style={styles.cartIcon}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                handleAddToCart(item);
+                            }}
+                            activeOpacity={0.6}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="bag-outline" size={18} color="#111" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    /* ---------- Category tab ---------- */
     const renderCategoryTab = (tab: any) => {
         const isActive = selectedCategory === tab._id || (tab._id === '' && !selectedCategory);
         return (
@@ -257,6 +334,7 @@ export default function CategoryScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
+                {/* Search */}
                 <View style={styles.searchSection}>
                     <Ionicons name="search-outline" size={20} color="#999" />
                     <TextInput
@@ -275,6 +353,7 @@ export default function CategoryScreen() {
                     )}
                 </View>
 
+                {/* Category tabs */}
                 <View style={styles.categoryTabsContainer}>
                     <FlatList
                         horizontal
@@ -286,6 +365,7 @@ export default function CategoryScreen() {
                     />
                 </View>
 
+                {/* Products */}
                 {products.length > 0 ? (
                     <FlatList
                         data={products}
@@ -302,14 +382,18 @@ export default function CategoryScreen() {
                         <Ionicons name="search-outline" size={80} color="#D1D5DB" />
                         <Text style={styles.emptyTitle}>No Products Found</Text>
                         <Text style={styles.emptySubtitle}>
-                            {searchText ? `No results for "${searchText}"` : "Try selecting a different category"}
+                            {searchText
+                                ? `No results for "${searchText}"`
+                                : "Try selecting a different category"}
                         </Text>
-                        <TouchableOpacity style={styles.clearFilterBtn} onPress={() => {
-                            setSelectedCategory("");
-                            setPriceRange([0, 5000]);
-                            setSearchText("");
-                            fetchProducts();
-                        }}>
+                        <TouchableOpacity
+                            style={styles.clearFilterBtn}
+                            onPress={() => {
+                                setSelectedCategory("");
+                                setSearchText("");
+                                fetchProducts();
+                            }}
+                        >
                             <Text style={styles.clearFilterBtnText}>Clear Filters</Text>
                         </TouchableOpacity>
                     </View>
@@ -320,29 +404,18 @@ export default function CategoryScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#F8F8F8',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#F8F8F8',
-        paddingHorizontal: 16,
-    },
-    flatList: {
-        flex: 1,
-    },
+    safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
+    container: { flex: 1, backgroundColor: '#F8F8F8', paddingHorizontal: 16 },
+    flatList: { flex: 1 },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: '#fff',
     },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 14,
-        color: '#666',
-    },
+    loadingText: { marginTop: 10, fontSize: 14, color: '#666' },
+
+    /* Search */
     searchSection: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -360,15 +433,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         color: '#151515',
     },
-    clearButton: {
-        padding: 4,
-    },
-    categoryTabsContainer: {
-        marginVertical: 8,
-    },
-    categoryTabsContent: {
-        paddingHorizontal: 2,
-    },
+    clearButton: { padding: 4 },
+
+    /* Category tabs */
+    categoryTabsContainer: { marginVertical: 8 },
+    categoryTabsContent: { paddingHorizontal: 2 },
     categoryTab: {
         paddingHorizontal: 5,
         paddingVertical: 5,
@@ -378,28 +447,16 @@ const styles = StyleSheet.create({
         minWidth: 60,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    categoryTabActive: { backgroundColor: '#96252A' },
+    categoryTabText: { fontSize: 10, color: '#fff', fontWeight: '500' },
+    categoryTabTextActive: { color: '#fff', fontWeight: '600' },
 
-    },
-    categoryTabActive: {
-        backgroundColor: '#96252A',
-    },
-    categoryTabText: {
-        fontSize: 10,
-        color: '#fff',
-        fontWeight: '500',
-    },
-    categoryTabTextActive: {
-        color: '#fff',
-        fontWeight: '600',
-    },
-    columnWrapper: {
-        justifyContent: 'space-between',
-        paddingHorizontal: 2,
-    },
-    listContent: {
-        paddingBottom: 80,
-        paddingTop: 8,
-    },
+    /* Grid */
+    columnWrapper: { justifyContent: 'space-between', paddingHorizontal: 2 },
+    listContent: { paddingBottom: 80, paddingTop: 8 },
+
+    /* Product card */
     productCard: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -412,14 +469,14 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 2,
     },
-    imageWrapper: {
-        position: 'relative',
-    },
+    imageWrapper: { position: 'relative' },
     productImage: {
         width: '100%',
         height: 170,
         resizeMode: 'cover',
     },
+
+    /* Discount */
     discountBadge: {
         position: 'absolute',
         top: 8,
@@ -429,39 +486,32 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 4,
     },
-    discountBadgeText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
+    discountBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+
+    /* ✅ Wishlist heart — floating on image */
     favoriteIcon: {
         position: 'absolute',
         top: 8,
         right: 8,
-        backgroundColor: '#fff',
-        borderRadius: 20,
         padding: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.4,
         shadowRadius: 2,
-        elevation: 2,
+        elevation: 3,
     },
-    productInfo: {
-        padding: 10,
-        paddingBottom: 12,
-    },
+
+    /* Info */
+    productInfo: { padding: 10, paddingBottom: 12 },
     productTitle: {
         fontSize: 14,
         fontWeight: '600',
         color: '#222',
         marginBottom: 4,
     },
-    priceContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 2,
-    },
+
+    /* Price */
+    priceContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
     discountedPrice: {
         fontSize: 15,
         fontWeight: 'bold',
@@ -473,16 +523,30 @@ const styles = StyleSheet.create({
         color: '#888',
         textDecorationLine: 'line-through',
     },
-    ratingContainer: {
+
+    /* ✅ Bottom row — rating (left) + bag icon (right) */
+    bottomRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
+        justifyContent: 'space-between',
+        marginTop: 6,
+        minHeight: 22,
     },
-    ratingCount: {
-        fontSize: 11,
-        color: '#999',
-        marginLeft: 4,
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
     },
+    ratingText: {
+        fontSize: 12,
+        color: '#138E4E',
+        fontWeight: '600',
+    },
+    cartIcon: {
+        padding: 2,
+    },
+
+    /* Empty state */
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -509,9 +573,5 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 8,
     },
-    clearFilterBtnText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
-    },
+    clearFilterBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });
