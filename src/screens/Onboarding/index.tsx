@@ -74,8 +74,16 @@
 //   );
 // };
 
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  FlatList,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../models/types';
@@ -112,75 +120,163 @@ interface IntroSlidesProps {
 
 const BasicExample: React.FC<IntroSlidesProps> = ({ onFinishIntro }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-scroll functionality
+  useEffect(() => {
+    startAutoScroll();
+    return () => {
+      if (autoScrollInterval.current) {
+        clearInterval(autoScrollInterval.current);
+      }
+    };
+  }, []);
+
+  const startAutoScroll = () => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+    }
+    autoScrollInterval.current = setInterval(() => {
+      const nextIndex = (currentSlideIndex + 1) % slides.length;
+      setCurrentSlideIndex(nextIndex);
+      scrollToSlide(nextIndex);
+    }, 4000);
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
+    }
+  };
+
+  const scrollToSlide = (index: number) => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index: index,
+        animated: true,
+      });
+    }
+  };
 
   const handleNext = () => {
+    stopAutoScroll();
     if (currentSlideIndex === slides.length - 1) {
       onFinishIntro();
     } else {
-      setCurrentSlideIndex(currentSlideIndex + 1);
+      const nextIndex = currentSlideIndex + 1;
+      setCurrentSlideIndex(nextIndex);
+      scrollToSlide(nextIndex);
+      startAutoScroll();
     }
   };
 
   const handleSkip = () => {
+    stopAutoScroll();
     onFinishIntro();
   };
 
-  const currentSlide = slides[currentSlideIndex];
+  const handleMomentumScrollEnd = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / width);
+    if (index !== currentSlideIndex && index >= 0 && index < slides.length) {
+      setCurrentSlideIndex(index);
+      stopAutoScroll();
+      startAutoScroll();
+    }
+  };
+
+  const handleScrollBeginDrag = () => {
+    stopAutoScroll();
+  };
+
+  const handleScrollEndDrag = () => {
+    startAutoScroll();
+  };
+
+  const renderSlide = ({ item }: { item: typeof slides[0] }) => {
+    return (
+      <View style={[styles.slideContainer, { backgroundColor: item.backgroundColor }]}>
+        {/* Image - Centered */}
+        <View style={styles.imageContainer}>
+          <Image 
+            source={item.image} 
+            style={styles.image}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Title */}
+        <Text style={styles.title}>
+          {item.title}
+        </Text>
+
+        {/* Description */}
+        <Text style={styles.description}>
+          {item.text}
+        </Text>
+
+        {/* Slide indicators */}
+        <View style={styles.indicatorContainer}>
+          {slides.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.indicator,
+                { backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc' },
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Buttons - Centered */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleNext}
+          >
+            <Text style={styles.nextButtonText}>
+              {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkip}
+          >
+            <Text style={styles.skipButtonText}>
+              Skip
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: currentSlide.backgroundColor }]}>
-      {/* Image - Centered */}
-      <View style={styles.imageContainer}>
-        <Image 
-          source={currentSlide.image} 
-          style={styles.image}
-          resizeMode="contain"
-        />
-      </View>
-
-      {/* Title */}
-      <Text style={styles.title}>
-        {currentSlide.title}
-      </Text>
-
-      {/* Description */}
-      <Text style={styles.description}>
-        {currentSlide.text}
-      </Text>
-
-      {/* Slide indicators */}
-      <View style={styles.indicatorContainer}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.indicator,
-              { backgroundColor: index === currentSlideIndex ? '#151515' : '#ccc' },
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Buttons - Centered */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.nextButton}
-          onPress={handleNext}
-        >
-          <Text style={styles.nextButtonText}>
-            {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleSkip}
-        >
-          <Text style={styles.skipButtonText}>
-            Skip
-          </Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      {/* Slides - FlatList for swipe support */}
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        renderItem={renderSlide}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.index.toString()}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollEndDrag}
+        scrollEventThrottle={16}
+        bounces={false}
+        initialScrollIndex={0}
+        getItemLayout={(data, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
+      />
     </View>
   );
 };
@@ -189,6 +285,11 @@ export default BasicExample;
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  slideContainer: {
+    width: width,
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

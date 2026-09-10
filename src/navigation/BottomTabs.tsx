@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -5,
     right: -10,
-    backgroundColor: "#E53935",
+    backgroundColor: "#0C0C0C",
     borderRadius: 20,
     minWidth: 18,
     height: 18,

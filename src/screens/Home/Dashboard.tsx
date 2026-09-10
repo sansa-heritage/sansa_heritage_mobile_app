@@ -30,13 +30,6 @@ import { getActiveBanners } from '../../api/bannerApi';
 // Base URL for images
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-// Feature Icons
-const featureIcons = {
-  deals: require('../../../assets/icons/deals.png'),
-  shipping: require('../../../assets/icons/shipping.png'),
-  quality: require('../../../assets/icons/quality.png'),
-};
-
 // Premium static product data
 const premiumProducts = [
   {
@@ -82,7 +75,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS COMPONENT - AJIO STYLE (Dark Active Tab)
+// AJIO STYLE PILL TABS - EXACT CLONE
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -92,7 +85,11 @@ interface TopTabsProps {
 const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
   return (
     <View style={styles.topTabsContainer}>
-      <View style={styles.topTabsWrapper}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsScrollContent}
+      >
         {/* SansaHome Tab */}
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'home' && styles.tabItemActive]}
@@ -116,12 +113,12 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
             </Text>
             <MaterialIcons
               name="stars"
-              size={14}
-              color={activeTab === 'premium' ? '#FFFFFF' : '#888'}
+              size={12}
+              color={activeTab === 'premium' ? '#9E0E26' : '#888'}
             />
           </View>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -288,31 +285,81 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ item, selectedCategory, onP
 };
 
 // ============================================
-// FEATURE BADGES COMPONENT - Only 3 Items
+// FEATURE BADGES COMPONENT - 3 Items with MaterialIcons
+// ============================================
+// const FeatureBadges: React.FC = () => (
+//   <View style={styles.featuresContainer}>
+//     <View style={styles.featureItem}>
+//       <View style={styles.featureIconWrapper}>
+//         <MaterialIcons name="local-shipping" size={20} color="#9E0E26" />
+//       </View>
+//       <View style={styles.featureTextWrapper}>
+//         <Text style={styles.featureTitle}>Free Shipping</Text>
+//         <Text style={styles.featureSubtext}>On orders above ₹999</Text>
+//       </View>
+//     </View>
+
+//     <View style={styles.featureDivider} />
+
+//     <View style={styles.featureItem}>
+//       <View style={styles.featureIconWrapper}>
+//         <MaterialIcons name="verified" size={20} color="#9E0E26" />
+//       </View>
+//       <View style={styles.featureTextWrapper}>
+//         <Text style={styles.featureTitle}>Premium Quality</Text>
+//         <Text style={styles.featureSubtext}>Finest fabrics & comfort</Text>
+//       </View>
+//     </View>
+
+//     <View style={styles.featureDivider} />
+
+//     <View style={styles.featureItem}>
+//       <View style={styles.featureIconWrapper}>
+//         <MaterialIcons name="lock" size={20} color="#9E0E26" />
+//       </View>
+//       <View style={styles.featureTextWrapper}>
+//         <Text style={styles.featureTitle}>Secure Payment</Text>
+//         <Text style={styles.featureSubtext}>100% safe & secure</Text>
+//       </View>
+//     </View>
+//   </View>
+// );
+// ============================================
+// FEATURE BADGES COMPONENT - 3 Items with MaterialIcons
 // ============================================
 const FeatureBadges: React.FC = () => (
   <View style={styles.featuresContainer}>
     <View style={styles.featureItem}>
-      <Image source={featureIcons.deals} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureIconWrapper}>
+        <MaterialIcons name="local-shipping" size={16} color="#9E0E26" />
+      </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle}>Exclusive Deals</Text>
-        <Text style={styles.featureSubtext}>Best Prices</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>Free Shipping</Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>On Orders Above ₹999</Text>
       </View>
     </View>
 
+    <View style={styles.featureDivider} />
+
     <View style={styles.featureItem}>
-      <Image source={featureIcons.shipping} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureIconWrapper}>
+        <MaterialIcons name="verified" size={16} color="#9E0E26" />
+      </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle}>Free Shipping</Text>
-        <Text style={styles.featureSubtext}>On orders above 999</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>Premium Quality</Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>Finest fabrics & comfort</Text>
       </View>
     </View>
 
+    <View style={styles.featureDivider} />
+
     <View style={styles.featureItem}>
-      <Image source={featureIcons.quality} style={styles.featureIconImage} resizeMode="contain" />
+      <View style={styles.featureIconWrapper}>
+        <MaterialIcons name="lock" size={16} color="#9E0E26" />
+      </View>
       <View style={styles.featureTextWrapper}>
-        <Text style={styles.featureTitle}>Quality Assured</Text>
-        <Text style={styles.featureSubtext}>100% Original</Text>
+        <Text style={styles.featureTitle} numberOfLines={1}>Secure Payment</Text>
+        <Text style={styles.featureSubtext} numberOfLines={1}>100% safe & secure</Text>
       </View>
     </View>
   </View>
@@ -400,7 +447,7 @@ const PremiumCard: React.FC<PremiumCardProps> = ({ item, onPress, onFavoritePres
           style={styles.premiumFavoriteBtn}
           onPress={() => onFavoritePress(item._id)}
         >
-          <MaterialIcons name="favorite-border" size={18} color="#96252A" />
+          <MaterialIcons name="favorite-border" size={18} color="#9E0E26" />
         </TouchableOpacity>
       </View>
       
@@ -438,7 +485,7 @@ const PremiumSection: React.FC<{
       <View style={styles.premiumHeader}>
         <View style={styles.premiumHeaderLeft}>
           <View style={styles.premiumHeaderIcon}>
-            <MaterialIcons name="stars" size={20} color="#96252A" />
+            <MaterialIcons name="stars" size={20} color="#9E0E26" />
           </View>
           <Text style={styles.premiumTitle}>Premium Collection</Text>
         </View>
@@ -450,7 +497,7 @@ const PremiumSection: React.FC<{
           })}
         >
           <Text style={styles.premiumSeeAllText}>See All</Text>
-          <MaterialIcons name="arrow-forward" size={14} color="#96252A" />
+          <MaterialIcons name="arrow-forward" size={14} color="#9E0E26" />
         </TouchableOpacity>
       </View>
 
@@ -830,7 +877,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      {/* Top Tabs - AJIO Style */}
+      {/* AJIO Style Pill Tabs */}
       <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Content */}
@@ -979,54 +1026,62 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // TOP TABS STYLES - AJIO STYLE (Dark Active Tab)
+  // AJIO STYLE PILL TABS - EXACT CLONE
   // ============================================
   topTabsContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 0,
-    paddingVertical: 12,
+    backgroundColor: '#F7EBD8',
     marginHorizontal: -15,
-    paddingHorizontal: 15,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     marginTop: 0,
-    marginBottom: 4,
+    marginBottom: 0,
     borderBottomWidth: 0,
+    height: 48,
   },
-  topTabsWrapper: {
+
+  tabsScrollContent: {
     flexDirection: 'row',
-    backgroundColor: 'transparent',
-    paddingVertical: 0,
-    gap: 10,
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    gap: 4,
   },
+
   tabItem: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 80,
+    height: 34,
+    minWidth: 70,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
   },
+
   tabItemActive: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
+
   tabContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
+
   tabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
-    color: '#888',
-    letterSpacing: 0.3,
+    color: '#888888',
+    letterSpacing: 0.2,
   },
+
   tabTextActive: {
-    color: '#FFFFFF',
+    color: '#1a1a1a',
     fontWeight: '600',
   },
 
@@ -1038,14 +1093,14 @@ const styles = StyleSheet.create({
   },
   categoryList: {
     paddingHorizontal: 2,
-    gap: 8,
+    gap: 3,
   },
   categoryItem: {
     backgroundColor: '#1a1a1a',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 25,
-    marginRight: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginRight: 5,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 60,
@@ -1053,11 +1108,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryItemActive: {
-    backgroundColor: '#96252A',
-    borderColor: '#96252A',
+    backgroundColor: '#9E0E26',
+    borderColor: '#9E0E26',
   },
   categoryName: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: '500',
     color: '#FFFFFF',
     textAlign: 'center',
@@ -1068,46 +1123,59 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // FEATURE BADGES - 3 Items
+  // FEATURE BADGES - 3 Items with MaterialIcons
   // ============================================
-  featuresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#F8F4F0',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    marginVertical: 4,
-    marginHorizontal: 2,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    paddingHorizontal: 4,
-  },
-  featureIconImage: {
-    width: 22,
-    height: 22,
-    tintColor: '#96252A',
-    marginRight: 4,
-  },
-  featureTextWrapper: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 9,
-    color: '#96252A',
-    fontWeight: '700',
-    lineHeight: 11,
-  },
-  featureSubtext: {
-    fontSize: 7.5,
-    color: '#888',
-    fontWeight: '400',
-    lineHeight: 10,
-  },
+ // ============================================
+// FEATURE BADGES - Mobile Optimized
+// ============================================
+featuresContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  backgroundColor: '#F8F4F0',
+  borderRadius: 6,
+  paddingVertical: 4,
+  paddingHorizontal: 2,
+  marginVertical: 2,
+  marginHorizontal: 2,
+  minHeight: 38,
+},
+featureItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flex: 1,
+  paddingHorizontal: 1,
+},
+featureIconWrapper: {
+  width: 22,
+  height: 22,
+  borderRadius: 11,
+  backgroundColor: '#FCEBED',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 2,
+},
+featureDivider: {
+  width: 1,
+  height: 20,
+  backgroundColor: '#E0D6C8',
+},
+featureTextWrapper: {
+  flex: 1,
+  justifyContent: 'center',
+},
+featureTitle: {
+  fontSize: 9,
+  color: '#9E0E26',
+  fontWeight: '700',
+  lineHeight: 8,
+},
+featureSubtext: {
+  fontSize: 6,
+  color: '#888',
+  fontWeight: '400',
+  lineHeight: 9,
+},
 
   // ============================================
   // PRODUCT CARD
@@ -1136,7 +1204,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 6,
     elevation: 3,
@@ -1219,7 +1286,7 @@ const styles = StyleSheet.create({
   },
   premiumSeeAllText: {
     fontSize: 12,
-    color: '#96252A',
+    color: '#9E0E26',
     fontWeight: '600',
     marginRight: 2,
   },
@@ -1257,7 +1324,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: '#96252A',
+    backgroundColor: '#9E0E26',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
@@ -1296,7 +1363,7 @@ const styles = StyleSheet.create({
   premiumPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#96252A',
+    color: '#9E0E26',
     marginRight: 6,
   },
   premiumStrikePrice: {
@@ -1327,12 +1394,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   newArrivalTitle: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   seeAllText: {
     fontSize: 13,
-    color: '#96252A',
+    color: '#9E0E26',
     fontWeight: '600',
   },
   noRecordsText: {
@@ -1409,7 +1476,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryFilterButtonActive: {
-    backgroundColor: '#96252A',
+    backgroundColor: '#9E0E26',
   },
   categoryFilterText: {
     color: '#333',
@@ -1424,7 +1491,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
   },
   applyButton: {
-    backgroundColor: '#96252A',
+    backgroundColor: '#9E0E26',
     borderRadius: 35,
     paddingVertical: 15,
     alignItems: 'center',
@@ -1448,7 +1515,7 @@ const styles = StyleSheet.create({
   },
   bannerItem: {
     width: width - 30,
-    height: 170,
+    height: 190,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
@@ -1473,7 +1540,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   activeDot: {
-    backgroundColor: '#96252A',
+    backgroundColor: '#9E0E26',
     width: 20,
   },
 
@@ -1481,3 +1548,5 @@ const styles = StyleSheet.create({
   // LOADING
   // ============================================
 });
+
+// export default Dashboard;

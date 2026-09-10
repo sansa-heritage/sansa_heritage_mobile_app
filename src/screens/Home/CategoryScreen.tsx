@@ -72,8 +72,8 @@ export default function CategoryScreen() {
     useEffect(() => {
         const title = getDisplayTitle();
         // Update the header title by setting route params
-        navigation.setParams({ 
-            displayTitle: title 
+        navigation.setParams({
+            displayTitle: title
         });
     }, [displayTitle, mainCategory]);
 
@@ -131,7 +131,7 @@ export default function CategoryScreen() {
             }
 
             const params: any = {};
-            
+
             if (mainCategory === "Trending") {
                 params.isTrending = true;
             } else if (mainCategory === "New Arrival") {
@@ -196,9 +196,9 @@ export default function CategoryScreen() {
             activeOpacity={0.8}
         >
             <View style={styles.imageWrapper}>
-                <Image 
-                    source={getImageSource(item)} 
-                    style={styles.productImage} 
+                <Image
+                    source={getImageSource(item)}
+                    style={styles.productImage}
                 />
                 {item.discountPercent > 0 && (
                     <View style={styles.discountBadge}>
@@ -370,18 +370,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 2,
     },
     categoryTab: {
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginRight: 10,
-        backgroundColor: '#F0F0F0',
+        paddingHorizontal: 5,
+        paddingVertical: 5,
+        borderRadius: 10,
+        marginRight: 5,
+        backgroundColor: '#0C0C0C',
+        minWidth: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+
     },
     categoryTabActive: {
         backgroundColor: '#96252A',
     },
     categoryTabText: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 10,
+        color: '#fff',
         fontWeight: '500',
     },
     categoryTabTextActive: {

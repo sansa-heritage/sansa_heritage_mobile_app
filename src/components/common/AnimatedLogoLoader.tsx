@@ -123,7 +123,7 @@ const AnimatedLogoLoader: React.FC = () => {
             ]}
           >
             <Image
-              source={require('../../../assets/images/Loader-Logo.jpg')}
+              source={require('../../../assets/images/icon.png')}
               style={styles.logo}
               resizeMode="contain"
             />
