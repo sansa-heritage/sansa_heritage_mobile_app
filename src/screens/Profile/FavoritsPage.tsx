@@ -6,7 +6,6 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   SafeAreaView,
   Dimensions,
   Alert,
@@ -158,8 +157,13 @@ const FavoriteScreen = () => {
     }
   };
 
-  const getFavorites = async () => {
+  // ✅ FIXED: now calls LoadingService.show() / hide() so the global
+  // AnimatedLogoLoader appears — same as Dashboard / ProductDetails.
+  // The optional `showLoader` flag prevents the global overlay from
+  // appearing on pull-to-refresh (uses the FlatList spinner instead).
+  const getFavorites = async (showLoader: boolean = true) => {
     setLoading(true);
+    if (showLoader) LoadingService.show('Loading wishlist...'); // ✅ ADDED
     try {
       setError('');
       const data = await getFavoriteProducts();
@@ -185,16 +189,17 @@ const FavoriteScreen = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      if (showLoader) LoadingService.hide(); // ✅ ADDED
     }
   };
 
   useEffect(() => {
-    getFavorites();
+    getFavorites(true);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    getFavorites();
+    getFavorites(false); // silent refresh — no global overlay
   };
 
   const getImageUrl = (product: any): string => {
@@ -285,7 +290,7 @@ const FavoriteScreen = () => {
             </View>
           )}
 
-          {/* ✅ Wishlist heart — no white bg, just floating filled heart */}
+          {/* ✅ Wishlist heart — floating filled heart, no bg */}
           <TouchableOpacity
             style={styles.heartBtn}
             onPress={() => handleRemoveFavorite(productId)}
@@ -320,7 +325,7 @@ const FavoriteScreen = () => {
               <Text style={styles.shareText}>Share</Text>
             </TouchableOpacity>
 
-            {/* ✅ Add to Cart — bag icon instead of text */}
+            {/* ✅ Add to Cart — bag icon, no bg, black icon */}
             <TouchableOpacity
               style={styles.addBtn}
               onPress={() => {
@@ -337,8 +342,8 @@ const FavoriteScreen = () => {
             >
               <Ionicons
                 name={outOfStock ? 'notifications-outline' : 'bag-outline'}
-                size={18}
-                color="#fff"
+                size={20}
+                color="#111"
               />
             </TouchableOpacity>
           </View>
@@ -363,13 +368,9 @@ const FavoriteScreen = () => {
     </View>
   );
 
+  // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#96252A" />
-        <Text style={styles.loadingText}>Loading your wishlist...</Text>
-      </View>
-    );
+    return <View style={styles.loadingContainer} />;
   }
 
   if (error) {
@@ -377,7 +378,7 @@ const FavoriteScreen = () => {
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={60} color="#E53935" />
         <Text style={styles.errorMessage}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={getFavorites}>
+        <TouchableOpacity style={styles.retryButton} onPress={() => getFavorites(true)}>
           <Text style={styles.retryButtonText}>RETRY</Text>
         </TouchableOpacity>
       </View>
@@ -502,13 +503,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // ✅ Heart — no white bg, floating filled red heart
+  // Heart — floating filled red heart, no bg
   heartBtn: {
     position: 'absolute',
     top: 4,
     right: 4,
     padding: 4,
-    // removed: width, height, borderRadius, backgroundColor, elevation, shadow
   },
 
   // Info
@@ -565,14 +565,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ✅ Add to Cart button — square icon button
+  // ✅ Add to Cart button — no bg, black icon
   addBtn: {
-    backgroundColor: '#111',
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 4,
   },
 
   // Empty

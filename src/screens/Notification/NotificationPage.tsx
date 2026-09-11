@@ -6,13 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   ScrollView,
   Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNotifications } from "../../context/NotificationContext";
 import { Notification } from "../../models/notification.model";
+import LoadingService from "../../services/LoadingService";
 
 const { width } = Dimensions.get('window');
 
@@ -37,10 +37,22 @@ const NotificationScreen: React.FC = () => {
 
   const tabs = ["All", "Orders", "Offers", "Updates", "Reminders"];
 
+  // ✅ FIXED: wrap the initial fetch with the global loader so
+  // the AnimatedLogoLoader appears (same as other screens).
   useEffect(() => {
-    fetchNotifications();
+    const load = async () => {
+      LoadingService.show('Loading notifications...');
+      try {
+        await fetchNotifications();
+      } finally {
+        LoadingService.hide();
+      }
+    };
+    load();
   }, []);
 
+  // ✅ Pull-to-refresh stays silent (uses the RefreshControl spinner
+  // instead of the full-screen global loader).
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchNotifications();
@@ -248,12 +260,6 @@ const NotificationScreen: React.FC = () => {
     <View style={styles.container}>
       {/* TITLE SECTION */}
       <View style={styles.titleSection}>
-        {/* <View style={styles.titleLeft}>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>
-            Stay updated with your orders and offers
-          </Text>
-        </View> */}
         {unreadCount > 0 && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -278,9 +284,8 @@ const NotificationScreen: React.FC = () => {
 
       {/* NOTIFICATIONS LIST */}
       {loading && notifications.length === 0 ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#96252A" />
-        </View>
+        // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
+        <View style={styles.loading} />
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconContainer}>

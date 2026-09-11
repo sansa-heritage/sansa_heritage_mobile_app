@@ -243,7 +243,7 @@ const ProductPage = () => {
   if (loading || !productDetails) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#9E0E26" />
+        {/* <ActivityIndicator size="large" color="#9E0E26" /> */}
       </View>
     );
   }

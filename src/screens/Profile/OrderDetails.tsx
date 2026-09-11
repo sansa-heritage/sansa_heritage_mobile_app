@@ -9,7 +9,6 @@ import {
   StatusBar,
   Dimensions,
   Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -29,20 +28,18 @@ const scale = (size: number) => {
 const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A';
   try {
-    // If date is already formatted (contains "at" or is a string)
     if (typeof dateString === 'string' && dateString.includes('at')) {
       const parts = dateString.split(' at ');
       if (parts.length === 2) {
         return parts[0];
       }
-      // Try to extract date from string like "November 30, 2025 at 06:41:24 PM"
       const match = dateString.match(/([A-Za-z]+ \d{1,2}, \d{4})/);
       if (match) {
         return match[1];
       }
       return dateString;
     }
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
       return dateString;
@@ -65,7 +62,6 @@ const formatTime = (dateString: string) => {
       const parts = dateString.split(' at ');
       if (parts.length === 2) {
         const timePart = parts[1];
-        // Remove seconds if present
         const match = timePart.match(/(\d{1,2}:\d{2})(?::\d{2})?\s?(AM|PM)?/);
         if (match) {
           const hour = parseInt(match[1].split(':')[0]);
@@ -82,7 +78,7 @@ const formatTime = (dateString: string) => {
       }
       return dateString;
     }
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
       return 'N/A';
@@ -159,7 +155,6 @@ const OrderDetailsScreen = () => {
       const totalAmount = order.totalPrice || 0;
       const discount = itemTotal - totalAmount;
 
-      // ✅ Format dates using the helper functions
       const placedDate = formatDate(order.createdAt);
       const placedTime = formatTime(order.createdAt);
       const deliveryDate = formatDate(order.createdAt);
@@ -239,13 +234,10 @@ const OrderDetailsScreen = () => {
     }
   };
 
+  // ✅ Removed inline ActivityIndicator + "Loading order details..." text
+  // → global AnimatedLogoLoader handles the first-load overlay
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#96252A" />
-        <Text style={styles.loadingText}>Loading order details...</Text>
-      </View>
-    );
+    return <View style={styles.loadingContainer} />;
   }
 
   if (!orderData) {

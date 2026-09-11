@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoWrapper: {
-    width: 90,
-    height: 90,
+    width: 60,
+    height: 60,
     backgroundColor: '#fff',
     borderRadius: 45,
     justifyContent: 'center',

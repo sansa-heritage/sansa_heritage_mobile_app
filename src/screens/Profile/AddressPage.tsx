@@ -8,7 +8,6 @@ import {
     Modal,
     TextInput,
     ScrollView,
-    ActivityIndicator,
     SafeAreaView,
     Alert,
     Dimensions,
@@ -43,6 +42,7 @@ export default function AddressScreen({ navigation }) {
     const fetchAddresses = async () => {
         const token = await AsyncStorage.getItem('authToken');
         setLoading(true);
+        LoadingService.show('Loading addresses...');   // ✅ ADDED
 
         try {
             const response = await fetch(`${config.baseURL}api/auth/addresses`, {
@@ -75,6 +75,7 @@ export default function AddressScreen({ navigation }) {
             Toast.show('error', 'Failed to load addresses');
         } finally {
             setLoading(false);
+            LoadingService.hide();                      // ✅ ADDED
         }
     };
 
@@ -168,8 +169,6 @@ export default function AddressScreen({ navigation }) {
                 : `${config.baseURL}api/auth/addresses`;
 
             const method = isEditMode ? "PUT" : "POST";
-
-            console.log('Saving address:', addressData);
 
             const response = await fetch(url, {
                 method,
@@ -279,97 +278,89 @@ export default function AddressScreen({ navigation }) {
             <TouchableOpacity
                 style={[styles.addressCard, isSelected && styles.selectedCard]}
                 onPress={() => onSelectAddress(item)}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
             >
-                <View style={styles.cardHeader}>
-                    <View style={styles.cardHeaderLeft}>
-                        <Ionicons name="location-outline" size={20} color="#96252A" />
-                        <Text style={styles.streetText} numberOfLines={1}>{item.street}</Text>
-                    </View>
-                    <View style={styles.badgeContainer}>
+                {/* Top row: name + badges */}
+                <View style={styles.cardTopRow}>
+                    <View style={styles.cardTitleRow}>
+                        <Text style={styles.cardName}>Delivery Address</Text>
                         {item.isDefault && (
                             <View style={styles.defaultBadge}>
-                                <Ionicons name="star" size={12} color="#16A34A" />
-                                <Text style={styles.defaultBadgeText}>Default</Text>
-                            </View>
-                        )}
-                        {isSelected && !item.isDefault && (
-                            <View style={styles.selectedBadge}>
-                                <Text style={styles.selectedBadgeText}>Selected</Text>
+                                <Text style={styles.defaultBadgeText}>DEFAULT</Text>
                             </View>
                         )}
                     </View>
-                </View>
 
-                <View style={styles.cardBody}>
-                    <View style={styles.detailRow}>
-                        <Ionicons name="business-outline" size={16} color="#6B7280" />
-                        <Text style={styles.detailText}>{item.city}, {item.state}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Ionicons name="globe-outline" size={16} color="#6B7280" />
-                        <Text style={styles.detailText}>{item.country} - {item.zipCode}</Text>
-                    </View>
-                    {item.phone && (
-                        <View style={styles.detailRow}>
-                            <Ionicons name="call-outline" size={16} color="#6B7280" />
-                            <Text style={styles.detailText}>{item.phone}</Text>
-                        </View>
+                    {isSelected && (
+                        <Ionicons name="checkmark-circle" size={20} color="#96252A" />
                     )}
                 </View>
 
-                <View style={styles.cardFooter}>
-                    <View style={styles.actionButtons}>
-                        {!item.isDefault && (
-                            <TouchableOpacity
-                                onPress={() => setDefaultAddress(item._id)}
-                                style={[styles.actionBtn, styles.setDefaultBtn]}
-                            >
-                                <Ionicons name="star-outline" size={16} color="#F59E0B" />
-                                <Text style={styles.setDefaultText}>Set Default</Text>
-                            </TouchableOpacity>
-                        )}
+                {/* Address lines */}
+                <Text style={styles.addressLine} numberOfLines={2}>
+                    {item.street}
+                </Text>
+                <Text style={styles.addressLine}>
+                    {item.city}, {item.state} - {item.zipCode}
+                </Text>
+                <Text style={styles.addressLine}>
+                    {item.country}
+                </Text>
+                {item.phone ? (
+                    <Text style={styles.phoneLine}>Phone: {item.phone}</Text>
+                ) : null}
+
+                {/* Actions row */}
+                <View style={styles.cardActions}>
+                    <TouchableOpacity
+                        onPress={() => openEditModal(item)}
+                        style={styles.actionLink}
+                    >
+                        <Ionicons name="create-outline" size={14} color="#96252A" />
+                        {/* <Text style={styles.actionLinkText}>EDIT</Text> */}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => deleteAddress(item._id)}
+                        style={styles.actionLink}
+                    >
+                        <Ionicons name="trash-outline" size={14} color="#96252A" />
+                        {/* <Text style={styles.actionLinkText}>DELETE</Text> */}
+                    </TouchableOpacity>
+
+                    {!item.isDefault && (
                         <TouchableOpacity
-                            onPress={() => openEditModal(item)}
-                            style={styles.actionBtn}
+                            onPress={() => setDefaultAddress(item._id)}
+                            style={styles.actionLink}
                         >
-                            <Ionicons name="pencil-outline" size={20} color="#96252A" />
+                            <Ionicons name="star-outline" size={14} color="#96252A" />
+                            {/* <Text style={styles.actionLinkText}>SET DEFAULT</Text> */}
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => deleteAddress(item._id)}
-                            style={styles.actionBtn}
-                        >
-                            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                        </TouchableOpacity>
-                    </View>
+                    )}
                 </View>
             </TouchableOpacity>
         );
     };
 
+    // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
     if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#96252A" />
-                <Text style={styles.loadingText}>Loading addresses...</Text>
-            </View>
-        );
+        return <View style={styles.loadingContainer} />;
     }
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
+                {/* HEADER */}
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeft}>
-                        <Ionicons name="location" size={24} color="#96252A" />
-                        {/* <Text style={styles.headerTitle}>My Addresses</Text> */}
+                        <Text style={styles.headerTitle}>Saved Addresses</Text>
                         <View style={styles.addressCount}>
                             <Text style={styles.addressCountText}>{addresses.length}</Text>
                         </View>
                     </View>
                     <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-                        <Ionicons name="add-circle" size={24} color="#96252A" />
-                        <Text style={styles.addButtonText}>Add New</Text>
+                        <Ionicons name="add" size={18} color="#96252A" />
+                        <Text style={styles.addButtonText}>ADD NEW</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -399,18 +390,19 @@ export default function AddressScreen({ navigation }) {
                 ) : (
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconContainer}>
-                            <Ionicons name="location-outline" size={80} color="#D1D5DB" />
+                            <Ionicons name="location-outline" size={60} color="#D1D5DB" />
                         </View>
                         <Text style={styles.emptyTitle}>No Addresses Saved</Text>
                         <Text style={styles.emptySubtitle}>
                             Add your first address to make checkout faster and easier
                         </Text>
                         <TouchableOpacity style={styles.emptyAddButton} onPress={openAddModal}>
-                            <Text style={styles.emptyAddButtonText}>Add New Address</Text>
+                            <Text style={styles.emptyAddButtonText}>ADD NEW ADDRESS</Text>
                         </TouchableOpacity>
                     </View>
                 )}
 
+                {/* ADD / EDIT MODAL */}
                 <Modal
                     visible={addressModalVisible}
                     animationType="slide"
@@ -435,7 +427,7 @@ export default function AddressScreen({ navigation }) {
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.inputLabel}>Street Address *</Text>
                                     <View style={styles.inputWrapper}>
-                                        <Ionicons name="home-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <Ionicons name="home-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                         <TextInput
                                             style={styles.input}
                                             placeholder="Enter street address"
@@ -449,7 +441,7 @@ export default function AddressScreen({ navigation }) {
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.inputLabel}>City *</Text>
                                     <View style={styles.inputWrapper}>
-                                        <Ionicons name="business-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <Ionicons name="business-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                         <TextInput
                                             style={styles.input}
                                             placeholder="Enter city"
@@ -464,7 +456,7 @@ export default function AddressScreen({ navigation }) {
                                     <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
                                         <Text style={styles.inputLabel}>State *</Text>
                                         <View style={styles.inputWrapper}>
-                                            <Ionicons name="map-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                            <Ionicons name="map-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                             <TextInput
                                                 style={styles.input}
                                                 placeholder="State"
@@ -477,7 +469,7 @@ export default function AddressScreen({ navigation }) {
                                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
                                         <Text style={styles.inputLabel}>Zip Code *</Text>
                                         <View style={styles.inputWrapper}>
-                                            <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                            <Ionicons name="mail-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                             <TextInput
                                                 style={styles.input}
                                                 placeholder="Zip Code"
@@ -494,7 +486,7 @@ export default function AddressScreen({ navigation }) {
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.inputLabel}>Country *</Text>
                                     <View style={styles.inputWrapper}>
-                                        <Ionicons name="globe-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                        <Ionicons name="globe-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                         <TextInput
                                             style={styles.input}
                                             placeholder="Enter country"
@@ -507,13 +499,13 @@ export default function AddressScreen({ navigation }) {
 
                                 <View style={styles.inputGroup}>
                                     <Text style={styles.inputLabel}>Phone Number</Text>
-                                    <Text style={styles.inputHelper}>Optional - Enter 10-digit number</Text>
+                                    <Text style={styles.inputHelper}>Optional — Enter 10-digit number</Text>
                                     <View style={styles.phoneWrapper}>
                                         <View style={styles.countryCodeContainer}>
                                             <Text style={styles.countryCode}>+91</Text>
                                         </View>
                                         <View style={[styles.inputWrapper, { flex: 1 }]}>
-                                            <Ionicons name="call-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+                                            <Ionicons name="call-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
                                             <TextInput
                                                 style={[styles.input, { borderWidth: 0, paddingLeft: 0 }]}
                                                 placeholder="Enter phone number"
@@ -552,6 +544,7 @@ export default function AddressScreen({ navigation }) {
     );
 }
 
+/* ==================== STYLES ==================== */
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
@@ -573,6 +566,8 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6B7280',
     },
+
+    // ================= HEADER =================
     headerContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -586,144 +581,121 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: '700',
-        color: '#0F172A',
+        color: '#111827',
+        letterSpacing: 0.2,
     },
     addressCount: {
         backgroundColor: '#F1F5F9',
-        paddingHorizontal: 10,
-        paddingVertical: 2,
-        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 1,
+        borderRadius: 10,
     },
     addressCountText: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#64748B',
         fontWeight: '600',
     },
     addButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
+        gap: 2,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#96252A',
     },
     addButtonText: {
         color: '#96252A',
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
+
+    // ================= LIST =================
     listContent: {
         paddingBottom: 20,
     },
+
+    // ================= CARD (AJIO/MYNTRA STYLE) =================
     addressCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 8,
+        padding: 14,
         marginBottom: 12,
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        elevation: 1,
     },
     selectedCard: {
         borderColor: '#96252A',
-        borderWidth: 2,
-        backgroundColor: '#FEF2F2',
+        borderWidth: 1.5,
+        backgroundColor: '#FFFBFB',
     },
-    cardHeader: {
+    cardTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 8,
     },
-    cardHeaderLeft: {
+    cardTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        flex: 1,
     },
-    streetText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#0F172A',
-        flex: 1,
-    },
-    badgeContainer: {
-        flexDirection: 'row',
-        gap: 6,
+    cardName: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#6B7280',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
     },
     defaultBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
         backgroundColor: '#DCFCE7',
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#86EFAC',
-        gap: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 3,
     },
     defaultBadgeText: {
         color: '#16A34A',
-        fontSize: 10,
-        fontWeight: '600',
+        fontSize: 9,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
-    selectedBadge: {
-        backgroundColor: '#FEF3C7',
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#FCD34D',
+    addressLine: {
+        fontSize: 13,
+        color: '#374151',
+        lineHeight: 19,
+        marginBottom: 1,
     },
-    selectedBadgeText: {
-        color: '#D97706',
-        fontSize: 10,
-        fontWeight: '600',
+    phoneLine: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 4,
     },
-    cardBody: {
-        marginBottom: 10,
-        gap: 4,
-    },
-    detailRow: {
+    cardActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-    },
-    detailText: {
-        fontSize: 14,
-        color: '#4B5563',
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        paddingTop: 0,
+        gap: 18,
+        marginTop: 12,
+        paddingTop: 10,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
     },
-    actionButtons: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'center',
-    },
-    actionBtn: {
-        padding: 4,
-    },
-    setDefaultBtn: {
+    actionLink: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
     },
-    setDefaultText: {
-        fontSize: 12,
-        color: '#F59E0B',
-        fontWeight: '500',
+    actionLinkText: {
+        fontSize: 11,
+        color: '#96252A',
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
+
+    // ================= EMPTY STATE =================
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -731,38 +703,42 @@ const styles = StyleSheet.create({
         paddingHorizontal: 40,
     },
     emptyIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '600',
         color: '#0F172A',
-        marginTop: 16,
+        marginTop: 8,
     },
     emptySubtitle: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#94A3B8',
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: 6,
+        lineHeight: 19,
     },
     emptyAddButton: {
         marginTop: 24,
         backgroundColor: '#96252A',
-        paddingHorizontal: 28,
-        paddingVertical: 14,
-        borderRadius: 12,
+        paddingHorizontal: 24,
+        paddingVertical: 12,
+        borderRadius: 6,
     },
     emptyAddButtonText: {
         color: '#FFFFFF',
-        fontWeight: '600',
-        fontSize: 16,
+        fontWeight: '700',
+        fontSize: 12,
+        letterSpacing: 0.5,
     },
+
+    // ================= MODAL =================
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -772,8 +748,8 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 24,
+        borderRadius: 16,
+        padding: 20,
         width: '100%',
         maxHeight: '90%',
     },
@@ -781,10 +757,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 18,
     },
     modalTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '700',
         color: '#0F172A',
     },
@@ -792,16 +768,16 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     inputGroup: {
-        marginBottom: 16,
+        marginBottom: 14,
     },
     inputLabel: {
-        fontSize: 14,
-        fontWeight: '500',
+        fontSize: 13,
+        fontWeight: '600',
         color: '#0F172A',
         marginBottom: 6,
     },
     inputHelper: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#94A3B8',
         marginBottom: 6,
     },
@@ -810,16 +786,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        borderRadius: 10,
+        borderRadius: 8,
         backgroundColor: '#F8FAFC',
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
     },
     inputIcon: {
         marginRight: 8,
     },
     input: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 10,
         fontSize: 14,
         color: '#0F172A',
     },
@@ -835,8 +811,8 @@ const styles = StyleSheet.create({
     countryCodeContainer: {
         backgroundColor: '#F1F5F9',
         paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderRadius: 10,
+        paddingVertical: 10,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },
@@ -848,12 +824,12 @@ const styles = StyleSheet.create({
     modalActions: {
         flexDirection: 'row',
         gap: 12,
-        marginTop: 20,
+        marginTop: 18,
     },
     actionButton: {
         flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
+        paddingVertical: 13,
+        borderRadius: 8,
         alignItems: 'center',
     },
     cancelButton: {
@@ -864,14 +840,15 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         color: '#64748B',
         fontWeight: '600',
-        fontSize: 16,
+        fontSize: 14,
     },
     saveButton: {
         backgroundColor: '#96252A',
     },
     saveButtonText: {
         color: '#FFFFFF',
-        fontWeight: '600',
-        fontSize: 16,
+        fontWeight: '700',
+        fontSize: 14,
+        letterSpacing: 0.5,
     },
 });
