@@ -254,7 +254,7 @@ const FavoriteScreen = () => {
         : item.productId.price;
 
     const outOfStock = isOutOfStock(productData);
-    const rating = productData.rating || 4.3;
+    const rating = Number(productData.rating || 0);
 
     return (
       <TouchableOpacity
@@ -282,15 +282,16 @@ const FavoriteScreen = () => {
             </>
           )}
 
-          {/* Rating pill — bottom left */}
-          {!outOfStock && (
+          {/* Rating pill — bottom left (number | star, no count) */}
+          {!outOfStock && rating > 0 && (
             <View style={styles.ratingPill}>
-              <Text style={styles.ratingPillText}>{rating.toFixed(0)}</Text>
-              <MaterialIcons name="star" size={11} color="#138E4E" />
+              <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+              <View style={styles.ratingPillDivider} />
+              <MaterialIcons name="star" size={10} color="#1F9E4C" />
             </View>
           )}
 
-          {/* ✅ Share — floating top-left, no background */}
+          {/* Share — floating top-left, no background */}
           <TouchableOpacity
             style={styles.shareIcon}
             onPress={() => handleShare(item)}
@@ -299,7 +300,7 @@ const FavoriteScreen = () => {
             <Ionicons name="share-social-outline" size={20} color="#111" />
           </TouchableOpacity>
 
-          {/* ✅ Filled heart — floating top-right, no background */}
+          {/* Filled heart — floating top-right, no background */}
           <TouchableOpacity
             style={styles.heartBtn}
             onPress={() => handleRemoveFavorite(productId)}
@@ -331,12 +332,9 @@ const FavoriteScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ====== INFO ====== */}
+        {/* ====== INFO — product name only (brand removed) ====== */}
         <View style={styles.info}>
-          <Text style={styles.brand} numberOfLines={1}>
-            {productData.brand?.name || productData.brand || 'Brand'}
-          </Text>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={styles.name} numberOfLines={2}>
             {item.productId.name}
           </Text>
 
@@ -539,17 +537,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  // Rating pill — bottom left of image
+  // Rating pill — white bg, black number, divider, green star
   ratingPill: {
     position: 'absolute',
     bottom: 8,
     left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 3,
     gap: 3,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -558,12 +556,18 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   ratingPillText: {
-    color: '#222',
+    color: '#111',
     fontSize: 11,
     fontWeight: '700',
   },
+  ratingPillDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 2,
+  },
 
-  // ✅ Share — floating top-left, no bg
+  // Share — floating top-left, no bg
   shareIcon: {
     position: 'absolute',
     top: 6,
@@ -571,7 +575,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // ✅ Filled heart — floating top-right, no bg
+  // Filled heart — floating top-right, no bg
   heartBtn: {
     position: 'absolute',
     top: 6,
@@ -606,21 +610,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Info section
+  // Info section — product name only
   info: {
     paddingHorizontal: 10,
     paddingTop: 20,
     paddingBottom: 10,
   },
-  brand: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 2,
-  },
   name: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111',
     marginBottom: 6,
   },
   priceRow: {

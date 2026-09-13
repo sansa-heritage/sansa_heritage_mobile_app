@@ -157,7 +157,7 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 <Ionicons
                   name={tab.icon}
                   size={26}
-                  color={isActive ? '#96252A' : '#adadad'}
+                  color={isActive ? '#0C0C0C' : '#adadad'}
                 />
                 {badgeCount > 0 && (
                   <View style={styles.badge}>
@@ -169,7 +169,7 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
               <Text
                 style={[
                   styles.label,
-                  { color: isActive ? '#96252A' : '#adadad' },
+                  { color: isActive ? '#0C0C0C' : '#adadad' },
                 ]}
               >
                 {tab.name.replace('Page', '')}
@@ -210,42 +210,42 @@ export default function CustomBottomTabs({ activeRoute, onLogout }: Props) {
                 onPress={redirectToFavorites}
                 style={styles.menuItem}
               >
-                <MaterialIcons name="favorite-border" size={24} color="#96252A" />
+                <MaterialIcons name="favorite-border" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>My Favorites</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToWallets} style={styles.menuItem}>
-                <Ionicons name="wallet-outline" size={24} color="#96252A" />
+                <Ionicons name="wallet-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>Wallets</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToOrders} style={styles.menuItem}>
-                <MaterialIcons name="shopping-cart" size={24} color="#96252A" />
+                <MaterialIcons name="shopping-cart" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>My Orders</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToProfile} style={styles.menuItem}>
-                <Ionicons name="person-outline" size={24} color="#96252A" />
+                <Ionicons name="person-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>Profiles</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToAboutUs}>
-                <Ionicons name="document-text-outline" size={24} color="#96252A" />
+                <Ionicons name="document-text-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>About Us</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.menuItem} onPress={redirectToPrivacy}>
-                <Ionicons name="lock-closed-outline" size={24} color="#96252A" />
+                <Ionicons name="lock-closed-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>Privacy policy</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={redirectToSettings} style={styles.menuItem}>
-                <Ionicons name="settings-outline" size={24} color="#96252A" />
+                <Ionicons name="settings-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>Settings</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleLogout} style={styles.logOut}>
-                <Ionicons name="log-out-outline" size={24} color="#96252A" />
+                <Ionicons name="log-out-outline" size={24} color="#0C0C0C" />
                 <Text style={styles.menuItemText}>Log out</Text>
               </TouchableOpacity>
 
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   },
   menuCloseText: {
     fontSize: 16,
-    color: '#96252A',
+    color: '#0C0C0C',
     textAlign: 'right',
     marginBottom: 20,
     fontWeight: '600',

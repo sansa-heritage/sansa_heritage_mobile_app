@@ -258,7 +258,6 @@ const ProductPage = () => {
   const finalPrice =
     productDetails.price - (productDetails.price * productDetails.discountPercent) / 100;
 
-  // ✅ Split title into bold prefix + normal rest
   const nameParts = (productDetails.name || '').split(' ');
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
@@ -377,7 +376,7 @@ const ProductPage = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* ✅ FULL-WIDTH IMAGE SLIDER */}
+        {/* FULL-WIDTH IMAGE SLIDER */}
         <View style={styles.imageWrapper}>
           <FlatList
             ref={flatListRef}
@@ -435,24 +434,23 @@ const ProductPage = () => {
           </View>
         )}
 
-        {/* ✅ PRODUCT INFO - Bold prefix title + Myntra star pill */}
+        {/* PRODUCT INFO — title + rating pill (number | star, no count) */}
         <View style={styles.card}>
           <Text style={styles.title}>
             <Text style={styles.titleBold}>{boldPart}</Text>
             {normalPart ? ` ${normalPart}` : ''}
           </Text>
 
-          {/* ✅ Myntra-style rating pill */}
-          <View style={styles.ratingPill}>
-            <Text style={styles.ratingPillText}>
-              {Number(productDetails.rating || 0).toFixed(1)}
-            </Text>
-            <FontAwesome name="star" size={11} color="#FFFFFF" />
-            <View style={styles.ratingPillDivider} />
-            <Text style={styles.ratingPillReviews}>
-              {productDetails.reviews || 0}
-            </Text>
-          </View>
+          {/* ✅ Rating pill — same style as Dashboard */}
+          {Number(productDetails.rating || 0) > 0 && (
+            <View style={styles.ratingPill}>
+              <Text style={styles.ratingPillText}>
+                {Number(productDetails.rating || 0).toFixed(1)}
+              </Text>
+              <View style={styles.ratingPillDivider} />
+              <FontAwesome name="star" size={11} color="#1F9E4C" />
+            </View>
+          )}
 
           <View style={styles.priceRow}>
             <Text style={styles.finalPrice}>₹{finalPrice.toFixed(0)}</Text>
@@ -494,7 +492,7 @@ const ProductPage = () => {
           </View>
         )}
 
-        {/* ✅ SIZE - White background, smaller font */}
+        {/* SIZE */}
         {requiresSize() && (
           <View style={styles.card}>
             <View style={styles.sizeHeader}>
@@ -543,7 +541,7 @@ const ProductPage = () => {
           </View>
         )}
 
-        {/* ✅ DELIVERY ADDRESS CARD (Myntra style) */}
+        {/* DELIVERY ADDRESS CARD */}
         <View style={styles.card}>
           <View style={styles.myntraDeliveryRow}>
             <Ionicons name="location-outline" size={18} color="#333" />
@@ -560,7 +558,7 @@ const ProductPage = () => {
           </View>
         </View>
 
-        {/* ✅ RETURNS & DELIVERY INFO - Myntra style horizontal cards */}
+        {/* RETURNS & DELIVERY INFO */}
         <View style={styles.card}>
           <View style={styles.myntraInfoGrid}>
             <View style={styles.myntraInfoItem}>
@@ -855,7 +853,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
 
-  // ✅ Full-width image
+  // Full-width image
   imageWrapper: {
     backgroundColor: "#fff",
     position: "relative",
@@ -865,7 +863,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width,
-    height: width * 1.2, // proper aspect ratio
+    height: width * 1.2,
     resizeMode: "cover",
   },
 
@@ -934,7 +932,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // ✅ Title - bold prefix
+  // Title
   title: {
     fontSize: 17,
     color: "#000",
@@ -945,33 +943,35 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 
-  // ✅ Myntra-style rating pill
+  // ✅ Rating pill — matches Dashboard style (number | star, no count)
   ratingPill: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    backgroundColor: "#138E4E",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
     marginTop: 8,
-    gap: 3,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
   },
   ratingPillText: {
-    color: "#FFFFFF",
+    color: "#111",
     fontSize: 12,
     fontWeight: "700",
   },
   ratingPillDivider: {
     width: 1,
     height: 10,
-    backgroundColor: "rgba(255,255,255,0.5)",
-    marginHorizontal: 4,
-  },
-  ratingPillReviews: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "500",
+    backgroundColor: "#D0D0D0",
+    marginHorizontal: 2,
   },
 
   priceRow: {
@@ -1051,7 +1051,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
   },
 
-  // ✅ Size boxes - WHITE background, smaller font
   sizeGrid: {
     flexDirection: "row",
     gap: 8,
@@ -1066,7 +1065,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF", // ✅ White
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 10,
     position: "relative",
   },
@@ -1082,7 +1081,7 @@ const styles = StyleSheet.create({
   sizeText: {
     fontWeight: "500",
     color: "#333",
-    fontSize: 11, // ✅ Reduced font size
+    fontSize: 11,
   },
   sizeTextActive: {
     color: "#9E0E26",
@@ -1100,7 +1099,6 @@ const styles = StyleSheet.create({
     right: 3,
   },
 
-  // ✅ Myntra-style delivery row
   myntraDeliveryRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1122,7 +1120,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ✅ Myntra-style info grid
   myntraInfoGrid: {
     flexDirection: "row",
     alignItems: "center",

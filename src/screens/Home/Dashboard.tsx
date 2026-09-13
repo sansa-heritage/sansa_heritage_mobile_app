@@ -352,7 +352,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       : originalPrice;
 
   const rating = Number(item.rating || 0);
-  const ratingCount = Number(item.reviewCount || item.reviews || 0);
 
   return (
     <TouchableOpacity
@@ -371,7 +370,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <View style={styles.imageWrapper}>
         <Image source={getImageSource(item)} style={styles.productImage} />
 
-        {/* ❤️ Wishlist icon — white filled with black outline (no bg), subtle shadow */}
         <TouchableOpacity
           style={styles.favoriteBtn}
           onPress={() => onFavoritePress(item._id)}
@@ -397,13 +395,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {rating > 0 && (
           <View style={styles.ratingPill}>
             <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
-            <MaterialIcons name="star" size={10} color="#1F9E4C" />
             <View style={styles.ratingDivider} />
-            <Text style={styles.ratingCount}>
-              {ratingCount > 999
-                ? `${Math.floor(ratingCount / 1000)}k`
-                : ratingCount}
-            </Text>
+            <MaterialIcons name="star" size={10} color="#1F9E4C" />
           </View>
         )}
       </View>
@@ -1072,18 +1065,25 @@ const styles = StyleSheet.create({
   },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  // Feature badges
+  // ============================================
+  // FEATURE BADGES
+  // ============================================
   featuresContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#F8F4F0',
-    borderRadius: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-    marginVertical: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    marginVertical: 4,
     marginHorizontal: 2,
-    minHeight: 38,
+    minHeight: 44,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   featureItem: {
     flexDirection: 'row',
@@ -1100,7 +1100,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 2,
   },
-  featureDivider: { width: 1, height: 20, backgroundColor: '#E0D6C8' },
+  // ✅ Divider — height 22 matches icon row, vertically centered
+  featureDivider: {
+    width: 1,
+    height: 22,
+    backgroundColor: '#D0D0D0',
+    alignSelf: 'center',
+    marginHorizontal: 2,
+  },
   featureTextWrapper: { flex: 1, justifyContent: 'center' },
   featureTitle: {
     fontSize: 9,
@@ -1116,7 +1123,7 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // PRODUCT CARD — with subtle shadow
+  // PRODUCT CARD
   // ============================================
   productCard: {
     width: '48%',
@@ -1124,7 +1131,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 18,
     overflow: 'hidden',
-    // ✅ soft card shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -1156,7 +1162,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
 
-  // ✅ Wishlist icon — subtle drop shadow so it pops on images
   favoriteBtn: {
     position: 'absolute',
     top: 8,
@@ -1169,6 +1174,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
+  // ✅ Rating pill — number → divider → star (no count)
   ratingPill: {
     position: 'absolute',
     bottom: 8,
@@ -1180,7 +1186,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 3,
     gap: 3,
-    // ✅ tiny shadow on the rating pill too
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -1197,11 +1202,6 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#D0D0D0',
     marginHorizontal: 2,
-  },
-  ratingCount: {
-    color: '#666',
-    fontSize: 11,
-    fontWeight: '500',
   },
 
   productInfo: {
@@ -1320,7 +1320,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  // ✅ Premium wishlist — subtle drop shadow too
   premiumFavoriteBtn: {
     position: 'absolute',
     top: 8,

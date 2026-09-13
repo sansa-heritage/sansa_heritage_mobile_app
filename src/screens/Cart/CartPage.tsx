@@ -52,6 +52,7 @@ interface CartItem {
   sizeLabel?: string;
   colorName?: string;
   colorHex?: string | null;
+  availableSizes?: SizeInfo[];
 }
 
 /* ================= COMPONENT ================= */
@@ -66,6 +67,7 @@ const CartScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
+  const [sizeModalVisible, setSizeModalVisible] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
 
@@ -207,6 +209,7 @@ const CartScreen: React.FC = () => {
                 sizeLabel: getSizeLabel(item.size),
                 colorName: getColorName(item.color),
                 colorHex: getColorHex(item.color),
+                availableSizes: [],
                 cartItemId: `${item.productId || 'unknown'}-${getColorName(
                   item.color,
                 )}-${getSizeLabel(item.size)}-${index}`,
@@ -228,6 +231,7 @@ const CartScreen: React.FC = () => {
                 colorName: getColorName(item.color),
                 colorHex: getColorHex(item.color),
                 imageUrl: item.imageUrl || '',
+                availableSizes: [],
                 cartItemId: `${item.productId}-${getColorName(
                   item.color,
                 )}-${getSizeLabel(item.size)}-${index}`,
@@ -239,6 +243,9 @@ const CartScreen: React.FC = () => {
             let sizeLabel = getSizeLabel(item.size);
             let colorName = getColorName(item.color);
             let colorHex = getColorHex(item.color);
+            const availableSizes: SizeInfo[] = Array.isArray(productData?.sizes)
+              ? productData.sizes
+              : [];
 
             if (
               productData &&
@@ -296,6 +303,7 @@ const CartScreen: React.FC = () => {
               colorName: colorName,
               colorHex: colorHex,
               imageUrl: imageUrl || '',
+              availableSizes,
               cartItemId: `${item.productId}-${colorName}-${sizeLabel}`,
             };
           } catch (err) {
@@ -306,6 +314,7 @@ const CartScreen: React.FC = () => {
               colorName: getColorName(item.color),
               colorHex: getColorHex(item.color),
               imageUrl: item.imageUrl || '',
+              availableSizes: [],
               cartItemId: `${item.productId}-${getColorName(
                 item.color,
               )}-${getSizeLabel(item.size)}`,
@@ -382,6 +391,62 @@ const CartScreen: React.FC = () => {
     setDeliveryAddress(address);
     await AsyncStorage.setItem('selectedAddress', JSON.stringify(address));
     setAddressModalVisible(false);
+  };
+
+  /* ================= SIZE CHANGE (dynamic) ================= */
+
+  const updateSize = async (newSize: SizeInfo, index: number) => {
+    const currentItem = cartItems[index];
+    if (!currentItem) return;
+
+    LoadingService.show();
+    try {
+      let colorValue: any = null;
+      if (currentItem.color) {
+        colorValue =
+          typeof currentItem.color === 'object'
+            ? currentItem.color._id || currentItem.color.name || null
+            : currentItem.color;
+      }
+
+      let oldSizeValue: any = null;
+      if (currentItem.size) {
+        oldSizeValue =
+          typeof currentItem.size === 'object'
+            ? currentItem.size._id || currentItem.size.label || null
+            : currentItem.size;
+      }
+
+      await removeFromCart(
+        currentItem.productId,
+        Number(currentItem.quantity),
+        colorValue,
+        oldSizeValue,
+      );
+
+      await addToCart(
+        currentItem.productId,
+        Number(currentItem.quantity),
+        colorValue,
+        newSize._id || newSize.label,
+      );
+
+      setCartItems(prev =>
+        prev.map((it, idx) =>
+          idx === index
+            ? { ...it, size: newSize, sizeLabel: getSizeLabel(newSize) }
+            : it,
+        ),
+      );
+
+      setSizeModalVisible(false);
+      setActiveItemIndex(-1);
+    } catch (e: any) {
+      console.log('Update size error:', e);
+      Alert.alert('Error', 'Failed to update size. Please try again.');
+    } finally {
+      LoadingService.hide();
+    }
   };
 
   /* ================= QTY ================= */
@@ -575,7 +640,7 @@ const CartScreen: React.FC = () => {
       (Number(i.price || 0) *
         Number(i.discount || 0) *
         Number(i.quantity || 0)) /
-      100,
+        100,
     0,
   );
 
@@ -641,7 +706,6 @@ const CartScreen: React.FC = () => {
     const discountedPrice =
       Number(item.price) -
       (Number(item.price) * Number(item.discount || 0)) / 100;
-    const brandName = item.name?.split(' ')[0] || 'Brand';
     const isLast = index === cartItems.length - 1;
 
     return (
@@ -669,30 +733,27 @@ const CartScreen: React.FC = () => {
               <Ionicons name="close" size={18} color="#666" />
             </TouchableOpacity>
 
-            {/* Brand + name */}
-            <Text style={styles.brand} numberOfLines={1}>
-              {brandName}
-            </Text>
+            {/* Product name */}
             <Text style={styles.name} numberOfLines={2}>
               {item.name || 'Product'}
             </Text>
 
-            {/* Size text + color circle + Qty dropdown */}
-            <View style={styles.metaRow}>
-              {/* Size — plain text */}
-              <Text style={styles.sizeText}>
-                Size: <Text style={styles.sizeValue}>{sizeDisplay}</Text>
-              </Text>
-
-              {/* Color — filled circle (fits content) */}
-              {colorHex && colorHex !== 'N/A' ? (
-                <View
-                  style={[
-                    styles.colorCircle,
-                    { backgroundColor: colorHex },
-                  ]}
-                />
-              ) : null}
+            {/* ✅ Size + Qty side by side */}
+            <View style={styles.dropdownRow}>
+              {/* Size — dynamic dropdown pill */}
+              <TouchableOpacity
+                style={styles.sizePill}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setActiveItemIndex(index);
+                  setSizeModalVisible(true);
+                }}
+              >
+                <Text style={styles.sizePillText}>
+                  Size: {sizeDisplay}
+                </Text>
+                <Ionicons name="chevron-down" size={12} color="#333" />
+              </TouchableOpacity>
 
               {/* Qty — dropdown pill */}
               <TouchableOpacity
@@ -709,6 +770,19 @@ const CartScreen: React.FC = () => {
                 <Ionicons name="chevron-down" size={12} color="#333" />
               </TouchableOpacity>
             </View>
+
+            {/* ✅ Color below the dropdowns */}
+            {colorHex && colorHex !== 'N/A' ? (
+              <View style={styles.colorRow2}>
+                <Text style={styles.colorLabel}>Color:</Text>
+                <View
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: colorHex },
+                  ]}
+                />
+              </View>
+            ) : null}
 
             {/* Price row */}
             <View style={styles.priceRow}>
@@ -998,7 +1072,7 @@ const CartScreen: React.FC = () => {
               })
             }
           >
-            <Text style={styles.checkoutText}>PROCEED TO BUY</Text>
+            <Text style={styles.checkoutText}>PLACE ORDER</Text>
           </TouchableOpacity>
         </View>
 
@@ -1028,6 +1102,65 @@ const CartScreen: React.FC = () => {
               <TouchableOpacity
                 style={[styles.qtyOption, styles.cancelButton]}
                 onPress={() => setAddressModalVisible(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ✅ SIZE MODAL — dynamic sizes from product API */}
+        <Modal visible={sizeModalVisible} transparent animationType="slide">
+          <View style={styles.qtyModalOverlay}>
+            <View style={styles.qtyModal}>
+              <Text style={styles.modalTitle}>Select Size</Text>
+              {activeItemIndex >= 0 &&
+              cartItems[activeItemIndex]?.availableSizes?.length ? (
+                cartItems[activeItemIndex].availableSizes!.map((s: SizeInfo) => {
+                  const label = getSizeLabel(s);
+                  const isCurrent =
+                    getSizeLabel(cartItems[activeItemIndex]?.size) === label;
+                  const isOut = s.stock === 0;
+                  return (
+                    <TouchableOpacity
+                      key={s._id || label}
+                      style={styles.qtyOption}
+                      disabled={isOut}
+                      onPress={() => {
+                        if (activeItemIndex !== -1) {
+                          updateSize(s, activeItemIndex);
+                        }
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isOut
+                            ? '#C0C0C0'
+                            : isCurrent
+                            ? '#96252A'
+                            : '#111',
+                          fontWeight: isCurrent ? '700' : '500',
+                        }}
+                      >
+                        {label}
+                        {isOut ? '  (Out of stock)' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <Text
+                  style={{ padding: 14, textAlign: 'center', color: '#999' }}
+                >
+                  No sizes available
+                </Text>
+              )}
+              <TouchableOpacity
+                style={[styles.qtyOption, styles.cancelButton]}
+                onPress={() => {
+                  setSizeModalVisible(false);
+                  setActiveItemIndex(-1);
+                }}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
@@ -1156,41 +1289,41 @@ const styles = StyleSheet.create({
     padding: 4,
     zIndex: 2,
   },
-  brand: {
-    fontSize: 15,
-    fontWeight: '700',
+  name: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#111',
     paddingRight: 24,
-  },
-  name: {
-    fontSize: 13,
-    color: '#666',
     marginTop: 2,
-    paddingRight: 24,
   },
 
-  // Size text + color circle + qty pill
-  metaRow: {
+  // ✅ Size + Qty side by side row
+  dropdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginTop: 10,
-    gap: 10,
   },
-  sizeText: {
-    fontSize: 13,
-    color: '#333',
-  },
-  sizeValue: {
-    fontWeight: '700',
-    color: '#111',
-  },
-  colorCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+
+  // Size pill (dropdown)
+  sizePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#fff',
   },
+  sizePillText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+
+  // Qty pill (dropdown)
   qtyPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1206,6 +1339,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
     fontWeight: '500',
+  },
+
+  // ✅ Color row below the dropdowns
+  colorRow2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  colorLabel: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  colorCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
 
   // Price
@@ -1318,11 +1471,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // couponRemoveText: {
-  //   color: '#fff',
-  //   fontWeight: '600',
-  //   fontSize: 13,
-  // },
   couponAppliedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
