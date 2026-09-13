@@ -6,7 +6,6 @@ import {
     TouchableOpacity,
     Image,
     Dimensions,
-    ActivityIndicator,
     SafeAreaView,
     StyleSheet,
     TextInput,
@@ -27,7 +26,6 @@ import eventBus from '../../services/eventBus';
 const { width } = Dimensions.get("window");
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-/* ---------- Helper: image source ---------- */
 const getImageSource = (item: any) => {
     if (item.images && Array.isArray(item.images) && item.images.length > 0) {
         const image = item.images[0];
@@ -58,10 +56,8 @@ export default function CategoryScreen() {
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
 
-    // ✅ Favorites state
     const [favorites, setFavorites] = useState<string[]>([]);
 
-    /* ---------- Display title ---------- */
     const getDisplayTitle = () => {
         if (displayTitle) return displayTitle;
         if (mainCategory === "New Arrival") return "New Arrivals";
@@ -73,7 +69,6 @@ export default function CategoryScreen() {
         navigation.setParams({ displayTitle: getDisplayTitle() });
     }, [displayTitle, mainCategory]);
 
-    /* ---------- Load favorites ---------- */
     useEffect(() => {
         loadFavorites();
     }, []);
@@ -87,7 +82,6 @@ export default function CategoryScreen() {
         }
     };
 
-    /* ---------- Toggle favorite (add / remove) ---------- */
     const toggleFavorite = async (id: string) => {
         try {
             const isAlreadyFav = favorites.includes(id);
@@ -112,7 +106,6 @@ export default function CategoryScreen() {
         }
     };
 
-    /* ---------- Add to cart ---------- */
     const handleAddToCart = async (item: any) => {
         try {
             const token = await AsyncStorage.getItem('authToken');
@@ -143,7 +136,6 @@ export default function CategoryScreen() {
         navigation.navigate('ProductDetails', { itemId: id });
     };
 
-    /* ---------- Fetch categories ---------- */
     const fetchCategories = async () => {
         try {
             const token = await AsyncStorage.getItem('authToken');
@@ -166,7 +158,6 @@ export default function CategoryScreen() {
         }
     };
 
-    /* ---------- Fetch products ---------- */
     const fetchProducts = async () => {
         try {
             setLoading(true);
@@ -218,92 +209,6 @@ export default function CategoryScreen() {
         fetchProducts();
     };
 
-    const renderPrice = (price: number, discount: number) => {
-        const discountedPrice = price - (price * discount / 100);
-        return (
-            <View style={styles.priceContainer}>
-                <Text style={styles.discountedPrice}>₹{discountedPrice?.toFixed(0)}</Text>
-                <Text style={styles.originalPrice}>₹{price?.toFixed(0)}</Text>
-            </View>
-        );
-    };
-
-    /* ---------- Product card ---------- */
-    const renderProductCard = ({ item }: { item: any }) => {
-        const isFav = favorites.includes(item._id);
-
-        return (
-            <TouchableOpacity
-                style={styles.productCard}
-                onPress={() => redirectToProductDetails(item._id)}
-                activeOpacity={0.8}
-            >
-                <View style={styles.imageWrapper}>
-                    <Image source={getImageSource(item)} style={styles.productImage} />
-
-                    {item.discountPercent > 0 && (
-                        <View style={styles.discountBadge}>
-                            <Text style={styles.discountBadgeText}>
-                                {item.discountPercent}% OFF
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* ✅ Wishlist heart (floating on image, top-right) */}
-                    <TouchableOpacity
-                        style={styles.favoriteIcon}
-                        onPress={() => toggleFavorite(item._id)}
-                        activeOpacity={0.7}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                        <Ionicons
-                            name="heart"
-                            size={20}
-                            color={isFav ? "#96252A" : "#FFFFFF"}
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.productInfo}>
-                    <Text numberOfLines={1} style={styles.productTitle}>
-                        {item.name}
-                    </Text>
-
-                    {renderPrice(item.price, item.discountPercent)}
-
-                    {/* ✅ Rating (left) + Bag icon (right) */}
-                    <View style={styles.bottomRow}>
-                        {/* Rating */}
-                        {item.rating !== undefined && item.rating > 0 ? (
-                            <View style={styles.ratingRow}>
-                                <MaterialIcons name="star" size={13} color="#138E4E" />
-                                <Text style={styles.ratingText}>
-                                    {Number(item.rating).toFixed(1)}
-                                </Text>
-                            </View>
-                        ) : (
-                            <View style={styles.ratingRow} />
-                        )}
-
-                        {/* Bag icon */}
-                        <TouchableOpacity
-                            style={styles.cartIcon}
-                            onPress={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(item);
-                            }}
-                            activeOpacity={0.6}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <Ionicons name="bag-outline" size={18} color="#111" />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    /* ---------- Category tab ---------- */
     const renderCategoryTab = (tab: any) => {
         const isActive = selectedCategory === tab._id || (tab._id === '' && !selectedCategory);
         return (
@@ -322,19 +227,144 @@ export default function CategoryScreen() {
         );
     };
 
-    if (loading && products.length === 0) {
+    /* ============================================
+       PRODUCT CARD — same Add pill as FavoriteScreen
+       ============================================ */
+    const renderProductCard = ({ item }: { item: any }) => {
+        const isFav = favorites.includes(item._id);
+
+        const originalPrice = Number(item.price || 0);
+        const discountPercent = Number(item.discountPercent || 0);
+        const discountedPrice =
+            discountPercent > 0
+                ? originalPrice - (originalPrice * discountPercent) / 100
+                : originalPrice;
+
+        const rating = Number(item.rating || 0);
+        const ratingCount = Number(item.reviewCount || item.reviews || 0);
+        const outOfStock = item.stock === 0;
+
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#96252A" />
-                <Text style={styles.loadingText}>Loading products...</Text>
-            </View>
+            <TouchableOpacity
+                style={styles.productCard}
+                onPress={() => redirectToProductDetails(item._id)}
+                activeOpacity={0.85}
+            >
+                {discountPercent >= 20 && (
+                    <View style={styles.megaDropRow}>
+                        <View style={styles.megaDropBadge}>
+                            <Text style={styles.megaDropText}>Mega Price Drop</Text>
+                        </View>
+                    </View>
+                )}
+
+                <View style={styles.imageWrapper}>
+                    <Image source={getImageSource(item)} style={styles.productImage} />
+
+                    {/* Out-of-stock overlay */}
+                    {outOfStock && (
+                        <>
+                            <View style={styles.oosOverlay} />
+                            <View style={styles.oosBadge}>
+                                <Text style={styles.oosBadgeText}>OUT OF STOCK</Text>
+                            </View>
+                        </>
+                    )}
+
+                    {/* ❤️ Wishlist — floating top-right (same white+black outline style) */}
+                    <TouchableOpacity
+                        style={styles.favoriteIcon}
+                        onPress={() => toggleFavorite(item._id)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <MaterialIcons
+                            name="favorite"
+                            size={22}
+                            style={
+                                isFav
+                                    ? { color: '#E9445A' }
+                                    : {
+                                        color: '#FFFFFF',
+                                        textShadowColor: '#000',
+                                        textShadowOffset: { width: 0, height: 0 },
+                                        textShadowRadius: 2,
+                                    }
+                            }
+                        />
+                    </TouchableOpacity>
+
+                    {/* Rating pill — bottom-left */}
+                    {rating > 0 && (
+                        <View style={styles.ratingPill}>
+                            <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+                            <MaterialIcons name="star" size={10} color="#1F9E4C" />
+                            {ratingCount > 0 && (
+                                <>
+                                    <View style={styles.ratingDivider} />
+                                    <Text style={styles.ratingCount}>
+                                        {ratingCount > 999
+                                            ? `${Math.floor(ratingCount / 1000)}k`
+                                            : ratingCount}
+                                    </Text>
+                                </>
+                            )}
+                        </View>
+                    )}
+
+                    {/* ✅ Add / Similar pill — bottom-right, same as FavoriteScreen */}
+                    <TouchableOpacity
+                        style={styles.addPill}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                            if (outOfStock) {
+                                redirectToProductDetails(item._id);
+                            } else {
+                                handleAddToCart(item);
+                            }
+                        }}
+                    >
+                        <Ionicons
+                            name={outOfStock ? 'repeat-outline' : 'bag-add-outline'}
+                            size={16}
+                            color="#E9445A"
+                        />
+                        <Text style={styles.addPillText}>
+                            {outOfStock ? 'Similar' : 'Add'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.productInfo}>
+                    <Text numberOfLines={1} style={styles.productTitle}>
+                        {item.name}
+                    </Text>
+
+                    {discountPercent >= 20 && (
+                        <View style={styles.megaDropInline}>
+                            <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
+                        </View>
+                    )}
+
+                    <View style={styles.priceRow}>
+                        <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+                        <Text style={styles.finalPrice}>₹{discountedPrice.toFixed(0)}</Text>
+                        {discountPercent > 0 && (
+                            <Text style={styles.discountText}>{discountPercent}% OFF</Text>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
         );
+    };
+
+    if (loading && products.length === 0) {
+        return <View style={styles.loadingContainer} />;
     }
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Search */}
                 <View style={styles.searchSection}>
                     <Ionicons name="search-outline" size={20} color="#999" />
                     <TextInput
@@ -353,7 +383,6 @@ export default function CategoryScreen() {
                     )}
                 </View>
 
-                {/* Category tabs */}
                 <View style={styles.categoryTabsContainer}>
                     <FlatList
                         horizontal
@@ -365,7 +394,6 @@ export default function CategoryScreen() {
                     />
                 </View>
 
-                {/* Products */}
                 {products.length > 0 ? (
                     <FlatList
                         data={products}
@@ -413,9 +441,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: '#fff',
     },
-    loadingText: { marginTop: 10, fontSize: 14, color: '#666' },
 
-    /* Search */
     searchSection: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -435,7 +461,6 @@ const styles = StyleSheet.create({
     },
     clearButton: { padding: 4 },
 
-    /* Category tabs */
     categoryTabsContainer: { marginVertical: 8 },
     categoryTabsContent: { paddingHorizontal: 2 },
     categoryTab: {
@@ -452,101 +477,191 @@ const styles = StyleSheet.create({
     categoryTabText: { fontSize: 10, color: '#fff', fontWeight: '500' },
     categoryTabTextActive: { color: '#fff', fontWeight: '600' },
 
-    /* Grid */
     columnWrapper: { justifyContent: 'space-between', paddingHorizontal: 2 },
     listContent: { paddingBottom: 80, paddingTop: 8 },
 
-    /* Product card */
     productCard: {
         backgroundColor: '#fff',
-        borderRadius: 12,
-        marginBottom: 12,
+        borderRadius: 8,
+        marginBottom: 18,
         width: (width - 48) / 2,
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
-        shadowRadius: 4,
+        shadowRadius: 6,
         elevation: 2,
     },
+
+    megaDropRow: {
+        flexDirection: 'row',
+        marginBottom: 6,
+        paddingHorizontal: 2,
+    },
+    megaDropBadge: {
+        backgroundColor: '#E9445A',
+        borderRadius: 3,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    megaDropText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+
     imageWrapper: { position: 'relative' },
     productImage: {
         width: '100%',
-        height: 170,
+        height: 200,
+        borderRadius: 8,
+        backgroundColor: '#F5F5F5',
         resizeMode: 'cover',
     },
 
-    /* Discount */
-    discountBadge: {
-        position: 'absolute',
-        top: 8,
-        left: 8,
-        backgroundColor: '#950C21',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
+    /* Out-of-stock overlay */
+    oosOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255,255,255,0.55)',
     },
-    discountBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+    oosBadge: {
+        position: 'absolute',
+        top: '46%',
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(90,110,120,0.65)',
+        paddingVertical: 6,
+        alignItems: 'center',
+    },
+    oosBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 0.8,
+    },
 
-    /* ✅ Wishlist heart — floating on image */
+    /* ❤️ Wishlist — floating top-right, no bg */
     favoriteIcon: {
         position: 'absolute',
         top: 8,
         right: 8,
-        padding: 4,
+        padding: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.25,
         shadowRadius: 2,
+        elevation: 2,
+    },
+
+    ratingPill: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 3,
+        gap: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    ratingPillText: {
+        color: '#111',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    ratingDivider: {
+        width: 1,
+        height: 10,
+        backgroundColor: '#D0D0D0',
+        marginHorizontal: 2,
+    },
+    ratingCount: {
+        color: '#666',
+        fontSize: 11,
+        fontWeight: '500',
+    },
+
+    /* ✅ Add / Similar pill — bottom-right, same as FavoriteScreen */
+    addPill: {
+        position: 'absolute',
+        bottom: -14,
+        right: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1.2,
+        borderColor: '#E9445A',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        zIndex: 2,
         elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    addPillText: {
+        color: '#E9445A',
+        fontSize: 13,
+        fontWeight: '700',
     },
 
-    /* Info */
-    productInfo: { padding: 10, paddingBottom: 12 },
+    productInfo: {
+        paddingTop: 20,
+        paddingHorizontal: 8,
+        paddingBottom: 10,
+    },
     productTitle: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#222',
-        marginBottom: 4,
+        color: '#111',
+        marginBottom: 6,
     },
 
-    /* Price */
-    priceContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-    discountedPrice: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#000',
-        marginRight: 6,
+    megaDropInline: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#FCEBED',
+        borderRadius: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginBottom: 6,
     },
-    originalPrice: {
+    megaDropInlineText: {
+        color: '#E9445A',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flexWrap: 'wrap',
+    },
+    strikePrice: {
         fontSize: 12,
-        color: '#888',
+        color: '#999',
         textDecorationLine: 'line-through',
     },
-
-    /* ✅ Bottom row — rating (left) + bag icon (right) */
-    bottomRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 6,
-        minHeight: 22,
+    finalPrice: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#111',
     },
-    ratingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-    },
-    ratingText: {
-        fontSize: 12,
-        color: '#138E4E',
-        fontWeight: '600',
-    },
-    cartIcon: {
-        padding: 2,
+    discountText: {
+        fontSize: 13,
+        color: '#F58220',
+        fontWeight: '700',
     },
 
-    /* Empty state */
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',

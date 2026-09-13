@@ -329,7 +329,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD
+// PRODUCT CARD — Myntra style
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -343,57 +343,93 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onPress,
   onFavoritePress,
   isFavorite = false,
-}) => (
-  <TouchableOpacity
-    style={styles.productCard}
-    onPress={() => onPress(item)}
-    activeOpacity={0.8}
-  >
-    <View style={styles.imageWrapper}>
-      <Image source={getImageSource(item)} style={styles.productImage} />
+}) => {
+  const originalPrice = Number(item.price || 0);
+  const discountPercent = Number(item.discountPercent || 0);
+  const discountedPrice =
+    discountPercent > 0
+      ? originalPrice - (originalPrice * discountPercent) / 100
+      : originalPrice;
 
-      {/* ⭐ Rating overlay on image (bottom-left) */}
-      {item.rating !== undefined && item.rating > 0 && (
-        <View style={styles.ratingOverlay}>
-          <MaterialIcons name="star" size={11} color="#FFFFFF" />
-          <Text style={styles.ratingOverlayText}>
-            {Number(item.rating).toFixed(1)}
-          </Text>
+  const rating = Number(item.rating || 0);
+  const ratingCount = Number(item.reviewCount || item.reviews || 0);
+
+  return (
+    <TouchableOpacity
+      style={styles.productCard}
+      onPress={() => onPress(item)}
+      activeOpacity={0.85}
+    >
+      {discountPercent >= 20 && (
+        <View style={styles.megaDropRow}>
+          <View style={styles.megaDropBadge}>
+            <Text style={styles.megaDropText}>Mega Price Drop</Text>
+          </View>
         </View>
       )}
 
-      {/* ❤️ Wishlist icon */}
-      <TouchableOpacity
-        style={styles.favoriteBtn}
-        onPress={() => onFavoritePress(item._id)}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons
-          name="favorite"
-          size={20}
-          color={isFavorite ? '#9E0E26' : '#FFFFFF'}
-        />
-      </TouchableOpacity>
-    </View>
+      <View style={styles.imageWrapper}>
+        <Image source={getImageSource(item)} style={styles.productImage} />
 
-    <View style={styles.productInfo}>
-      <Text numberOfLines={1} style={styles.productTitle}>
-        {item.name}
-      </Text>
+        {/* ❤️ Wishlist icon — white filled with black outline (no bg), subtle shadow */}
+        <TouchableOpacity
+          style={styles.favoriteBtn}
+          onPress={() => onFavoritePress(item._id)}
+          activeOpacity={0.7}
+          hitSlop={8}
+        >
+          <MaterialIcons
+            name="favorite"
+            size={22}
+            style={
+              isFavorite
+                ? { color: '#E9445A' }
+                : {
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
+            }
+          />
+        </TouchableOpacity>
 
-      <View style={styles.priceRow}>
-        <Text style={styles.finalPrice}>
-          ₹
-          {(
-            item?.price -
-            (item?.price * (item?.discountPercent || 0)) / 100
-          )?.toFixed(0)}
-        </Text>
-        <Text style={styles.strikePrice}>₹{item?.price}</Text>
+        {rating > 0 && (
+          <View style={styles.ratingPill}>
+            <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+            <MaterialIcons name="star" size={10} color="#1F9E4C" />
+            <View style={styles.ratingDivider} />
+            <Text style={styles.ratingCount}>
+              {ratingCount > 999
+                ? `${Math.floor(ratingCount / 1000)}k`
+                : ratingCount}
+            </Text>
+          </View>
+        )}
       </View>
-    </View>
-  </TouchableOpacity>
-);
+
+      <View style={styles.productInfo}>
+        <Text numberOfLines={1} style={styles.productTitle}>
+          {item.name}
+        </Text>
+
+        {discountPercent >= 20 && (
+          <View style={styles.megaDropInline}>
+            <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
+          </View>
+        )}
+
+        <View style={styles.priceRow}>
+          <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+          <Text style={styles.finalPrice}>₹{discountedPrice.toFixed(0)}</Text>
+          {discountPercent > 0 && (
+            <Text style={styles.discountText}>{discountPercent}% OFF</Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 // ============================================
 // PREMIUM PRODUCT CARD
@@ -423,12 +459,10 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
       <View style={styles.premiumImageWrapper}>
         <Image source={getImageSource(item)} style={styles.premiumImage} />
 
-        {/* Premium Tag */}
         <View style={styles.premiumTag}>
           <Text style={styles.premiumTagText}>{item.tag || 'PREMIUM'}</Text>
         </View>
 
-        {/* ⭐ Rating overlay on image (bottom-left) */}
         {item.rating !== undefined && item.rating > 0 && (
           <View style={styles.ratingOverlay}>
             <MaterialIcons name="star" size={11} color="#FFFFFF" />
@@ -438,16 +472,25 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
           </View>
         )}
 
-        {/* ❤️ Wishlist */}
         <TouchableOpacity
           style={styles.premiumFavoriteBtn}
           onPress={() => onFavoritePress(item._id)}
           activeOpacity={0.7}
+          hitSlop={8}
         >
           <MaterialIcons
             name="favorite"
-            size={18}
-            color={isFavorite ? '#9E0E26' : '#FFFFFF'}
+            size={20}
+            style={
+              isFavorite
+                ? { color: '#E9445A' }
+                : {
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
+            }
           />
         </TouchableOpacity>
       </View>
@@ -547,7 +590,6 @@ export default function Dashboard() {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  // Favorites
   useEffect(() => {
     loadFavorites();
   }, []);
@@ -577,7 +619,6 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch banners
   const fetchBanners = async () => {
     try {
       const banners = await getActiveBanners();
@@ -593,7 +634,6 @@ export default function Dashboard() {
     }
   };
 
-  // Auto-scroll
   useEffect(() => {
     if (bannerImages.length <= 1 || !isAutoScrolling) return;
     const interval = setInterval(() => {
@@ -603,13 +643,11 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [bannerImages.length, currentBannerIndex, isAutoScrolling]);
 
-  // Debounce
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchText(searchText), 500);
     return () => clearTimeout(timer);
   }, [searchText]);
 
-  // Categories
   const fetchCategories = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -884,7 +922,6 @@ export default function Dashboard() {
         keyboardShouldPersistTaps="handled"
       />
 
-      {/* Filter Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -1078,70 +1115,141 @@ const styles = StyleSheet.create({
     lineHeight: 9,
   },
 
-  // Product card
+  // ============================================
+  // PRODUCT CARD — with subtle shadow
+  // ============================================
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
-    borderRadius: 14,
-    marginBottom: 16,
-    elevation: 4,
+    borderRadius: 8,
+    marginBottom: 18,
+    overflow: 'hidden',
+    // ✅ soft card shadow
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  imageWrapper: { position: 'relative' },
-  productImage: {
-    width: '100%',
-    height: 180,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-  },
-  favoriteBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    borderRadius: 20,
-    padding: 6,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
 
-  // ⭐ Rating overlay
-  ratingOverlay: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
+  megaDropRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#138E4E',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    gap: 2,
+    marginBottom: 6,
   },
-  ratingOverlayText: {
-    color: '#FFFFFF',
+  megaDropBadge: {
+    backgroundColor: '#E9445A',
+    borderRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  megaDropText: {
+    color: '#fff',
     fontSize: 11,
     fontWeight: '700',
   },
 
-  productInfo: { padding: 10 },
-  productTitle: { fontSize: 15, fontWeight: '600', color: '#222' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  finalPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginRight: 8,
+  imageWrapper: { position: 'relative' },
+  productImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+  },
+
+  // ✅ Wishlist icon — subtle drop shadow so it pops on images
+  favoriteBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+  ratingPill: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 3,
+    gap: 3,
+    // ✅ tiny shadow on the rating pill too
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  ratingPillText: {
+    color: '#111',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  ratingDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 2,
+  },
+  ratingCount: {
+    color: '#666',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+
+  productInfo: {
+    paddingTop: 8,
+    paddingHorizontal: 2,
+    paddingBottom: 10,
+  },
+  productTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 6,
+  },
+
+  megaDropInline: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FCEBED',
+    borderRadius: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginBottom: 6,
+  },
+  megaDropInlineText: {
+    color: '#E9445A',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
   },
   strikePrice: {
-    fontSize: 14,
-    color: '#888',
+    fontSize: 12,
+    color: '#999',
     textDecorationLine: 'line-through',
+  },
+  finalPrice: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111',
+  },
+  discountText: {
+    fontSize: 13,
+    color: '#F58220',
+    fontWeight: '700',
   },
 
   // Premium
@@ -1212,15 +1320,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  // ✅ Premium wishlist — subtle drop shadow too
   premiumFavoriteBtn: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    top: 8,
+    right: 8,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 2,
   },
   premiumInfo: { padding: 10, backgroundColor: '#fff' },
   premiumName: {
@@ -1244,6 +1354,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     textDecorationLine: 'line-through',
+  },
+
+  ratingOverlay: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#138E4E',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 2,
+  },
+  ratingOverlayText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 
   // Sections
@@ -1357,5 +1485,3 @@ const styles = StyleSheet.create({
   },
   activeDot: { backgroundColor: '#9E0E26', width: 20 },
 });
-
-// export default Dashboard;

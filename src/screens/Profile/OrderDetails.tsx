@@ -402,7 +402,7 @@ const OrderDetailsScreen = () => {
             </View>
             <TouchableOpacity style={styles.contactSupportBtn}>
               <Text style={styles.contactSupportText}>Contact Support</Text>
-              <Ionicons name="chevron-forward" size={scale(14)} color="#96252A" />
+              <Ionicons name="chevron-forward" size={scale(14)} color="#0C0C0C" />
             </TouchableOpacity>
           </View>
 

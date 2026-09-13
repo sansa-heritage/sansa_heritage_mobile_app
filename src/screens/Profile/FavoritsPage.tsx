@@ -157,13 +157,9 @@ const FavoriteScreen = () => {
     }
   };
 
-  // ✅ FIXED: now calls LoadingService.show() / hide() so the global
-  // AnimatedLogoLoader appears — same as Dashboard / ProductDetails.
-  // The optional `showLoader` flag prevents the global overlay from
-  // appearing on pull-to-refresh (uses the FlatList spinner instead).
   const getFavorites = async (showLoader: boolean = true) => {
     setLoading(true);
-    if (showLoader) LoadingService.show('Loading wishlist...'); // ✅ ADDED
+    if (showLoader) LoadingService.show('Loading wishlist...');
     try {
       setError('');
       const data = await getFavoriteProducts();
@@ -189,7 +185,7 @@ const FavoriteScreen = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
-      if (showLoader) LoadingService.hide(); // ✅ ADDED
+      if (showLoader) LoadingService.hide();
     }
   };
 
@@ -199,7 +195,7 @@ const FavoriteScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    getFavorites(false); // silent refresh — no global overlay
+    getFavorites(false);
   };
 
   const getImageUrl = (product: any): string => {
@@ -243,6 +239,9 @@ const FavoriteScreen = () => {
     return Number(discount);
   };
 
+  // ============================================================
+  // PRODUCT CARD
+  // ============================================================
   const renderItem = ({ item }: { item: FavoriteItem }) => {
     const productId = item.productId._id;
     const productData = fullProductData.get(productId) || item.productId;
@@ -261,8 +260,9 @@ const FavoriteScreen = () => {
       <TouchableOpacity
         style={styles.card}
         onPress={() => redirectToProductDetails(productId)}
-        activeOpacity={0.85}
+        activeOpacity={0.9}
       >
+        {/* ====== IMAGE ====== */}
         <View style={styles.imageWrap}>
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
@@ -282,15 +282,24 @@ const FavoriteScreen = () => {
             </>
           )}
 
-          {/* Rating pill top-left */}
+          {/* Rating pill — bottom left */}
           {!outOfStock && (
             <View style={styles.ratingPill}>
-              <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
-              <MaterialIcons name="star" size={9} color="#fff" />
+              <Text style={styles.ratingPillText}>{rating.toFixed(0)}</Text>
+              <MaterialIcons name="star" size={11} color="#138E4E" />
             </View>
           )}
 
-          {/* ✅ Wishlist heart — floating filled heart, no bg */}
+          {/* ✅ Share — floating top-left, no background */}
+          <TouchableOpacity
+            style={styles.shareIcon}
+            onPress={() => handleShare(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="share-social-outline" size={20} color="#111" />
+          </TouchableOpacity>
+
+          {/* ✅ Filled heart — floating top-right, no background */}
           <TouchableOpacity
             style={styles.heartBtn}
             onPress={() => handleRemoveFavorite(productId)}
@@ -298,9 +307,35 @@ const FavoriteScreen = () => {
           >
             <Ionicons name="heart" size={22} color="#E9445A" />
           </TouchableOpacity>
+
+          {/* Add / Similar pill — bottom right (overlapping image) */}
+          <TouchableOpacity
+            style={styles.addPill}
+            activeOpacity={0.85}
+            onPress={() => {
+              if (outOfStock) {
+                redirectToProductDetails(productId);
+              } else {
+                handleAddToCart(item);
+              }
+            }}
+          >
+            <Ionicons
+              name={outOfStock ? 'repeat-outline' : 'bag-add-outline'}
+              size={16}
+              color="#E9445A"
+            />
+            <Text style={styles.addPillText}>
+              {outOfStock ? 'Similar' : 'Add'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
+        {/* ====== INFO ====== */}
         <View style={styles.info}>
+          <Text style={styles.brand} numberOfLines={1}>
+            {productData.brand?.name || productData.brand || 'Brand'}
+          </Text>
           <Text style={styles.name} numberOfLines={1}>
             {item.productId.name}
           </Text>
@@ -309,48 +344,43 @@ const FavoriteScreen = () => {
             <Text style={styles.price}>₹{discountedPrice.toFixed(0)}</Text>
             {discount > 0 && (
               <>
-                <Text style={styles.mrp}>₹{item.productId.price}</Text>
-                <Text style={styles.off}>({discount}% OFF)</Text>
+                <Text style={styles.mrp}>Rs. {item.productId.price}</Text>
+                <Text style={styles.off}>{discount}% OFF</Text>
               </>
             )}
-          </View>
-
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() => handleShare(item)}
-              hitSlop={6}
-            >
-              <Ionicons name="share-social-outline" size={14} color="#666" />
-              <Text style={styles.shareText}>Share</Text>
-            </TouchableOpacity>
-
-            {/* ✅ Add to Cart — bag icon, no bg, black icon */}
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => {
-                if (outOfStock) {
-                  Alert.alert(
-                    'Out of Stock',
-                    'We will notify you when this item is back in stock.',
-                  );
-                } else {
-                  handleAddToCart(item);
-                }
-              }}
-              hitSlop={6}
-            >
-              <Ionicons
-                name={outOfStock ? 'notifications-outline' : 'bag-outline'}
-                size={20}
-                color="#111"
-              />
-            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
+
+  // ============================================================
+  // TOP HEADER — address bar only
+  // ============================================================
+  const ListHeader = () => (
+    <View style={styles.headerWrap}>
+      <TouchableOpacity
+        style={styles.addressBar}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('AddressScreen' as any)}
+      >
+        <Ionicons name="location" size={18} color="#E9445A" />
+        <Text style={styles.addressText} numberOfLines={1}>
+          Plot No-1960/8625 - 1961/8650, Po, near L...
+        </Text>
+        <Ionicons name="chevron-down" size={18} color="#333" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const ListFooter = () => (
+    <View style={styles.footer}>
+      <Text style={styles.footerQuote}>
+        “Life is too short to wear boring clothes.”
+      </Text>
+      <Text style={styles.footerBrand}>Cushnie et Ochs</Text>
+    </View>
+  );
 
   const ListEmptyComponent = () => (
     <View style={styles.emptyContainer}>
@@ -368,7 +398,6 @@ const FavoriteScreen = () => {
     </View>
   );
 
-  // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
   if (loading) {
     return <View style={styles.loadingContainer} />;
   }
@@ -394,6 +423,8 @@ const FavoriteScreen = () => {
           renderItem={renderItem}
           keyExtractor={item => item._id || item.productId._id}
           numColumns={2}
+          ListHeaderComponent={ListHeader}
+          ListFooterComponent={favoriteData.length > 0 ? ListFooter : null}
           columnWrapperStyle={favoriteData.length > 0 ? styles.row : undefined}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
@@ -416,30 +447,55 @@ const FavoriteScreen = () => {
 export default FavoriteScreen;
 
 /* ================= STYLES ================= */
+const CARD_GAP = 10;
+const H_PADDING = 12;
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   screen: { flex: 1, backgroundColor: '#fff' },
 
   listContent: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingHorizontal: H_PADDING,
+    paddingTop: 8,
     paddingBottom: 90,
   },
   emptyListContent: {
-    flex: 1,
-    justifyContent: 'center',
+    flexGrow: 1,
   },
-
   row: {
     justifyContent: 'space-between',
   },
 
-  // Myntra compact card
+  // ============================================================
+  // HEADER — address bar only
+  // ============================================================
+  headerWrap: {
+    marginBottom: 12,
+  },
+  addressBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FBF2F4',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#222',
+    fontWeight: '600',
+  },
+
+  // ============================================================
+  // PRODUCT CARD
+  // ============================================================
   card: {
-    width: '48.5%',
+    width: (width - H_PADDING * 2 - CARD_GAP) / 2,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 6,
+    marginBottom: 14,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#F0F0F0',
@@ -447,9 +503,8 @@ const styles = StyleSheet.create({
   imageWrap: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 0.78,
+    aspectRatio: 0.75,
     backgroundColor: '#F5F5F5',
-    overflow: 'hidden',
   },
   image: {
     width: '100%',
@@ -463,111 +518,151 @@ const styles = StyleSheet.create({
   },
   placeholderText: { color: '#999', fontSize: 10, fontWeight: '500' },
 
-  // Out-of-stock overlay
+  // Out-of-stock
   oosOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   oosBadge: {
     position: 'absolute',
-    bottom: 0,
+    top: '46%',
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    paddingVertical: 4,
+    backgroundColor: 'rgba(90,110,120,0.65)',
+    paddingVertical: 6,
     alignItems: 'center',
   },
   oosBadgeText: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
 
-  // Rating pill
+  // Rating pill — bottom left of image
   ratingPill: {
     position: 'absolute',
-    top: 6,
-    left: 6,
+    bottom: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#138E4E',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 3,
-    gap: 2,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   ratingPillText: {
-    color: '#fff',
-    fontSize: 10,
+    color: '#222',
+    fontSize: 11,
     fontWeight: '700',
   },
 
-  // Heart — floating filled red heart, no bg
-  heartBtn: {
+  // ✅ Share — floating top-left, no bg
+  shareIcon: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 6,
+    left: 6,
     padding: 4,
   },
 
-  // Info
-  info: {
-    paddingHorizontal: 8,
+  // ✅ Filled heart — floating top-right, no bg
+  heartBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    padding: 4,
+  },
+
+  // Add / Similar pill — bottom right (overlapping image)
+  addPill: {
+    position: 'absolute',
+    bottom: -14,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E9445A',
+    borderRadius: 8,
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    zIndex: 2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  addPillText: {
+    color: '#E9445A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Info section
+  info: {
+    paddingHorizontal: 10,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  brand: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111',
+    marginBottom: 2,
   },
   name: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#222',
-    marginBottom: 3,
+    color: '#666',
+    marginBottom: 6,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    gap: 5,
   },
   price: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#000',
-    marginRight: 5,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111',
   },
   mrp: {
     fontSize: 11,
     color: '#999',
     textDecorationLine: 'line-through',
-    marginRight: 4,
   },
   off: {
-    fontSize: 10,
-    color: '#F5A623',
-    fontWeight: '600',
+    fontSize: 11,
+    color: '#1F9E4C',
+    fontWeight: '700',
   },
 
-  // Action row
-  actionRow: {
-    marginTop: 6,
-    flexDirection: 'row',
+  // Footer quote
+  footer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingBottom: 30,
   },
-  shareBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    gap: 3,
+  footerQuote: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: '#555',
+    textAlign: 'center',
+    paddingHorizontal: 30,
   },
-  shareText: {
-    fontSize: 10,
-    color: '#666',
-    fontWeight: '500',
-  },
-
-  // ✅ Add to Cart button — no bg, black icon
-  addBtn: {
-    padding: 4,
+  footerBrand: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#999',
+    marginTop: 8,
   },
 
   // Empty
@@ -576,7 +671,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
-    marginTop: 20,
+    marginTop: 40,
   },
   emptyTitle: {
     fontSize: 18,
@@ -611,7 +706,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  loadingText: { marginTop: 10, fontSize: 13, color: '#666' },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',

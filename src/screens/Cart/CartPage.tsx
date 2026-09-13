@@ -77,47 +77,56 @@ const CartScreen: React.FC = () => {
 
   const FREE_SHIPPING_THRESHOLD = 999;
 
-  /* ================= HELPER: Get Size Label ================= */
+  /* ================= HELPER: Get Size Label (UPPERCASE) ================= */
   const getSizeLabel = (size: string | SizeInfo | null): string => {
     if (!size) return 'N/A';
 
+    let raw = '';
     if (typeof size === 'object' && size.label) {
-      return size.label.toUpperCase();
+      raw = size.label;
+    } else if (typeof size === 'string') {
+      raw = size;
     }
 
-    if (typeof size === 'string') {
-      return size.toUpperCase();
-    }
+    if (!raw) return 'N/A';
 
-    return 'N/A';
+    const upper = raw.toUpperCase().trim();
+
+    const map: Record<string, string> = {
+      SMALL: 'S',
+      MEDIUM: 'M',
+      LARGE: 'L',
+      'EXTRA LARGE': 'XL',
+      'EXTRA SMALL': 'XS',
+      'DOUBLE EXTRA LARGE': 'XXL',
+      '2XL': 'XXL',
+      '3XL': 'XXXL',
+    };
+
+    return map[upper] || upper;
   };
 
   /* ================= HELPER: Get Color Name ================= */
   const getColorName = (color: string | ColorInfo | null): string => {
     if (!color) return 'N/A';
-
     if (typeof color === 'object' && color.name) {
       return color.name;
     }
-
     if (typeof color === 'string') {
       if (color.match(/^[0-9a-fA-F]{24}$/)) {
         return 'Color';
       }
       return color;
     }
-
     return 'N/A';
   };
 
   /* ================= HELPER: Get Color Hex ================= */
   const getColorHex = (color: string | ColorInfo | null): string | null => {
     if (!color) return null;
-
     if (typeof color === 'object' && color.hexCode) {
       return color.hexCode;
     }
-
     return null;
   };
 
@@ -126,16 +135,14 @@ const CartScreen: React.FC = () => {
     if (!imageUrl) {
       return require('../../../assets/images/logo.png');
     }
-
     if (imageUrl.startsWith('data:image')) {
       return { uri: imageUrl };
     }
-
     if (imageUrl.startsWith('http')) {
       return { uri: imageUrl };
     }
-
-    const baseURL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
+    const baseURL =
+      config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
     return { uri: `${baseURL}${imageUrl}` };
   };
 
@@ -156,13 +163,14 @@ const CartScreen: React.FC = () => {
         return;
       }
 
-      const baseURL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
+      const baseURL =
+        config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
       const url = `${baseURL}api/cart/cartitems`;
       console.log('📦 Fetching cart from:', url);
 
       const res = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -199,14 +207,16 @@ const CartScreen: React.FC = () => {
                 sizeLabel: getSizeLabel(item.size),
                 colorName: getColorName(item.color),
                 colorHex: getColorHex(item.color),
-                cartItemId: `${item.productId || 'unknown'}-${getColorName(item.color)}-${getSizeLabel(item.size)}-${index}`,
+                cartItemId: `${item.productId || 'unknown'}-${getColorName(
+                  item.color,
+                )}-${getSizeLabel(item.size)}-${index}`,
               };
             }
 
             const productRes = await fetch(
               `${baseURL}api/products/${item.productId}`,
               {
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
               },
             );
 
@@ -218,7 +228,9 @@ const CartScreen: React.FC = () => {
                 colorName: getColorName(item.color),
                 colorHex: getColorHex(item.color),
                 imageUrl: item.imageUrl || '',
-                cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}-${index}`,
+                cartItemId: `${item.productId}-${getColorName(
+                  item.color,
+                )}-${getSizeLabel(item.size)}-${index}`,
               };
             }
 
@@ -228,18 +240,30 @@ const CartScreen: React.FC = () => {
             let colorName = getColorName(item.color);
             let colorHex = getColorHex(item.color);
 
-            if (productData && productData.sizes && Array.isArray(productData.sizes) && item.size) {
-              const sizeId = typeof item.size === 'object' ? item.size._id : item.size;
+            if (
+              productData &&
+              productData.sizes &&
+              Array.isArray(productData.sizes) &&
+              item.size
+            ) {
+              const sizeId =
+                typeof item.size === 'object' ? item.size._id : item.size;
               const foundSize = productData.sizes.find(
                 (s: any) => s._id === sizeId,
               );
               if (foundSize && foundSize.label) {
-                sizeLabel = foundSize.label;
+                sizeLabel = getSizeLabel(foundSize.label);
               }
             }
 
-            if (productData && productData.colors && Array.isArray(productData.colors) && item.color) {
-              const colorId = typeof item.color === 'object' ? item.color._id : item.color;
+            if (
+              productData &&
+              productData.colors &&
+              Array.isArray(productData.colors) &&
+              item.color
+            ) {
+              const colorId =
+                typeof item.color === 'object' ? item.color._id : item.color;
               const foundColor = productData.colors.find(
                 (c: any) => c._id === colorId,
               );
@@ -250,10 +274,19 @@ const CartScreen: React.FC = () => {
             }
 
             let imageUrl = item.imageUrl;
-            if (productData && productData.image && (!imageUrl || imageUrl === '')) {
+            if (
+              productData &&
+              productData.image &&
+              (!imageUrl || imageUrl === '')
+            ) {
               imageUrl = productData.image;
             }
-            if (productData && productData.images && productData.images.length > 0 && (!imageUrl || imageUrl === '')) {
+            if (
+              productData &&
+              productData.images &&
+              productData.images.length > 0 &&
+              (!imageUrl || imageUrl === '')
+            ) {
               imageUrl = productData.images[0];
             }
 
@@ -273,22 +306,30 @@ const CartScreen: React.FC = () => {
               colorName: getColorName(item.color),
               colorHex: getColorHex(item.color),
               imageUrl: item.imageUrl || '',
-              cartItemId: `${item.productId}-${getColorName(item.color)}-${getSizeLabel(item.size)}`,
+              cartItemId: `${item.productId}-${getColorName(
+                item.color,
+              )}-${getSizeLabel(item.size)}`,
             };
           }
         }),
       );
 
-      const uniqueItems = enrichedItems.reduce((acc: CartItem[], current: CartItem) => {
-        const existing = acc.find(item => item.cartItemId === current.cartItemId);
-        if (existing) {
-          const newQuantity = Number(existing.quantity) + Number(current.quantity);
-          existing.quantity = newQuantity;
+      const uniqueItems = enrichedItems.reduce(
+        (acc: CartItem[], current: CartItem) => {
+          const existing = acc.find(
+            item => item.cartItemId === current.cartItemId,
+          );
+          if (existing) {
+            const newQuantity =
+              Number(existing.quantity) + Number(current.quantity);
+            existing.quantity = newQuantity;
+            return acc;
+          }
+          acc.push(current);
           return acc;
-        }
-        acc.push(current);
-        return acc;
-      }, []);
+        },
+        [],
+      );
 
       setCartItems(uniqueItems);
     } catch (e: any) {
@@ -311,12 +352,13 @@ const CartScreen: React.FC = () => {
     const loadAddress = async () => {
       try {
         const token = await AsyncStorage.getItem('authToken');
-
         if (!token) return;
 
-        const baseURL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app/';
+        const baseURL =
+          config.baseURL ||
+          'https://ecappbe-sanasaheritages-projects.vercel.app/';
         const res = await fetch(`${baseURL}api/auth/addresses`, {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) return;
@@ -374,26 +416,22 @@ const CartScreen: React.FC = () => {
         }
       }
 
-      console.log('Updating quantity:', {
-        productId: currentItem.productId,
-        diff: diff,
-        color: colorValue,
-        size: sizeValue
-      });
-
       if (diff > 0) {
         await addToCart(currentItem.productId, diff, colorValue, sizeValue);
       } else if (diff < 0) {
-        await removeFromCart(currentItem.productId, Math.abs(diff), colorValue, sizeValue);
+        await removeFromCart(
+          currentItem.productId,
+          Math.abs(diff),
+          colorValue,
+          sizeValue,
+        );
       }
 
-      // Update local state
       setCartItems(prev =>
         prev.map((item, idx) =>
           idx === index ? { ...item, quantity: newQty } : item,
         ),
       );
-
     } catch (e) {
       console.log('Update quantity error:', e);
       Alert.alert('Error', 'Failed to update quantity. Please try again.');
@@ -427,7 +465,10 @@ const CartScreen: React.FC = () => {
                 } else if (item.color !== 'N/A' && item.color !== 'Color') {
                   colorValue = item.color;
                 }
-              } else if (typeof item.color === 'object' && item.color !== null) {
+              } else if (
+                typeof item.color === 'object' &&
+                item.color !== null
+              ) {
                 colorValue = item.color._id || item.color.name || null;
               }
             }
@@ -441,42 +482,35 @@ const CartScreen: React.FC = () => {
                 } else if (item.size !== 'N/A') {
                   sizeValue = item.size;
                 }
-              } else if (typeof item.size === 'object' && item.size !== null) {
+              } else if (
+                typeof item.size === 'object' &&
+                item.size !== null
+              ) {
                 sizeValue = item.size._id || item.size.label || null;
               }
             }
-
-            console.log('🗑️ Removing item:', {
-              productId: productIdToRemove,
-              quantity: Number(item.quantity),
-              color: colorValue,
-              size: sizeValue,
-              itemName: item.name
-            });
 
             await removeFromCart(
               productIdToRemove,
               Number(item.quantity),
               colorValue,
-              sizeValue
+              sizeValue,
             );
 
             setCartItems(prev => prev.filter((_, i) => i !== index));
             await fetchCart();
 
             Alert.alert('Success', 'Item removed from cart');
-
           } catch (error: any) {
             console.error('❌ Remove item error:', error);
 
             if (error.message?.includes('not found')) {
               try {
-                console.log('🔄 Retrying without color/size...');
                 await removeFromCart(
                   String(item.productId),
                   Number(item.quantity),
                   null,
-                  null
+                  null,
                 );
 
                 setCartItems(prev => prev.filter((_, i) => i !== index));
@@ -506,7 +540,6 @@ const CartScreen: React.FC = () => {
       return;
     }
 
-    // Mock coupon validation - In real app, call API
     if (couponCode.toUpperCase() === 'SAVE10') {
       const total = bagTotal - savings;
       setCouponDiscount(total * 0.1);
@@ -547,17 +580,19 @@ const CartScreen: React.FC = () => {
   );
 
   const deliveryFee = cartItems.length ? 50 : 0;
-
-  // Calculate if free shipping applies
   const subtotalAfterDiscount = bagTotal - savings;
   const isFreeShipping = subtotalAfterDiscount >= FREE_SHIPPING_THRESHOLD;
   const finalDeliveryFee = isFreeShipping ? 0 : deliveryFee;
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotalAfterDiscount);
-
-  // Calculate progress percentage for free shipping
-  const progressPercentage = Math.min((subtotalAfterDiscount / FREE_SHIPPING_THRESHOLD) * 100, 100);
-
-  const amountPayable = subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
+  const remainingForFreeShipping = Math.max(
+    0,
+    FREE_SHIPPING_THRESHOLD - subtotalAfterDiscount,
+  );
+  const progressPercentage = Math.min(
+    (subtotalAfterDiscount / FREE_SHIPPING_THRESHOLD) * 100,
+    100,
+  );
+  const amountPayable =
+    subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
 
   /* ================= LOADER ================= */
 
@@ -594,64 +629,104 @@ const CartScreen: React.FC = () => {
 
   /* ================= UI ================= */
 
-  const renderProductItem = ({ item, index }: { item: any; index: number }) => {
-    const colorDisplay = item.colorName || getColorName(item.color);
-    const sizeDisplay = item.sizeLabel || getSizeLabel(item.size);
+  const renderProductItem = ({
+    item,
+    index,
+  }: {
+    item: any;
+    index: number;
+  }) => {
     const colorHex = item.colorHex || getColorHex(item.color);
-    const discountedPrice = Number(item.price) - (Number(item.price) * Number(item.discount || 0)) / 100;
+    const sizeDisplay = item.sizeLabel || getSizeLabel(item.size);
+    const discountedPrice =
+      Number(item.price) -
+      (Number(item.price) * Number(item.discount || 0)) / 100;
+    const brandName = item.name?.split(' ')[0] || 'Brand';
+    const isLast = index === cartItems.length - 1;
 
     return (
-      <View style={styles.card}>
-        <Image
-          source={getImageSource(item.imageUrl)}
-          style={styles.image}
-          onError={(e) => {
-            console.log('Image load error for:', item.name);
-          }}
-        />
-
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={2}>
-            {item.name || 'Product'}
-          </Text>
-          <Text style={styles.variantText}>
-            Color: {colorDisplay} | Size: {sizeDisplay}
-          </Text>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>
-              ₹{discountedPrice.toFixed(0)}
-            </Text>
-            <Text style={styles.mrp}>₹{item.price}</Text>
-            {Number(item.discount) > 0 && (
-              <Text style={styles.discountBadge}>{item.discount}% OFF</Text>
-            )}
+      <View style={styles.itemWrapper}>
+        <View style={styles.itemRow}>
+          {/* LEFT: image box */}
+          <View style={styles.imageBox}>
+            <Image
+              source={getImageSource(item.imageUrl)}
+              style={styles.image}
+              onError={() => {
+                console.log('Image load error for:', item.name);
+              }}
+            />
           </View>
 
-          <View style={styles.qtyRow}>
+          {/* RIGHT: info */}
+          <View style={styles.info}>
+            {/* remove X */}
             <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => {
-                const currentQty = Number(item.quantity);
-                if (currentQty > 1) {
-                  updateQuantity(currentQty - 1, index);
-                }
-              }}
+              style={styles.removeX}
+              onPress={() => removeItem(index)}
+              hitSlop={8}
             >
-              <Text style={styles.qtyBtnText}>-</Text>
+              <Ionicons name="close" size={18} color="#666" />
             </TouchableOpacity>
-            <Text style={styles.qtyText}>{item.quantity}</Text>
-            <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => {
-                const currentQty = Number(item.quantity);
-                updateQuantity(currentQty + 1, index);
-              }}
-            >
-              <Text style={styles.qtyBtnText}>+</Text>
-            </TouchableOpacity>
+
+            {/* Brand + name */}
+            <Text style={styles.brand} numberOfLines={1}>
+              {brandName}
+            </Text>
+            <Text style={styles.name} numberOfLines={2}>
+              {item.name || 'Product'}
+            </Text>
+
+            {/* Size text + color circle + Qty dropdown */}
+            <View style={styles.metaRow}>
+              {/* Size — plain text */}
+              <Text style={styles.sizeText}>
+                Size: <Text style={styles.sizeValue}>{sizeDisplay}</Text>
+              </Text>
+
+              {/* Color — filled circle (fits content) */}
+              {colorHex && colorHex !== 'N/A' ? (
+                <View
+                  style={[
+                    styles.colorCircle,
+                    { backgroundColor: colorHex },
+                  ]}
+                />
+              ) : null}
+
+              {/* Qty — dropdown pill */}
+              <TouchableOpacity
+                style={styles.qtyPill}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setActiveItemIndex(index);
+                  setQtyModalVisible(true);
+                }}
+              >
+                <Text style={styles.qtyPillText}>
+                  Qty: {item.quantity}
+                </Text>
+                <Ionicons name="chevron-down" size={12} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Price row */}
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>₹{discountedPrice.toFixed(0)}</Text>
+              {Number(item.discount) > 0 && (
+                <>
+                  <Text style={styles.mrp}>₹{item.price}</Text>
+                  <Text style={styles.discountBadge}>
+                    {item.discount}% Off
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
+
+        {/* Dashed divider — hidden for last item */}
+        {!isLast && <View style={styles.dashedDivider} />}
       </View>
     );
   };
@@ -661,7 +736,9 @@ const CartScreen: React.FC = () => {
       <View style={styles.container}>
         <FlatList
           data={cartItems}
-          keyExtractor={(item, index) => item.cartItemId || `${item.productId}-${index}`}
+          keyExtractor={(item, index) =>
+            item.cartItemId || `${item.productId}-${index}`
+          }
           renderItem={renderProductItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.flatListContent}
@@ -679,7 +756,9 @@ const CartScreen: React.FC = () => {
                         : 'Select delivery address'}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => setAddressModalVisible(true)}>
+                  <TouchableOpacity
+                    onPress={() => setAddressModalVisible(true)}
+                  >
                     <Text style={styles.changeText}>Change</Text>
                   </TouchableOpacity>
                 </View>
@@ -696,16 +775,26 @@ const CartScreen: React.FC = () => {
                   activeOpacity={0.7}
                 >
                   <View style={styles.couponLeft}>
-                    <Ionicons name="pricetag-outline" size={20} color="#96252A" />
+                    <Ionicons
+                      name="pricetag-outline"
+                      size={20}
+                      color="#96252A"
+                    />
                     <View style={styles.couponTextContainer}>
-                      <Text style={styles.couponTitle}>Apply Coupon Code</Text>
-                      <Text style={styles.couponSubtext}>Get extra discounts on your order</Text>
+                      <Text style={styles.couponTitle}>
+                        Apply Coupon Code
+                      </Text>
+                      <Text style={styles.couponSubtext}>
+                        Get extra discounts on your order
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.couponRight}>
                     <Text style={styles.couponApplyText}>Apply</Text>
                     <Ionicons
-                      name={showCouponInput ? "chevron-up" : "chevron-forward"}
+                      name={
+                        showCouponInput ? 'chevron-up' : 'chevron-forward'
+                      }
                       size={16}
                       color="#96252A"
                     />
@@ -726,25 +815,33 @@ const CartScreen: React.FC = () => {
                       />
                       {couponApplied ? (
                         <TouchableOpacity
-                          style={[styles.couponApplyBtn, styles.couponRemoveBtn]}
+                          style={styles.couponRemoveIconBtn}
                           onPress={handleRemoveCoupon}
+                          hitSlop={8}
                         >
-                          <Text style={styles.couponRemoveText}>Remove</Text>
+                          <Ionicons name="trash-outline" size={20} color="#E53935" />
                         </TouchableOpacity>
                       ) : (
                         <TouchableOpacity
                           style={styles.couponApplyBtn}
                           onPress={handleApplyCoupon}
                         >
-                          <Text style={styles.couponApplyBtnText}>Apply</Text>
+                          <Text style={styles.couponApplyBtnText}>
+                            Apply
+                          </Text>
                         </TouchableOpacity>
                       )}
                     </View>
                     {couponApplied && (
                       <View style={styles.couponAppliedInfo}>
-                        <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color="#4CAF50"
+                        />
                         <Text style={styles.couponAppliedText}>
-                          Coupon applied! You saved ₹{couponDiscount.toFixed(0)}
+                          Coupon applied! You saved ₹
+                          {couponDiscount.toFixed(0)}
                         </Text>
                       </View>
                     )}
@@ -756,32 +853,50 @@ const CartScreen: React.FC = () => {
               {cartItems.length > 0 && !isFreeShipping && (
                 <View style={styles.freeShippingCard}>
                   <View style={styles.shippingRow}>
-                    <Ionicons name="bicycle-outline" size={18} color="#4CAF50" />
+                    <Ionicons
+                      name="bicycle-outline"
+                      size={18}
+                      color="#4CAF50"
+                    />
                     <Text style={styles.shippingText}>
-                      Add <Text style={styles.shippingAmount}>₹{remainingForFreeShipping.toFixed(0)}</Text> more to get FREE Shipping!
+                      Add{' '}
+                      <Text style={styles.shippingAmount}>
+                        ₹{remainingForFreeShipping.toFixed(0)}
+                      </Text>{' '}
+                      more to get FREE Shipping!
                     </Text>
                   </View>
                   <View style={styles.progressBarContainer}>
                     <View
                       style={[
                         styles.progressBar,
-                        { width: `${progressPercentage}%` }
+                        { width: `${progressPercentage}%` },
                       ]}
                     />
                   </View>
                   <View style={styles.progressLabels}>
                     <Text style={styles.progressLabel}>₹0</Text>
-                    <Text style={styles.progressLabel}>₹{FREE_SHIPPING_THRESHOLD}</Text>
+                    <Text style={styles.progressLabel}>
+                      ₹{FREE_SHIPPING_THRESHOLD}
+                    </Text>
                   </View>
                 </View>
               )}
 
               {/* Free Shipping Achieved */}
               {cartItems.length > 0 && isFreeShipping && (
-                <View style={[styles.freeShippingCard, styles.shippingAchieved]}>
+                <View
+                  style={[styles.freeShippingCard, styles.shippingAchieved]}
+                >
                   <View style={styles.shippingRow}>
-                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                    <Text style={styles.shippingAchievedText}>🎉 Free Shipping Applied!</Text>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={18}
+                      color="#4CAF50"
+                    />
+                    <Text style={styles.shippingAchievedText}>
+                      🎉 Free Shipping Applied!
+                    </Text>
                   </View>
                 </View>
               )}
@@ -795,42 +910,64 @@ const CartScreen: React.FC = () => {
                 </View>
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Savings</Text>
-                  <Text style={styles.savingsValue}>-₹{savings.toFixed(0)}</Text>
+                  <Text style={styles.savingsValue}>
+                    -₹{savings.toFixed(0)}
+                  </Text>
                 </View>
                 {couponApplied && (
                   <View style={styles.billRow}>
                     <Text style={styles.billLabel}>Coupon Discount</Text>
-                    <Text style={styles.savingsValue}>-₹{couponDiscount.toFixed(0)}</Text>
+                    <Text style={styles.savingsValue}>
+                      -₹{couponDiscount.toFixed(0)}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Delivery Fee</Text>
-                  <Text style={[styles.billValue, isFreeShipping && styles.freeText]}>
+                  <Text
+                    style={[
+                      styles.billValue,
+                      isFreeShipping && styles.freeText,
+                    ]}
+                  >
                     {isFreeShipping ? 'FREE' : `₹${deliveryFee}`}
                   </Text>
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.billRow}>
                   <Text style={styles.totalLabel}>Amount Payable</Text>
-                  <Text style={styles.totalValue}>₹{amountPayable.toFixed(0)}</Text>
+                  <Text style={styles.totalValue}>
+                    ₹{amountPayable.toFixed(0)}
+                  </Text>
                 </View>
               </View>
 
-              {/* Return/Refund Policy - FIXED DESIGN */}
+              {/* Return/Refund Policy */}
               <View style={styles.policyCard}>
                 <View style={styles.policyHeader}>
                   <View style={styles.policyIconCircle}>
-                    <Ionicons name="shield-checkmark-outline" size={24} color="#96252A" />
+                    <Ionicons
+                      name="shield-checkmark-outline"
+                      size={24}
+                      color="#96252A"
+                    />
                   </View>
                   <View style={styles.policyTextContainer}>
-                    <Text style={styles.policyTitle}>Return/Refund policy</Text>
+                    <Text style={styles.policyTitle}>
+                      Return/Refund policy
+                    </Text>
                     <Text style={styles.policyDesc}>
-                      In case of return, we ensure quick refunds. Full amount will be refunded excluding convenience fee.
+                      In case of return, we ensure quick refunds. Full amount
+                      will be refunded excluding convenience fee.
                     </Text>
                   </View>
                   <TouchableOpacity style={styles.policyRight}>
                     <Text style={styles.readPolicy}>Read policy</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#96252A" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={14}
+                      color="#96252A"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -866,7 +1003,11 @@ const CartScreen: React.FC = () => {
         </View>
 
         {/* ADDRESS MODAL */}
-        <Modal visible={addressModalVisible} transparent animationType="slide">
+        <Modal
+          visible={addressModalVisible}
+          transparent
+          animationType="slide"
+        >
           <View style={styles.qtyModalOverlay}>
             <View style={styles.qtyModal}>
               <Text style={styles.modalTitle}>Select Delivery Address</Text>
@@ -894,7 +1035,7 @@ const CartScreen: React.FC = () => {
           </View>
         </Modal>
 
-        {/* QTY MODAL */}
+        {/* QTY MODAL — dropdown for quantity */}
         <Modal visible={qtyModalVisible} transparent animationType="slide">
           <View style={styles.qtyModalOverlay}>
             <View style={styles.qtyModal}>
@@ -960,11 +1101,11 @@ const styles = StyleSheet.create({
   },
   addressRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   smallLabel: {
     fontSize: 11,
-    color: '#888'
+    color: '#888',
   },
   boldText: {
     fontWeight: '600',
@@ -975,6 +1116,128 @@ const styles = StyleSheet.create({
     color: '#96252A',
     fontWeight: '600',
     fontSize: 12,
+  },
+
+  // ============================================
+  // ITEM LIST — single surface, no separate cards
+  // ============================================
+  itemWrapper: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  imageBox: {
+    width: 100,
+    height: 130,
+    borderRadius: 8,
+    backgroundColor: '#F8F8F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  image: {
+    width: '90%',
+    height: '90%',
+    resizeMode: 'contain',
+  },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+    position: 'relative',
+  },
+  removeX: {
+    position: 'absolute',
+    top: -4,
+    right: 0,
+    padding: 4,
+    zIndex: 2,
+  },
+  brand: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111',
+    paddingRight: 24,
+  },
+  name: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+    paddingRight: 24,
+  },
+
+  // Size text + color circle + qty pill
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 10,
+  },
+  sizeText: {
+    fontSize: 13,
+    color: '#333',
+  },
+  sizeValue: {
+    fontWeight: '700',
+    color: '#111',
+  },
+  colorCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  qtyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#fff',
+  },
+  qtyPillText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+
+  // Price
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  price: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#111',
+  },
+  mrp: {
+    fontSize: 13,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    fontSize: 13,
+    color: '#F58220',
+    fontWeight: '700',
+  },
+
+  // Dashed divider between items
+  dashedDivider: {
+    borderBottomWidth: 1,
+    borderStyle: 'dashed',
+    borderBottomColor: '#D0D0D0',
+    marginHorizontal: 14,
   },
 
   // Coupon Styles
@@ -1047,14 +1310,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
   },
-  couponRemoveBtn: {
-    backgroundColor: '#E53935',
+  couponRemoveIconBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginLeft: 8,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  couponRemoveText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
-  },
+  // couponRemoveText: {
+  //   color: '#fff',
+  //   fontWeight: '600',
+  //   fontSize: 13,
+  // },
   couponAppliedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1067,7 +1335,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Free Shipping Styles
+  // Free Shipping
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1129,95 +1397,6 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  // Product Card
-  card: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 10,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  image: {
-    width: 80,
-    height: 100,
-    resizeMode: 'contain',
-    borderRadius: 8
-  },
-  info: {
-    flex: 1,
-    marginLeft: 10
-  },
-  name: {
-    fontWeight: '600',
-    fontSize: 13,
-    color: '#151515',
-    marginBottom: 2,
-  },
-  variantText: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 4,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  price: {
-    fontWeight: '700',
-    fontSize: 15,
-    color: '#96252A',
-  },
-  mrp: {
-    textDecorationLine: 'line-through',
-    marginLeft: 6,
-    color: '#888',
-    fontSize: 12,
-  },
-  discountBadge: {
-    backgroundColor: '#FFEBEE',
-    color: '#E53935',
-    fontSize: 9,
-    fontWeight: '700',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-    marginLeft: 6,
-    overflow: 'hidden',
-  },
-  qtyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 6,
-    overflow: 'hidden',
-    alignSelf: 'flex-start',
-  },
-  qtyBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: '#F5F5F5',
-  },
-  qtyBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  qtyText: {
-    paddingHorizontal: 12,
-    fontSize: 13,
-    fontWeight: '500',
-    minWidth: 25,
-    textAlign: 'center',
-  },
-
   // Order Details
   orderDetailsCard: {
     backgroundColor: '#fff',
@@ -1262,7 +1441,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginVertical: 6
+    marginVertical: 6,
   },
   totalLabel: {
     fontSize: 15,
@@ -1303,7 +1482,7 @@ const styles = StyleSheet.create({
   subLabel: {
     fontSize: 11,
     color: '#666',
-    marginTop: 1
+    marginTop: 1,
   },
   checkoutBtn: {
     backgroundColor: '#000000',
@@ -1319,7 +1498,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // Return/Refund Policy - FIXED
+  // Return/Refund Policy
   policyCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1358,14 +1537,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666',
     lineHeight: 16,
-    alignItems:'flex-start'
   },
   policyRight: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 5,
     paddingTop: 2,
-    color:'#96252A',
   },
   readPolicy: {
     fontSize: 11,
@@ -1389,7 +1566,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginTop: 16
+    marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -1406,7 +1583,7 @@ const styles = StyleSheet.create({
   },
   shopBtnText: {
     color: '#fff',
-    fontWeight: '700'
+    fontWeight: '700',
   },
 
   // Modals
@@ -1438,13 +1615,13 @@ const styles = StyleSheet.create({
   addressSub: {
     fontSize: 12,
     color: '#888',
-    marginTop: 2
+    marginTop: 2,
   },
   cancelButton: {
-    borderBottomWidth: 0
+    borderBottomWidth: 0,
   },
   cancelText: {
     color: '#E53935',
-    fontWeight: '500'
+    fontWeight: '500',
   },
 });
