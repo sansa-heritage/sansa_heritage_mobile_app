@@ -146,7 +146,7 @@ const getImageSource = (item: any) => {
       return { uri: `${BASE_URL.replace(/\/$/, '')}${item.image}` };
     return { uri: `${BASE_URL.replace(/\/$/, '')}/${item.image}` };
   }
-  return require('../../../assets/images/logo.png');
+  return require('../../../assets/images/icon.png');
 };
 
 // ============================================
@@ -987,7 +987,7 @@ export default function Dashboard() {
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
           <Image
-            source={require('../../../assets/images/logo.png')}
+            source={require('../../../assets/images/icon.png')}
             style={styles.searchLogo}
             resizeMode="contain"
           />
