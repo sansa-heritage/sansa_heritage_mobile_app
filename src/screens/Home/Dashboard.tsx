@@ -7,20 +7,22 @@ import {
   FlatList,
   Modal,
   Dimensions,
-  ScrollView,
+  TextInput,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
-import { addToFavoritesList } from '../../api/favoriteApi';
+import { addToFavoritesList, getFavoriteProducts } from '../../api/favoriteApi';
 import { RootStackParamList } from '../../models/types';
 import eventBus from '../../services/eventBus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
+import { getCartItems } from '../../api/cartApi';
 
 const { width } = Dimensions.get('window');
 
@@ -76,7 +78,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS — AJIO style
+// TOP TABS
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -328,7 +330,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD — Myntra style
+// PRODUCT CARD
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -574,6 +576,8 @@ export default function Dashboard() {
 
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
+  const [cartCount, setCartCount] = useState(0);
+  const [favoriteCount, setFavoriteCount] = useState(0);   // ✅ ADD
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
@@ -584,6 +588,45 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadFavorites();
+  }, []);
+
+  // ✅ Fetch cart + wishlist counts and listen for updates
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchCounts = async () => {
+      // Cart count
+      try {
+        const cart = await getCartItems();
+        const list = Array.isArray(cart) ? cart : cart?.items || [];
+        if (mounted) setCartCount(list.length);
+      } catch {
+        if (mounted) setCartCount(0);
+      }
+
+      // ✅ Wishlist count
+      try {
+        const favs = await getFavoriteProducts();
+        const list = Array.isArray(favs) ? favs : favs?.items || [];
+        if (mounted) setFavoriteCount(list.length);
+      } catch {
+        if (mounted) setFavoriteCount(0);
+      }
+    };
+
+    fetchCounts();
+
+    const listener = () => fetchCounts();
+    eventBus.on('CART_UPDATED', listener);
+    eventBus.on('FAVORITE_UPDATED', listener);
+    eventBus.on('ITEM_REMOVED', listener);
+
+    return () => {
+      mounted = false;
+      eventBus.off('CART_UPDATED', listener);
+      eventBus.off('FAVORITE_UPDATED', listener);
+      eventBus.off('ITEM_REMOVED', listener);
+    };
   }, []);
 
   const loadFavorites = async () => {
@@ -634,11 +677,6 @@ export default function Dashboard() {
     }, 4000);
     return () => clearInterval(interval);
   }, [bannerImages.length, currentBannerIndex, isAutoScrolling]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchText(searchText), 500);
-    return () => clearTimeout(timer);
-  }, [searchText]);
 
   const fetchCategories = async () => {
     try {
@@ -709,6 +747,7 @@ export default function Dashboard() {
     }
   };
 
+  // Initial load
   useEffect(() => {
     const loadData = async () => {
       LoadingService.show();
@@ -724,21 +763,30 @@ export default function Dashboard() {
     loadData();
   }, []);
 
+  // Re-fetch on category / price change only (search is manual)
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
         LoadingService.show();
         setLoading(true);
         await Promise.all([
-          fetchNewArrivals({ searchText: debouncedSearchText, selectedCategory, priceRange }),
-          fetchTrending({ searchText: debouncedSearchText, selectedCategory, priceRange }),
+          fetchNewArrivals({
+            searchText: debouncedSearchText,
+            selectedCategory,
+            priceRange,
+          }),
+          fetchTrending({
+            searchText: debouncedSearchText,
+            selectedCategory,
+            priceRange,
+          }),
         ]);
         LoadingService.hide();
         setLoading(false);
       };
       loadData();
     }
-  }, [debouncedSearchText, selectedCategory, priceRange]);
+  }, [selectedCategory, priceRange]);
 
   const redirectToProductDetails = (id: string) => {
     navigation.navigate('ProductDetails', { itemId: id });
@@ -762,6 +810,36 @@ export default function Dashboard() {
     setSelectedCategory('');
     setPriceRange([0, 10000]);
     setModalVisible(false);
+  };
+
+  // ✅ Manual search
+  const handleSearch = async () => {
+    const query = searchText.trim();
+    setDebouncedSearchText(query);
+
+    LoadingService.show();
+    setLoading(true);
+    await Promise.all([
+      fetchNewArrivals({
+        searchText: query,
+        selectedCategory,
+        priceRange,
+      }),
+      fetchTrending({
+        searchText: query,
+        selectedCategory,
+        priceRange,
+      }),
+    ]);
+    LoadingService.hide();
+    setLoading(false);
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
+    setDebouncedSearchText('');
+    fetchNewArrivals({ searchText: '', selectedCategory, priceRange });
+    fetchTrending({ searchText: '', selectedCategory, priceRange });
   };
 
   const navigateToCategory = (item: any) => {
@@ -902,8 +980,83 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
+      {/* Row 1: Tabs on top */}
       <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
+      {/* Row 2: Search bar + icons */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBarWrap}>
+          <Image
+            source={require('../../../assets/images/logo.png')}
+            style={styles.searchLogo}
+            resizeMode="contain"
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for Sarees..."
+            placeholderTextColor="#9CA3AF"
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity
+              onPress={clearSearch}
+              hitSlop={6}
+              style={{ marginRight: 6 }}
+            >
+              <MaterialIcons name="close" size={18} color="#888" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleSearch} hitSlop={6}>
+            <MaterialIcons name="search" size={22} color="#111" />
+          </TouchableOpacity>
+        </View>
+
+        {/* ✅ Wishlist with badge */}
+        <TouchableOpacity
+          style={styles.topIconBtn}
+          onPress={() => navigation.navigate('FavoritesPage')}
+          hitSlop={6}
+        >
+          <View style={{ position: 'relative' }}>
+            <Ionicons name="heart-outline" size={26} color="#111" />
+            {favoriteCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{favoriteCount}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* Notifications */}
+        <TouchableOpacity
+          style={styles.topIconBtn}
+          onPress={() => navigation.navigate('NotificationScreen' as any)}
+          hitSlop={6}
+        >
+          <Ionicons name="notifications-outline" size={26} color="#111" />
+        </TouchableOpacity>
+
+        {/* ✅ Cart with badge — same badge style as bottom tabs */}
+        <TouchableOpacity
+          style={styles.topIconBtn}
+          onPress={() => navigation.navigate('CartPage' as any)}
+          hitSlop={6}
+        >
+          <View style={{ position: 'relative' }}>
+            <Ionicons name="cart-outline" size={26} color="#111" />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Row 3: Content */}
       <FlatList
         data={[]}
         keyExtractor={() => 'main-scroll'}
@@ -1009,12 +1162,12 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // TOP TABS — AJIO style
+  // TOP TABS
   // ============================================
   topTabsBar: {
-    backgroundColor: '#F5E6C8',
+    backgroundColor: '#fcfcfc',
     marginHorizontal: -15,
-    paddingTop: 10,
+    paddingTop: 35,
     paddingBottom: 0,
     marginBottom: 0,
   },
@@ -1026,9 +1179,8 @@ const styles = StyleSheet.create({
   },
   topTab: {
     flex: 1,
-    height: 52,
+    height: 45,
     backgroundColor: '#F5E6C8',
-    // border on top, left, right only
     borderTopWidth: 1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
@@ -1052,6 +1204,69 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#000',
+  },
+
+  // ============================================
+  // SEARCH BAR ROW
+  // ============================================
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    gap: 10,
+    marginHorizontal: -15,
+  },
+  searchBarWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  searchLogo: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111',
+    paddingVertical: 0,
+  },
+  topIconBtn: {
+    padding: 2,
+  },
+
+  // ✅ Badge — identical to CustomBottomTabs badge
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    backgroundColor: '#0C0C0C',
+    borderRadius: 20,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 
   // Category
@@ -1149,7 +1364,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-
   megaDropRow: {
     flexDirection: 'row',
     marginBottom: 6,
@@ -1165,7 +1379,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-
   imageWrapper: { position: 'relative' },
   productImage: {
     width: '100%',
@@ -1173,7 +1386,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
   },
-
   favoriteBtn: {
     position: 'absolute',
     top: 8,
@@ -1185,7 +1397,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-
   ratingPill: {
     position: 'absolute',
     bottom: 8,
@@ -1214,7 +1425,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#D0D0D0',
     marginHorizontal: 2,
   },
-
   productInfo: {
     paddingTop: 8,
     paddingHorizontal: 2,
@@ -1226,7 +1436,6 @@ const styles = StyleSheet.create({
     color: '#111',
     marginBottom: 6,
   },
-
   megaDropInline: {
     alignSelf: 'flex-start',
     backgroundColor: '#FCEBED',
@@ -1240,7 +1449,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1365,7 +1573,6 @@ const styles = StyleSheet.create({
     color: '#888',
     textDecorationLine: 'line-through',
   },
-
   ratingOverlay: {
     position: 'absolute',
     bottom: 10,
