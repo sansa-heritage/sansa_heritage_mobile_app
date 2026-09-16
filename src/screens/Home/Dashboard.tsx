@@ -76,7 +76,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS
+// TOP TABS — AJIO style
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -85,41 +85,40 @@ interface TopTabsProps {
 
 const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
   return (
-    <View style={styles.topTabsContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsScrollContent}
-      >
+    <View style={styles.topTabsBar}>
+      <View style={styles.topTabsRow}>
         <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'home' && styles.tabItemActive]}
+          style={[styles.topTab, activeTab === 'home' && styles.topTabActive]}
           onPress={() => onTabChange('home')}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <Text style={[styles.tabText, activeTab === 'home' && styles.tabTextActive]}>
-            SansaHome
-          </Text>
+          <View style={styles.topTabInner}>
+            <MaterialIcons
+              name="storefront"
+              size={16}
+              color="#000"
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.topTabText}>SansaHome</Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'premium' && styles.tabItemActive]}
+          style={[styles.topTab, activeTab === 'premium' && styles.topTabActive]}
           onPress={() => onTabChange('premium')}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <View style={styles.tabContent}>
-            <Text
-              style={[styles.tabText, activeTab === 'premium' && styles.tabTextActive]}
-            >
-              Premium
-            </Text>
+          <View style={styles.topTabInner}>
             <MaterialIcons
               name="stars"
-              size={12}
-              color={activeTab === 'premium' ? '#9E0E26' : '#888'}
+              size={16}
+              color="#000"
+              style={{ marginRight: 6 }}
             />
+            <Text style={styles.topTabText}>Premium</Text>
           </View>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -1009,37 +1008,51 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // Tabs
-  topTabsContainer: {
-    backgroundColor: '#F7EBD8',
+  // ============================================
+  // TOP TABS — AJIO style
+  // ============================================
+  topTabsBar: {
+    backgroundColor: '#F5E6C8',
     marginHorizontal: -15,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    height: 48,
+    paddingTop: 10,
+    paddingBottom: 0,
+    marginBottom: 0,
   },
-  tabsScrollContent: {
+  topTabsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  topTab: {
+    flex: 1,
+    height: 52,
+    backgroundColor: '#F5E6C8',
+    // border on top, left, right only
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: '#E5D5B0',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topTabActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5D5B0',
+  },
+  topTabInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    gap: 4,
-  },
-  tabItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    alignItems: 'center',
     justifyContent: 'center',
-    height: 34,
-    minWidth: 70,
-    borderRadius: 8,
   },
-  tabItemActive: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    elevation: 1,
+  topTabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
   },
-  tabContent: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  tabText: { fontSize: 12, fontWeight: '500', color: '#888888' },
-  tabTextActive: { color: '#1a1a1a', fontWeight: '600' },
 
   // Category
   categoryWrapper: { marginVertical: 8 },
@@ -1100,7 +1113,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 2,
   },
-  // ✅ Divider — height 22 matches icon row, vertically centered
   featureDivider: {
     width: 1,
     height: 22,
@@ -1174,7 +1186,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // ✅ Rating pill — number → divider → star (no count)
   ratingPill: {
     position: 'absolute',
     bottom: 8,
