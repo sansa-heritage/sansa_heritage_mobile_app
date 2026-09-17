@@ -117,7 +117,6 @@ const CartScreen: React.FC = () => {
     return null;
   };
 
-  // Convert "DARK RED" / "dark red" / "dark-red" → "Dark Red"
   const toCamelCase = (value?: string | null): string => {
     if (!value) return '';
     return value
@@ -130,7 +129,6 @@ const CartScreen: React.FC = () => {
       .join(' ');
   };
 
-  // Split product name into bold-prefix (2 words) + normal rest
   const splitTitle = (fullName: string, boldWordCount = 2) => {
     const words = fullName.trim().split(/\s+/);
     if (words.length <= boldWordCount) {
@@ -711,7 +709,6 @@ const CartScreen: React.FC = () => {
               <Ionicons name="close" size={16} color="#666" />
             </TouchableOpacity>
 
-            {/* Title: bold prefix + normal rest */}
             <Text style={styles.name} numberOfLines={2}>
               <Text style={styles.nameBold}>{boldPart}</Text>
               {normalPart ? <Text style={styles.nameNormal}> {normalPart}</Text> : null}
@@ -747,7 +744,6 @@ const CartScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ Color NAME in camel case (no dot) */}
             {colorText && colorText !== 'N/A' && colorText !== 'Color' ? (
               <View style={styles.colorRow2}>
                 <Text style={styles.colorLabel}>Color:</Text>
@@ -1169,6 +1165,8 @@ const CartScreen: React.FC = () => {
 
 export default CartScreen;
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -1181,18 +1179,17 @@ const styles = StyleSheet.create({
   flatListContent: {
     paddingBottom: 140,
   },
+
+  /* ✅ NO SHADOW — thin border */
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
   addressRow: {
     flexDirection: 'row',
@@ -1250,18 +1247,18 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   name: {
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     color: '#111',
     paddingRight: 22,
     marginTop: 2,
     lineHeight: 16,
   },
   nameBold: {
-    fontWeight: '700',     // ✅ first part bold
+    fontWeight: '700',
     color: '#111',
   },
   nameNormal: {
-    fontWeight: '400',     // ✅ rest normal
+    fontWeight: '400',
     color: '#333',
   },
 
@@ -1284,7 +1281,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   sizePillText: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#333',
     fontWeight: '500',
   },
@@ -1301,12 +1298,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   qtyPillText: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#333',
     fontWeight: '500',
   },
 
-  // ✅ Color NAME (no dot)
   colorRow2: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1333,17 +1329,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   price: {
-    fontSize: 15,          // ✅ smaller
+    fontSize: 15,
     fontWeight: '800',
     color: '#111',
   },
   mrp: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#999',
     textDecorationLine: 'line-through',
   },
   discountBadge: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#9E0E26',
     fontWeight: '700',
   },
@@ -1371,12 +1367,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   couponTitle: {
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     fontWeight: '600',
     color: '#333',
   },
   couponSubtext: {
-    fontSize: 9,           // ✅ smaller
+    fontSize: 9,
     color: '#999',
     marginTop: 1,
   },
@@ -1385,7 +1381,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   couponApplyText: {
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     fontWeight: '600',
     color: '#9E0E26',
     marginRight: 4,
@@ -1406,7 +1402,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     color: '#333',
     borderWidth: 1,
     borderColor: '#E0E0E0',
@@ -1423,7 +1419,7 @@ const styles = StyleSheet.create({
   couponApplyBtnText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
   },
   couponRemoveIconBtn: {
     paddingHorizontal: 10,
@@ -1439,13 +1435,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   couponAppliedText: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#2E7D32',
     marginLeft: 6,
     fontWeight: '500',
   },
 
-  /* ── Free Shipping ── */
+  /* ✅ NO SHADOW — thin border */
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1454,11 +1450,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#E8F5E9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
   },
   shippingRow: {
     flexDirection: 'row',
@@ -1466,7 +1457,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   shippingText: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#333',
     fontWeight: '500',
     marginLeft: 6,
@@ -1480,7 +1471,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F8E9',
   },
   shippingAchievedText: {
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     fontWeight: '600',
     color: '#2E7D32',
     marginLeft: 6,
@@ -1507,21 +1498,18 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  /* ── Order Details ── */
+  /* ✅ NO SHADOW — thin border */
   orderDetailsCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
   sectionTitle: {
-    fontSize: 14,          // ✅ smaller
+    fontSize: 14,
     fontWeight: '700',
     marginBottom: 8,
     color: '#333',
@@ -1533,16 +1521,16 @@ const styles = StyleSheet.create({
   },
   billLabel: {
     color: '#666',
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
   },
   billValue: {
     fontWeight: '500',
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
   },
   savingsValue: {
     color: '#4CAF50',
     fontWeight: '500',
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
   },
   freeText: {
     color: '#4CAF50',
@@ -1554,17 +1542,17 @@ const styles = StyleSheet.create({
     marginVertical: 6,
   },
   totalLabel: {
-    fontSize: 13,          // ✅ smaller
+    fontSize: 13,
     fontWeight: '700',
     color: '#333',
   },
   totalValue: {
-    fontSize: 15,          // ✅ smaller
+    fontSize: 15,
     fontWeight: '800',
     color: '#9E0E26',
   },
 
-  /* ── Footer ── */
+  /* ✅ NO SHADOW — only top border */
   footer: {
     position: 'absolute',
     bottom: 40,
@@ -1578,19 +1566,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderColor: '#eee',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
   subTotal: {
-    fontSize: 15,          // ✅ smaller
+    fontSize: 15,
     fontWeight: '700',
     color: '#9E0E26',
   },
   subLabel: {
-    fontSize: 10,          // ✅ smaller
+    fontSize: 10,
     color: '#666',
     marginTop: 1,
   },
@@ -1605,21 +1588,18 @@ const styles = StyleSheet.create({
   checkoutText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
   },
 
-  /* ── Policy ── */
+  /* ✅ NO SHADOW — thin border */
   policyCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
   policyHeader: {
     flexDirection: 'row',
@@ -1638,13 +1618,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   policyTitle: {
-    fontSize: 12,          // ✅ smaller
+    fontSize: 12,
     fontWeight: '700',
     color: '#333',
     marginBottom: 2,
   },
   policyDesc: {
-    fontSize: 9,           // ✅ smaller
+    fontSize: 9,
     color: '#666',
     lineHeight: 14,
   },
@@ -1655,7 +1635,7 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   readPolicy: {
-    fontSize: 10,          // ✅ smaller
+    fontSize: 10,
     fontWeight: '600',
     color: '#9E0E26',
     marginRight: 2,
@@ -1709,7 +1689,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalTitle: {
-    fontSize: 15,          // ✅ smaller
+    fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
     padding: 15,
@@ -1723,12 +1703,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#eee',
   },
   optionText: {
-    fontSize: 13,          // ✅ smaller
+    fontSize: 13,
     color: '#222',
     textAlign: 'center',
   },
   addressSub: {
-    fontSize: 11,          // ✅ smaller
+    fontSize: 11,
     color: '#888',
     marginTop: 2,
   },
