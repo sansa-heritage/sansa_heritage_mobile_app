@@ -8,7 +8,13 @@ import {
   Modal,
   Dimensions,
   TextInput,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
@@ -77,7 +83,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS — AJIO style, fit-to-width, seamless
+// TOP TABS — AJIO style
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -88,6 +94,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
   return (
     <View style={styles.topTabsBar}>
       <View style={styles.topTabsRow}>
+        {/* HOME TAB */}
         <TouchableOpacity
           style={[
             styles.topTab,
@@ -101,13 +108,21 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
             <MaterialIcons
               name="storefront"
               size={16}
-              color="#9E0E26"
+              color={activeTab === 'home' ? '#9E0E26' : '#9E0E26'}
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.topTabText}>SansaHome</Text>
+            <Text
+              style={[
+                styles.topTabText,
+                activeTab === 'home' && styles.topTabTextActive,
+              ]}
+            >
+              SansaHome
+            </Text>
           </View>
         </TouchableOpacity>
 
+        {/* PREMIUM TAB */}
         <TouchableOpacity
           style={[
             styles.topTab,
@@ -124,7 +139,14 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
               color="#9E0E26"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.topTabText}>Premium</Text>
+            <Text
+              style={[
+                styles.topTabText,
+                activeTab === 'premium' && styles.topTabTextActive,
+              ]}
+            >
+              Premium
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -133,7 +155,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
 };
 
 // ============================================
-// Helper function to get image source
+// Helper: image source
 // ============================================
 const getImageSource = (item: any) => {
   if (item.images && Array.isArray(item.images) && item.images.length > 0) {
@@ -173,12 +195,13 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   setCurrentBannerIndex,
 }) => {
   const flatListRef = useRef<FlatList>(null);
+  const bannerWidth = width - 30;
 
   if (bannerImages.length === 0) return null;
 
   const handleScrollEnd = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / (width - 30));
+    const index = Math.round(contentOffsetX / bannerWidth);
     if (index !== currentBannerIndex && index < bannerImages.length) {
       setCurrentBannerIndex(index);
     }
@@ -219,8 +242,8 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
         )}
         onMomentumScrollEnd={handleScrollEnd}
         getItemLayout={(data, index) => ({
-          length: width - 30,
-          offset: (width - 30) * index,
+          length: bannerWidth,
+          offset: bannerWidth * index,
           index,
         })}
         onScrollToIndexFailed={info => {
@@ -391,11 +414,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -486,11 +509,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -565,6 +588,7 @@ const PremiumSection: React.FC<{
 // MAIN DASHBOARD
 // ============================================
 export default function Dashboard() {
+  const insets = useSafeAreaInsets();
   const [newArrivals, setNewArrivals] = useState([]);
   const [trendingItems, setTrendingItems] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -596,7 +620,6 @@ export default function Dashboard() {
     loadFavorites();
   }, []);
 
-  // ✅ Fetch wishlist count and listen for updates
   useEffect(() => {
     let mounted = true;
 
@@ -962,10 +985,19 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      {/* Row 1: Tabs on top */}
-      <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* ✅ Status bar explicit styling */}
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="#FFF0F3"
+        translucent={false}
+      />
 
-      {/* Row 2: Search bar + icons */}
+      {/* ✅ TOP TABS WRAPPED IN SAFE AREA — status bar visible above */}
+      <SafeAreaView edges={['top']} style={styles.topTabsSafe}>
+        <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      </SafeAreaView>
+
+      {/* SEARCH BAR ROW */}
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
           <Image
@@ -1022,17 +1054,21 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Row 3: Content */}
+      {/* CONTENT */}
       <FlatList
         data={[]}
         keyExtractor={() => 'main-scroll'}
         renderItem={null}
         ListHeaderComponent={activeTab === 'home' ? HomeContent : PremiumContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 70 }}
+        contentContainerStyle={[
+          styles.mainScrollContent,
+          { paddingBottom: 70 + insets.bottom },
+        ]}
         keyboardShouldPersistTaps="handled"
       />
 
+      {/* FILTER MODAL */}
       <Modal
         animationType="slide"
         transparent
@@ -1040,7 +1076,12 @@ export default function Dashboard() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View
+            style={[
+              styles.modalContent,
+              { paddingBottom: Math.max(insets.bottom, 20) + 10 },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={clearFilters}>
                 <Text style={styles.clearText}>Clear</Text>
@@ -1114,28 +1155,36 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES — ALL SHADOWS REMOVED
+// STYLES — AJIO-style tabs + status bar safe
 // ============================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+
+  // ✅ Safe-area wrapper for the tab bar (pink fills the status bar gap)
+  topTabsSafe: {
+    backgroundColor: '#FFF0F3',
+  },
+
+  // Content padding
+  mainScrollContent: {
     paddingHorizontal: 15,
   },
+
   columnWrapper: {
     justifyContent: 'space-between',
     marginBottom: 15,
   },
 
   // ============================================
-  // TOP TABS — no shadow
+  // TOP TABS — AJIO style
   // ============================================
   topTabsBar: {
     backgroundColor: '#FFF0F3',
-    marginHorizontal: -15,
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 0,
-    marginBottom: 0,
   },
   topTabsRow: {
     flexDirection: 'row',
@@ -1145,13 +1194,16 @@ const styles = StyleSheet.create({
   },
   topTab: {
     flex: 1,
-    height: 45,
+    height: 44,
     backgroundColor: '#FFF0F3',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
+
+  // Left tab — rounded top corners only
   topTabLeft: {
-    borderTopLeftRadius: 16,
+    borderTopLeftRadius: 14,
     borderTopRightRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
@@ -1159,23 +1211,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 0,
     borderRightWidth: 1,
-    borderColor: '#F0D5DC',
+    borderColor: '#F2D5DC',
   },
+
+  // Right tab — rounded top corners only
   topTabRight: {
     borderTopLeftRadius: 0,
-    borderTopRightRadius: 16,
+    borderTopRightRadius: 14,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderLeftWidth: 0,
     borderTopWidth: 1,
     borderBottomWidth: 0,
     borderRightWidth: 1,
-    borderColor: '#F0D5DC',
+    borderColor: '#F2D5DC',
   },
+
+  // Active tab → white surface, seamless with content below
   topTabActive: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#F0D5DC',
+    borderColor: '#F2D5DC',
+    // A subtle bottom border to hide the seam with content
+    borderBottomWidth: 0,
   },
+
   topTabInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1185,19 +1244,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#9E0E26',
+    letterSpacing: 0.3,
+  },
+  topTabTextActive: {
+    fontWeight: '700',
+    color: '#9E0E26',
   },
 
   // ============================================
-  // SEARCH BAR ROW — no shadow
+  // SEARCH BAR ROW
   // ============================================
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     gap: 10,
-    marginHorizontal: -15,
   },
   searchBarWrap: {
     flex: 1,
@@ -1209,7 +1272,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    // ❌ removed shadow
   },
   searchLogo: {
     width: 24,
@@ -1246,7 +1308,7 @@ const styles = StyleSheet.create({
 
   // Category
   categoryWrapper: { marginVertical: 8 },
-  categoryList: { paddingHorizontal: 2, gap: 3 },
+  categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
     paddingHorizontal: 5,
@@ -1269,7 +1331,7 @@ const styles = StyleSheet.create({
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
   // ============================================
-  // FEATURE BADGES — no shadow
+  // FEATURE BADGES
   // ============================================
   featuresContainer: {
     flexDirection: 'row',
@@ -1280,11 +1342,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 4,
     marginVertical: 4,
-    marginHorizontal: 2,
+    marginHorizontal: 0,
     minHeight: 44,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    // ❌ removed shadow
   },
   featureItem: {
     flexDirection: 'row',
@@ -1323,7 +1384,7 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // PRODUCT CARD — no shadow
+  // PRODUCT CARD
   // ============================================
   productCard: {
     width: '48%',
@@ -1333,7 +1394,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    // ❌ removed shadow
   },
   megaDropRow: {
     flexDirection: 'row',
@@ -1353,7 +1413,7 @@ const styles = StyleSheet.create({
   imageWrapper: { position: 'relative' },
   productImage: {
     width: '100%',
-    height: 220,
+    height: 200,
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
   },
@@ -1362,7 +1422,6 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 2,
-    // ❌ removed shadow
   },
   ratingPill: {
     position: 'absolute',
@@ -1375,7 +1434,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 3,
     gap: 3,
-    // ❌ removed shadow
   },
   ratingPillText: {
     color: '#111',
@@ -1434,13 +1492,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Premium — no shadow
+  // Premium
   premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
   premiumHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
     marginBottom: 12,
   },
   premiumHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
@@ -1479,7 +1537,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#FCEBED',
-    // ❌ removed shadow
   },
   premiumImageWrapper: { position: 'relative', height: 180 },
   premiumImage: { width: '100%', height: '100%', resizeMode: 'cover' },
@@ -1503,7 +1560,6 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 2,
-    // ❌ removed shadow
   },
   premiumInfo: { padding: 10, backgroundColor: '#fff' },
   premiumName: {
@@ -1574,6 +1630,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
