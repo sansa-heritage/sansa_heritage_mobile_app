@@ -7,11 +7,11 @@ import {
   Image,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
   StatusBar,
   Dimensions,
   TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cancelOrder, getOrders } from '../../api/orderApi';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -19,8 +19,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../../models/types';
 import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
+import eventBus from '../../services/eventBus';
 
 const { width } = Dimensions.get('window');
+
+/* ================= TYPES ================= */
 
 type OrderProduct = {
   product: string;
@@ -50,18 +53,30 @@ type Order = {
   products: OrderProduct[];
   shippingAddress: ShippingAddress;
   totalPrice: number;
-  status: 'Completed' | 'Cancelled' | 'Processing' | 'Shipped' | 'Delivered' | 'Pending';
+  status:
+    | 'Completed'
+    | 'Cancelled'
+    | 'Processing'
+    | 'Shipped'
+    | 'Delivered'
+    | 'Pending';
   createdAt: string;
   updatedAt: string;
   __v: number;
 };
 
+/* ================= COMPONENT ================= */
+
 const MyOrdersScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
+
+  /* ================= FETCH ORDERS ================= */
 
   const fetchOrders = async () => {
     try {
@@ -74,7 +89,7 @@ const MyOrdersScreen: React.FC = () => {
         throw new Error('Failed to fetch orders');
       }
 
-      let ordersData = [];
+      let ordersData: Order[] = [];
       if (response?.orders && Array.isArray(response.orders)) {
         ordersData = response.orders;
       } else if (Array.isArray(response)) {
@@ -85,7 +100,6 @@ const MyOrdersScreen: React.FC = () => {
         ordersData = [];
       }
 
-      // Sort orders by date (newest first)
       ordersData.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -94,9 +108,13 @@ const MyOrdersScreen: React.FC = () => {
 
       setOrders(ordersData);
       setFilteredOrders(ordersData);
+
+      eventBus.emit('ORDERS_UPDATED', { count: ordersData.length });
+      console.log("My Orders Data---", ordersData)
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       Alert.alert('Error', error.message || 'Failed to fetch orders');
+      eventBus.emit('ORDERS_UPDATED', { count: 0 });
     } finally {
       setLoading(false);
       LoadingService.hide();
@@ -106,6 +124,8 @@ const MyOrdersScreen: React.FC = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  /* ================= SEARCH ================= */
 
   const handleSearch = (text: string) => {
     setSearchText(text);
@@ -121,53 +141,53 @@ const MyOrdersScreen: React.FC = () => {
     }
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    Alert.alert(
-      'Cancel Order',
-      'Are you sure you want to cancel this order?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes',
-          onPress: async () => {
-            try {
-              LoadingService.show('Cancelling order...');
-              const result = await cancelOrder(orderId);
-              if (result) {
-                await fetchOrders();
-                Alert.alert('Success', 'Order cancelled successfully');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to cancel order');
-            } finally {
-              LoadingService.hide();
-            }
-          }
-        },
-      ]
-    );
-  };
+  /* ================= CANCEL ORDER ================= */
+
+  // const handleCancelOrder = async (orderId: string) => {
+  //   Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
+  //     { text: 'No', style: 'cancel' },
+  //     {
+  //       text: 'Yes',
+  //       onPress: async () => {
+  //         try {
+  //           LoadingService.show('Cancelling order...');
+  //           const result = await cancelOrder(orderId);
+  //           if (result) {
+  //             await fetchOrders();
+  //             Alert.alert('Success', 'Order cancelled successfully');
+  //           }
+  //         } catch (error) {
+  //           Alert.alert('Error', 'Failed to cancel order');
+  //         } finally {
+  //           LoadingService.hide();
+  //         }
+  //       },
+  //     },
+  //   ]);
+  // };
+
+  /* ================= HELPERS ================= */
 
   const getStatusColor = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'Delivered': '#4CAF50',
-      'Shipped': '#2196F3',
-      'Processing': '#FF9800',
-      'Cancelled': '#E53935',
-      'Completed': '#4CAF50',
-      'Pending': '#FF9800',
+      Delivered: '#4CAF50',
+      Shipped: '#2196F3',
+      Processing: '#FF9800',
+      Cancelled: '#E53935',
+      Completed: '#4CAF50',
+      Pending: '#FF9800',
     };
     return statusMap[status] || '#666';
   };
 
   const getStatusIcon = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'Delivered': 'checkmark-circle',
-      'Shipped': 'car-outline',
-      'Processing': 'time-outline',
-      'Cancelled': 'close-circle-outline',
-      'Completed': 'checkmark-circle',
-      'Pending': 'time-outline',
+      Delivered: 'checkmark-circle',
+      Shipped: 'car-outline',
+      Processing: 'time-outline',
+      Cancelled: 'close-circle-outline',
+      Completed: 'checkmark-circle',
+      Pending: 'time-outline',
     };
     return statusMap[status] || 'ellipse-outline';
   };
@@ -177,20 +197,13 @@ const MyOrdersScreen: React.FC = () => {
     try {
       if (typeof dateString === 'string' && dateString.includes('at')) {
         const parts = dateString.split(' at ');
-        if (parts.length === 2) {
-          return parts[0];
-        }
+        if (parts.length === 2) return parts[0];
         const match = dateString.match(/([A-Za-z]+ \d{1,2}, \d{4})/);
-        if (match) {
-          return match[1];
-        }
+        if (match) return match[1];
         return dateString;
       }
-
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
+      if (isNaN(date.getTime())) return dateString;
       return date.toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -206,20 +219,13 @@ const MyOrdersScreen: React.FC = () => {
     try {
       if (typeof dateString === 'string' && dateString.includes('at')) {
         const parts = dateString.split(' at ');
-        if (parts.length === 2) {
-          return parts[1];
-        }
+        if (parts.length === 2) return parts[1];
         const match = dateString.match(/at (\d{1,2}:\d{2}:\d{2} (?:AM|PM))/);
-        if (match) {
-          return match[1];
-        }
+        if (match) return match[1];
         return dateString;
       }
-
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'N/A';
-      }
+      if (isNaN(date.getTime())) return 'N/A';
       return date.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
@@ -236,7 +242,9 @@ const MyOrdersScreen: React.FC = () => {
       case 'Delivered':
         return `Delivered on ${formatDate(order.createdAt)}`;
       case 'Shipped':
-        return `Estimated Delivery: ${formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())}`;
+        return `Estimated Delivery: ${formatDate(
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        )}`;
       case 'Processing':
         return 'Order is being processed';
       case 'Completed':
@@ -252,19 +260,11 @@ const MyOrdersScreen: React.FC = () => {
 
   const getImageSource = (image: string) => {
     if (!image) return null;
-
-    if (image.startsWith('data:image')) {
+    if (image.startsWith('data:image')) return { uri: image };
+    if (image.startsWith('http://') || image.startsWith('https://'))
       return { uri: image };
-    }
-
-    if (image.startsWith('http://') || image.startsWith('https://')) {
-      return { uri: image };
-    }
-
     const base = config.baseURL.replace(/\/$/, '');
-    if (image.startsWith('/')) {
-      return { uri: `${base}${image}` };
-    }
+    if (image.startsWith('/')) return { uri: `${base}${image}` };
     return { uri: `${base}/${image}` };
   };
 
@@ -272,13 +272,24 @@ const MyOrdersScreen: React.FC = () => {
     navigation.navigate('OrderDetails' as any, { orderId });
   };
 
+  const splitTitle = (fullName: string, boldWords = 2) => {
+    const words = (fullName || '').trim().split(/\s+/);
+    if (words.length <= boldWords) {
+      return { boldPart: fullName || '', normalPart: '' };
+    }
+    return {
+      boldPart: words.slice(0, boldWords).join(' '),
+      normalPart: words.slice(boldWords).join(' '),
+    };
+  };
+
+  /* ================= RENDER ITEM ================= */
+
   const renderItem = ({ item }: { item: Order }) => {
     const product = item.products[0] || {};
-    const statusColor = getStatusColor(item.status);
-    const statusIcon = getStatusIcon(item.status);
-    const statusText = getStatusText(item);
     const imageSource = getImageSource(product?.image);
-    const canCancel = ['Processing', 'Pending'].includes(item.status);
+    const { boldPart, normalPart } = splitTitle(product?.name || 'Product');
+    const statusColor = getStatusColor(item.status);
 
     return (
       <View style={styles.orderCard}>
@@ -290,8 +301,9 @@ const MyOrdersScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.orderDetailsBtn}
               onPress={() => navigateToOrderDetails(item._id)}
+              hitSlop={8}
             >
-              <Ionicons name="chevron-forward" size={20} color="#151515" />
+              <Ionicons name="chevron-forward" size={18} color="#151515" />
             </TouchableOpacity>
           </View>
         </View>
@@ -309,47 +321,38 @@ const MyOrdersScreen: React.FC = () => {
             />
           ) : (
             <View style={styles.productImagePlaceholder}>
-              <Ionicons name="image-outline" size={30} color="#ccc" />
+              <Ionicons name="image-outline" size={26} color="#ccc" />
             </View>
           )}
           <View style={styles.productInfo}>
             <Text style={styles.productName} numberOfLines={2}>
-              {product?.name || 'Product Name'}
+              <Text style={styles.productNameBold}>{boldPart}</Text>
+              {normalPart ? (
+                <Text style={styles.productNameNormal}> {normalPart}</Text>
+              ) : null}
             </Text>
             <Text style={styles.productMeta}>
               Qty: {product?.quantity || 1}
             </Text>
-            <Text style={styles.productPrice}>₹{(product?.price || 0).toFixed(2)}</Text>
+            <Text style={styles.productPrice}>
+              ₹{(product?.price || 0).toFixed(2)}
+            </Text>
           </View>
-        </View>
-
-
-
-        <View style={styles.actionContainer}>
-          {canCancel && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.cancelBtn]}
-              onPress={() => handleCancelOrder(item._id)}
-            >
-              <Text style={styles.cancelBtnText}>Cancel Order</Text>
-            </TouchableOpacity>
-          )}
-          {item.status === 'Shipped' && (
-            <TouchableOpacity style={[styles.actionBtn, styles.trackBtn]}>
-              <Text style={styles.trackBtnText}>Track Order</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
     );
   };
 
+  /* ================= EMPTY ================= */
+
   const ListEmptyComponent = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="receipt-outline" size={80} color="#ddd" />
+      <Ionicons name="receipt-outline" size={70} color="#ddd" />
       <Text style={styles.emptyTitle}>No Orders Yet</Text>
       <Text style={styles.emptySubtitle}>
-        {searchText ? `No results for "${searchText}"` : 'Start shopping to see your orders here'}
+        {searchText
+          ? `No results for "${searchText}"`
+          : 'Start shopping to see your orders here'}
       </Text>
       <TouchableOpacity
         style={styles.shopBtn}
@@ -360,18 +363,22 @@ const MyOrdersScreen: React.FC = () => {
     </View>
   );
 
-  // ✅ Removed inline ActivityIndicator + "Loading orders..." text
-  // → global AnimatedLogoLoader handles the first-load overlay
+  /* ================= LOADING ================= */
+
   if (loading && orders.length === 0) {
     return <View style={styles.loadingContainer} />;
   }
 
+  /* ================= UI ================= */
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    // ✅ Plain View — no top inset (Header above already handles it)
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
       <View style={styles.container}>
+        {/* Search bar — sits right below header */}
         <View style={styles.searchSection}>
-          <Ionicons name="search-outline" size={20} color="#999" />
+          <Ionicons name="search-outline" size={18} color="#999" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search orders..."
@@ -382,22 +389,21 @@ const MyOrdersScreen: React.FC = () => {
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons name="close-circle" size={18} color="#999" />
             </TouchableOpacity>
           )}
         </View>
-
-        <Text style={styles.orderCountText}>
-          {filteredOrders.length} {filteredOrders.length === 1 ? 'order' : 'orders'} found
-        </Text>
 
         {filteredOrders.length > 0 ? (
           <FlatList
             data={filteredOrders}
             renderItem={renderItem}
-            keyExtractor={(item) => item._id}
+            keyExtractor={item => item._id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: 120 + insets.bottom },
+            ]}
             onRefresh={fetchOrders}
             refreshing={loading}
           />
@@ -405,11 +411,17 @@ const MyOrdersScreen: React.FC = () => {
           <ListEmptyComponent />
         )}
 
-        <View style={styles.helpSection}>
+        {/* Help section auto-adjusts above Android nav bar / iPhone home bar */}
+        <View
+          style={[
+            styles.helpSection,
+            { marginBottom: Math.max(insets.bottom, 12) + 8 },
+          ]}
+        >
           <View style={styles.helpRow}>
             <View style={styles.helpLeft}>
               <View style={styles.helpIconContainer}>
-                <Ionicons name="headset" size={28} color="#96252A" />
+                <Ionicons name="headset" size={24} color="#96252A" />
               </View>
               <View style={styles.helpTextContainer}>
                 <Text style={styles.helpTitle}>Need help with your order?</Text>
@@ -423,14 +435,14 @@ const MyOrdersScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.bottomSpacer} />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default MyOrdersScreen;
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -447,46 +459,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#666',
-  },
+
+  /* ✅ Search — reduced top gap */
   searchSection: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    paddingVertical: 2,
+    marginHorizontal: 14,
+    marginTop: 8,          // ← small gap below header
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    paddingVertical: 10,
+    fontSize: 13,
+    paddingVertical: 9,
     paddingHorizontal: 8,
     color: '#151515',
   },
   orderCountText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
     marginHorizontal: 16,
     marginBottom: 8,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingBottom: 16,
   },
+
+  /* Card */
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -497,7 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   orderHeaderLeft: {
     flex: 1,
@@ -507,7 +518,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderId: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#151515',
   },
@@ -515,108 +526,84 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   orderDate: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888',
-    marginBottom: 12,
+    marginBottom: 8,
   },
+
+  /* Status pill (hidden but styles kept) */
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginBottom: 10,
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  /* Product row */
   productContainer: {
     flexDirection: 'row',
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    padding: 10,
   },
   productImage: {
-    width: 70,
-    height: 70,
+    width: 64,
+    height: 64,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 10,
     backgroundColor: '#f0f0f0',
   },
   productImagePlaceholder: {
-    width: 70,
-    height: 70,
+    width: 64,
+    height: 64,
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   productInfo: {
     flex: 1,
     justifyContent: 'center',
   },
   productName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
     color: '#151515',
-    marginBottom: 2,
+    marginBottom: 3,
+    lineHeight: 16,
+  },
+  productNameBold: {
+    fontWeight: '700',
+    color: '#151515',
+  },
+  productNameNormal: {
+    fontWeight: '400',
+    color: '#444',
   },
   productMeta: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888',
     marginBottom: 2,
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#151515',
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusInfoText: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  trackBtn: {
-    backgroundColor: '#96252A',
-  },
-  trackBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#fff',
-  },
-  cancelBtn: {
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#E53935',
-  },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#E53935',
-  },
+
+  /* Help section */
   helpSection: {
     backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 80,
+    padding: 14,
+    marginHorizontal: 14,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -635,13 +622,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   helpIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#F5F0EB',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   helpTextContainer: {
     flex: 1,
@@ -655,24 +642,26 @@ const styles = StyleSheet.create({
   helpSubtitle: {
     fontSize: 10,
     color: '#666',
-    lineHeight: 18,
+    lineHeight: 14,
   },
   contactBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#96252A',
     backgroundColor: 'transparent',
-    marginLeft: 10,
+    marginLeft: 8,
   },
   contactBtnText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#96252A',
   },
+
+  /* Empty */
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -682,31 +671,28 @@ const styles = StyleSheet.create({
     marginBottom: 100,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#151515',
-    marginTop: 16,
+    marginTop: 14,
   },
   emptySubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#888',
     textAlign: 'center',
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 22,
   },
   shopBtn: {
     backgroundColor: '#96252A',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   shopBtnText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 0.5,
-  },
-  bottomSpacer: {
-    height: 20,
   },
 });

@@ -1,25 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+} from 'react-native';
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { StackActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import axios from 'axios'
-import config from '../../config/config'
+import axios from 'axios';
+import config from '../../config/config';
 import { registerWithGoogle } from '../../api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { RootStackParamList } from '../../models/types';
 import { Toast } from '../../components/common/Toast';
+import DeviceInfo from 'react-native-device-info';
+
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
-  const [username, serUsername] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const [errorMsg, setError] = useState<string | null>(null)
+  const [errorMsg, setError] = useState<string | null>(null);
   const [secureText, setSecureText] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const appVersion = DeviceInfo.getVersion();
 
   const onSignIn = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
@@ -28,8 +43,8 @@ const SignUpPage = () => {
       let payload = {
         googleId: userInfo?.user.id,
         email: userInfo?.user.email,
-        username: userInfo?.user.name
-      }
+        username: userInfo?.user.name,
+      };
 
       const res = await registerWithGoogle(payload);
       if (res) {
@@ -39,39 +54,50 @@ const SignUpPage = () => {
         await AsyncStorage.setItem('username', res?.username || '');
         await AsyncStorage.setItem('email', res?.email || '');
         navigation.dispatch(StackActions.replace('Dashboard'));
-        
       }
     } catch (error: any) {
       console.log('Google Sign-in Error:', error);
       Alert.alert('Login Failed', error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
+
   const handleSignUp = async () => {
+    if (isLoading) return;
+
+    if (!username || !email || !password) {
+      setError('All fields are required');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const response = await axios.post(`${config.baseURL}api/auth/register`, {
         email,
         password,
-        username
+        username,
       });
 
       if (response.status === 201) {
-        Toast.show('Success', 'You have successfully signed up!');
+        Toast.show('success', 'You have successfully signed up!');
         setError('');
         navigation.navigate('Login');
       }
     } catch (error: any) {
-      console.error("SIGNUP ERROR:", error.response?.data);
+      console.error('SIGNUP ERROR:', error.response?.data);
       if (error.response) {
-        const message = error.response.data.message || "Signup failed";
+        const message = error.response.data.message || 'Signup failed';
         setError(message);
-        Toast.show("Error", message);
+        Toast.show('error', message);
       } else {
-        setError("Network error. Please try again.");
-        Toast.show("Error", "Network error.");
+        setError('Network error. Please try again.');
+        Toast.show('error', 'Network error.');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
-
 
   const redirectToLogin = () => {
     navigation.navigate('Login');
@@ -79,78 +105,101 @@ const SignUpPage = () => {
 
   return (
     <View style={styles.container}>
-      <Image style={styles.brandLogo} source={require('../../../assets/images/SANSA-final-logo.png')} />
-      <Text style={styles.title}>Sign up</Text>
-      <View style={styles.inputContainer}>
-        <FontAwesome name="user" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          value={username}
-          onChangeText={serUsername}
-          keyboardType="default"
-          autoCapitalize="none"
-          placeholderTextColor="#888"
-        />
-      </View>
-      <View style={styles.inputContainer}>
-        <FontAwesome name="envelope" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#888"
+      <Image
+        style={styles.brandLogo}
+        source={require('../../../assets/images/SANSA-final-logo.png')}
+      />
 
-        />
-      </View>
-      <View style={styles.inputContainer}>
-        <MaterialCommunityIcons name="lock" size={24} color="#151515" style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry={secureText}
-          value={password}
-          onChangeText={setPassword}
-          placeholderTextColor="#888"
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setSecureText(!secureText)}
-        >
-          <MaterialCommunityIcons
-            name={secureText ? "eye-off" : "eye"}
-            size={24}
-            color="gray"
+      <View style={styles.card}>
+        <Text style={styles.title}>Create Account ✨</Text>
+        <Text style={styles.subtitle}>Sign up to get started</Text>
+
+        {/* Name */}
+        <View style={styles.inputWrapper}>
+          <FontAwesome name="user" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Full name"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="words"
+            placeholderTextColor="#999"
           />
+        </View>
+
+        {/* Email */}
+        <View style={styles.inputWrapper}>
+          <FontAwesome name="envelope" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* Password */}
+        <View style={styles.inputWrapper}>
+          <MaterialCommunityIcons name="lock-outline" size={18} color="#777" />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry={secureText}
+            value={password}
+            onChangeText={setPassword}
+            placeholderTextColor="#999"
+          />
+          <TouchableOpacity onPress={() => setSecureText(!secureText)}>
+            <MaterialCommunityIcons
+              name={secureText ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color="#777"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
+
+        <TouchableOpacity
+          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+          onPress={handleSignUp}
+          disabled={isLoading}
+        >
+          <Text style={styles.loginButtonText}>
+            {isLoading ? 'Signing up...' : 'Sign Up'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.line} />
+          <Text style={styles.orText}>OR</Text>
+          <View style={styles.line} />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.googleButton, isLoading && styles.googleButtonDisabled]}
+          onPress={onSignIn}
+          disabled={isLoading}
+        >
+          <Image
+            source={require('../../../assets/images/Google.png')}
+            style={styles.googleIcon}
+          />
+          <Text style={styles.googleText}>Continue with Google</Text>
         </TouchableOpacity>
       </View>
-      <View>
-        {errorMsg &&
-          <Text style={styles.error}>{errorMsg}</Text>
-        }
-      </View>
-      <TouchableOpacity style={styles.loginButton} onPress={handleSignUp}>
-        <Text style={styles.loginButtonText}>Sign up</Text>
-      </TouchableOpacity>
-      <Text style={styles.orText}>---------------  Or  --------------</Text>
-      {/* <View>
-        <TouchableOpacity style={styles.socialButton} onPress={onSignIn}>
-          <MaterialCommunityIcons name="google" size={24} color="#d1c7c7ff" />
-        </TouchableOpacity>
-      </View> */}
-      <TouchableOpacity style={styles.socialButton} onPress={onSignIn}>
-        <Image
-          source={require('../../../assets/images/Google.png')}
-          style={[styles.socialIcon, { width: 20, height: 20 }]}
-        />
-        <Text style={styles.buttonText}>Continue with Google</Text>
-      </TouchableOpacity>
-      <Text style={styles.signupText} onPress={redirectToLogin}>
-        Already have an account? <Text style={styles.signupLink}>Log in</Text>
+
+      <Text style={styles.signupText}>
+        Already have an account?{' '}
+        <Text style={styles.signupLink} onPress={redirectToLogin}>
+          Log in
+        </Text>
       </Text>
+
+      <Text style={styles.versionText}>Version {appVersion}</Text>
     </View>
   );
 };
@@ -158,98 +207,133 @@ const SignUpPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
   },
-  error: {
-    color: 'red',
-    padding: 10
+  brandLogo: {
+    width: 310,
+    height: 130,
+    resizeMode: 'contain',
+    alignSelf: 'center',
+    marginBottom: 0,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(149, 12, 33, 0.12)',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111',
+    textAlign: 'center',
   },
-  inputContainer: {
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 12,
     marginBottom: 15,
-    position: 'relative',
-  },
-  icon: {
-    position: 'absolute',
-    left: 10,
-    zIndex: 1,
+    height: 50,
+    backgroundColor: '#FAFAFA',
   },
   input: {
     flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingLeft: 40,
-    paddingRight: 10,
-    borderRadius: 10,
+    paddingHorizontal: 10,
     color: '#000',
+    fontSize: 15,
+  },
+  error: {
+    color: '#E53935',
+    fontSize: 13,
+    marginBottom: 10,
   },
   loginButton: {
     backgroundColor: '#151515',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
+    height: 50,
     borderRadius: 30,
-    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
-
+  loginButtonDisabled: {
+    backgroundColor: '#666',
+    opacity: 0.7,
+  },
   loginButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
   },
   orText: {
-    marginTop: 20,
-    marginBottom: 10,
+    marginHorizontal: 10,
+    fontSize: 12,
+    color: '#888',
   },
-  eyeIcon: {
-    position: 'absolute',
-    right: 10,
-    zIndex: 1,
-  },
-  socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#E5E7EB',
     borderRadius: 30,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    width: '100%',
-    gap: 10,
+    height: 50,
+    backgroundColor: '#fff',
   },
-  socialIcon: {
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleIcon: {
+    width: 18,
+    height: 18,
     marginRight: 10,
   },
-  buttonText: {
-    fontSize: 16,
-    color: "#151515",
-    fontWeight: "500",
-    marginRight: 40
+  googleText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111',
   },
   signupText: {
-    marginTop: 20,
+    textAlign: 'center',
+    marginTop: 25,
+    fontSize: 14,
+    color: '#555',
   },
   signupLink: {
-    color: 'blue',
-    textDecorationLine: 'none',
+    color: '#2563EB',
+    fontWeight: '600',
   },
-  brandLogo: {
-    marginBottom: 0,
-    height: 120,
-    width: 310,
+  versionText: {
+    textAlign: 'center',
+    marginTop: 15,
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 });
 

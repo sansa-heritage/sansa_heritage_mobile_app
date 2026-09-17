@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Dimensions,
   Image,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getOrderById } from '../../api/orderApi';
@@ -24,38 +24,39 @@ const scale = (size: number) => {
   return Math.round((width / baseWidth) * size);
 };
 
-// ✅ FIXED: Format date from API response
-const formatDate = (dateString: string) => {
+/* ================= SAFE VALUE HELPER ================= */
+// Returns fallback ('N/A') if value is null/undefined/empty string
+const safe = (value: any, fallback: string = 'N/A') => {
+  if (value === null || value === undefined) return fallback;
+  const str = String(value).trim();
+  return str === '' ? fallback : str;
+};
+
+/* ================= DATE / TIME HELPERS ================= */
+
+const formatDate = (dateString?: string | null) => {
   if (!dateString) return 'N/A';
   try {
     if (typeof dateString === 'string' && dateString.includes('at')) {
       const parts = dateString.split(' at ');
-      if (parts.length === 2) {
-        return parts[0];
-      }
+      if (parts.length === 2) return parts[0];
       const match = dateString.match(/([A-Za-z]+ \d{1,2}, \d{4})/);
-      if (match) {
-        return match[1];
-      }
+      if (match) return match[1];
       return dateString;
     }
-
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return dateString;
-    }
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
   } catch {
-    return dateString;
+    return 'N/A';
   }
 };
 
-// ✅ FIXED: Format time from API response
-const formatTime = (dateString: string) => {
+const formatTime = (dateString?: string | null) => {
   if (!dateString) return 'N/A';
   try {
     if (typeof dateString === 'string' && dateString.includes('at')) {
@@ -73,16 +74,11 @@ const formatTime = (dateString: string) => {
         return timePart;
       }
       const match = dateString.match(/at (\d{1,2}:\d{2}:\d{2} (?:AM|PM))/);
-      if (match) {
-        return match[1];
-      }
+      if (match) return match[1];
       return dateString;
     }
-
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return 'N/A';
-    }
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
@@ -93,45 +89,72 @@ const formatTime = (dateString: string) => {
   }
 };
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Delivered':
+      return '#16A34A';
+    case 'Shipped':
+      return '#2196F3';
+    case 'Processing':
+      return '#F59E0B';
+    case 'Cancelled':
+      return '#E53935';
+    case 'Completed':
+      return '#16A34A';
+    default:
+      return '#666';
+  }
+};
+
+/* ================= COMPONENT ================= */
+
 const OrderDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const { orderId } = route.params || {};
+
   const [orderData, setOrderData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [deliveryRating, setDeliveryRating] = useState(0);
+  const [productRating, setProductRating] = useState(0);
 
   useEffect(() => {
     if (orderId) {
       fetchOrderDetails();
     } else {
+      // Demo fallback when opening without ID
       setOrderData({
-        orderId: '#SHH24578',
+        orderId: '#1340152 85527753057801',
+        brand: 'DYMORA',
         status: 'Delivered',
-        deliveryDate: '22 May, 2025',
-        deliveryTime: '02:40 PM',
-        placedDate: '18 May, 2025',
+        deliveryDate: '6th Sep 2026',
+        deliveryTime: '11:13 AM',
+        placedDate: '01 Sep 2026',
         placedTime: '10:30 AM',
-        productName: 'Maroon Embroidered Anarkali Set',
-        productImage: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop&crop=center&q=80',
-        size: 'M',
+        productName: 'Men Classic Multi Stripes Striped Casual Shirt',
+        productSubtitle: '1 Piece of Shirt',
+        productImage:
+          'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=400&fit=crop',
+        size: '40',
         quantity: 1,
-        price: 2699,
-        itemTotal: 2699,
-        shipping: 200,
-        discount: 499,
-        totalAmount: 2499,
+        price: 766,
+        mrp: 1999,
+        discountPercent: 62,
+        soldBy: 'CASUAL STITCH',
         address: {
-          name: 'Neha Sharma',
-          street: '12, Lotus Residency, MG Road',
-          city: 'Indore',
-          state: 'Madhya Pradesh',
-          zipCode: '452001',
+          name: 'Annapurna Rout',
+          street: 'Flat no- B05, Sri vari Apartment',
+          area: 'garudachar palya near manjunath temple 5th cross mahadevpu',
+          city: 'Garudachar palya',
+          state: 'Bangalore',
+          zipCode: '560048',
           country: 'India',
-          phone: '9876543210'
+          phone: '7064005018',
+          email: 'supriyamahalik937@gmail.com',
         },
         paymentMethod: 'UPI',
-        paidOn: '18 May, 2025',
-        paidAmount: 2499,
+        paymentStatus: 'Paid Online',
       });
       setLoading(false);
     }
@@ -143,102 +166,83 @@ const OrderDetailsScreen = () => {
       LoadingService.show('Loading order details...');
 
       const response = await getOrderById(orderId);
-
       if (!response || !response.success) {
         throw new Error('Failed to fetch order details');
       }
 
       const order = response.order;
+      const product = order.products?.[0] || {};
 
-      const product = order.products[0] || {};
-      const itemTotal = (product?.price || 0) * (product?.quantity || 1);
-      const totalAmount = order.totalPrice || 0;
-      const discount = itemTotal - totalAmount;
+      // ✅ Every value safely resolved with fallback
+      const price = Number(product?.price) || 0;
+      const mrp = Number(product?.mrp) || price;
+      const discountPercent = Number(product?.discount) || 0;
+      const quantity = Number(product?.quantity) || 1;
 
-      const placedDate = formatDate(order.createdAt);
-      const placedTime = formatTime(order.createdAt);
-      const deliveryDate = formatDate(order.createdAt);
-      const deliveryTime = formatTime(order.createdAt);
+      setOrderData({
+        orderId: safe(order?._id ? `#${order._id.slice(-18)}` : null),
+        brand: safe(product?.brand, 'Brand'),
+        status: safe(order?.status, 'Processing'),
 
-      const formattedData = {
-        orderId: `#${order._id.slice(-6)}`,
-        status: order.status || 'Processing',
-        deliveryDate: deliveryDate,
-        deliveryTime: deliveryTime,
-        placedDate: placedDate,
-        placedTime: placedTime,
-        productName: product?.name || 'Product Name',
+        // Delivery banner (fallback to updatedAt if deliveredAt missing)
+        deliveryDate: formatDate(order?.deliveredAt || order?.updatedAt),
+        deliveryTime: formatTime(order?.deliveredAt || order?.updatedAt),
+
+        // Placed info
+        placedDate: formatDate(order?.createdAt),
+        placedTime: formatTime(order?.createdAt),
+
+        // Product
+        productName: safe(product?.name, 'Product'),
+        productSubtitle: safe(product?.description ? '1 Piece' : '1 Piece'),
         productImage: product?.image || '',
-        size: 'M',
-        quantity: product?.quantity || 1,
-        price: product?.price || 0,
-        itemTotal: itemTotal,
-        shipping: 0,
-        discount: discount > 0 ? discount : 0,
-        totalAmount: totalAmount,
-        address: {
-          name: 'Customer',
-          street: order.shippingAddress?.street || '',
-          city: order.shippingAddress?.city || '',
-          state: order.shippingAddress?.state || '',
-          zipCode: order.shippingAddress?.zipCode || '',
-          country: order.shippingAddress?.country || '',
-          phone: '0000000000'
-        },
-        paymentMethod: order.paymentInfo?.paymentMethod || 'N/A',
-        paidOn: deliveryDate,
-        paidAmount: totalAmount,
-      };
+        size: safe(product?.size),
+        quantity,
 
-      setOrderData(formattedData);
+        // Pricing
+        price,
+        mrp,
+        discountPercent,
+
+        // Sold by
+        soldBy: safe(product?.seller || product?.brand, 'Seller'),
+
+        // Address (each field with fallback)
+        address: {
+          name: safe(order?.shippingAddress?.name || order?.user?.name, 'Customer'),
+          street: safe(order?.shippingAddress?.street),
+          area: safe(order?.shippingAddress?.area, ''),
+          city: safe(order?.shippingAddress?.city),
+          state: safe(order?.shippingAddress?.state),
+          zipCode: safe(order?.shippingAddress?.zipCode),
+          country: safe(order?.shippingAddress?.country, 'India'),
+          phone: safe(
+            order?.shippingAddress?.phone || order?.user?.phone,
+            'N/A',
+          ),
+          email: safe(order?.user?.email, 'N/A'),
+        },
+
+        // Payment
+        paymentMethod: safe(order?.paymentInfo?.paymentMethod, 'N/A'),
+        paymentStatus: safe(
+          order?.paymentInfo?.status || order?.isPaid ? 'Paid Online' : null,
+          'N/A',
+        ),
+      });
     } catch (error: any) {
       console.error('Error fetching order details:', error);
       Alert.alert('Error', error.message || 'Failed to load order details');
+      setOrderData(null);
     } finally {
       setLoading(false);
       LoadingService.hide();
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Delivered':
-        return '#4CAF50';
-      case 'Shipped':
-        return '#2196F3';
-      case 'Processing':
-        return '#FF9800';
-      case 'Cancelled':
-        return '#E53935';
-      case 'Completed':
-        return '#4CAF50';
-      default:
-        return '#666';
-    }
-  };
+  /* ================= LOADING / EMPTY ================= */
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Delivered':
-        return 'checkmark-circle';
-      case 'Shipped':
-        return 'car-outline';
-      case 'Processing':
-        return 'time-outline';
-      case 'Cancelled':
-        return 'close-circle-outline';
-      case 'Completed':
-        return 'checkmark-circle';
-      default:
-        return 'ellipse-outline';
-    }
-  };
-
-  // ✅ Removed inline ActivityIndicator + "Loading order details..." text
-  // → global AnimatedLogoLoader handles the first-load overlay
-  if (loading) {
-    return <View style={styles.loadingContainer} />;
-  }
+  if (loading) return <View style={styles.loadingContainer} />;
 
   if (!orderData) {
     return (
@@ -255,202 +259,451 @@ const OrderDetailsScreen = () => {
     );
   }
 
+  const isDelivered = orderData.status === 'Delivered';
+  const savingAmount = orderData.mrp - orderData.price;
+
+  // Full address string
+  const addressLine = [
+    orderData.address.street,
+    orderData.address.area,
+    orderData.address.city,
+    orderData.address.state,
+    orderData.address.zipCode,
+  ]
+    .filter(v => v && v !== 'N/A' && v !== '')
+    .join(', ');
+
+  /* ================= UI ================= */
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
-      <View style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Card 1: Order ID and Status */}
-          <View style={styles.orderCard}>
-            <View style={styles.orderCardInner}>
-              <View style={styles.orderLeftSection}>
-                <Text style={styles.orderIdLabel}>Order ID</Text>
-                <Text style={styles.orderId}>{orderData.orderId}</Text>
-                <Text style={styles.placedDate}>
-                  Placed on {orderData.placedDate} • {orderData.placedTime}
-                </Text>
-              </View>
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
 
-              <View style={styles.orderRightSection}>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(orderData.status) + '15' }]}>
-                  <Ionicons name={getStatusIcon(orderData.status)} size={scale(12)} color={getStatusColor(orderData.status)} />
-                  <Text style={[styles.statusText, { color: getStatusColor(orderData.status) }]}>
-                    {orderData.status}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 40 + insets.bottom },
+        ]}
+      >
+        {/* ============ 1. PRODUCT HERO ============ */}
+        <View style={styles.heroCard}>
+          <Ionicons
+            name="shirt-outline"
+            size={40}
+            color="#EFEFEF"
+            style={[styles.bgIcon, { top: 20, left: 20 }]}
+          />
+          <Ionicons
+            name="gift-outline"
+            size={36}
+            color="#EFEFEF"
+            style={[styles.bgIcon, { top: 100, left: 10 }]}
+          />
+          <Ionicons
+            name="shirt-outline"
+            size={40}
+            color="#EFEFEF"
+            style={[styles.bgIcon, { top: 20, right: 20 }]}
+          />
+          <Ionicons
+            name="bag-handle-outline"
+            size={36}
+            color="#EFEFEF"
+            style={[styles.bgIcon, { top: 100, right: 10 }]}
+          />
+
+          {orderData.productImage ? (
+            <Image
+              source={{ uri: orderData.productImage }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.heroImage, styles.heroImagePlaceholder]}>
+              <Ionicons name="image-outline" size={40} color="#ccc" />
+            </View>
+          )}
+        </View>
+
+        {/* ============ 2. BRAND + PRODUCT INFO ============ */}
+        <View style={styles.infoBlock}>
+          {/* <Text style={styles.brandName}>
+            {safe(orderData.brand).toUpperCase()}
+          </Text> */}
+          <Text style={styles.productName}>
+            {safe(orderData.productName)}
+          </Text>
+          <Text style={styles.productSub}>
+            {safe(orderData.productSubtitle)}
+          </Text>
+          <Text style={styles.productSub}>
+            Size: {safe(orderData.size)} · Quantity: {orderData.quantity}
+          </Text>
+          <Text style={styles.orderIdLine}>
+            Order ID: {safe(orderData.orderId)}
+          </Text>
+        </View>
+
+        {/* ============ 3. DELIVERED BANNER ============ */}
+        {isDelivered && (
+          <View style={styles.deliveredBanner}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.deliveredLabel}>
+                Order got delivered on
+              </Text>
+              <Text style={styles.deliveredDate}>
+                {safe(orderData.deliveryDate)}
+              </Text>
+              <Text style={styles.deliveredTime}>
+                {safe(orderData.deliveryTime)}
+              </Text>
+            </View>
+            <View style={styles.deliveredIconWrap}>
+              <Ionicons
+                name="checkmark-circle"
+                size={scale(48)}
+                color="#16A34A"
+              />
+              <Ionicons
+                name="cube-outline"
+                size={scale(30)}
+                color="#F97316"
+                style={{ position: 'absolute', bottom: -6, right: -4 }}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* ============ 4. RATE DELIVERY ============ */}
+        <View style={styles.card}>
+          <View style={styles.rateHeader}>
+            <View style={styles.rateIconWrap}>
+              <Ionicons
+                name="happy-outline"
+                size={scale(26)}
+                color="#7C3AED"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rateTitle}>
+                Rate your delivery experience
+              </Text>
+              <Text style={styles.rateSubtitle}>
+                How do you rate your experience for this order?
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.ratingRow}>
+            {[1, 2, 3, 4, 5].map(num => {
+              const isSelected = deliveryRating === num;
+              const isGreen = num === 5;
+              const isYellow = num === 4;
+              const color = isGreen
+                ? '#16A34A'
+                : isYellow
+                ? '#F59E0B'
+                : '#F97316';
+              return (
+                <TouchableOpacity
+                  key={num}
+                  style={[
+                    styles.ratingCircle,
+                    { borderColor: color },
+                    isSelected && { backgroundColor: `${color}15` },
+                  ]}
+                  onPress={() => setDeliveryRating(num)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.ratingNum,
+                      { color: isSelected ? color : '#333' },
+                    ]}
+                  >
+                    {num}
                   </Text>
-                </View>
-                <Text style={styles.deliveryText}>
-                  on {orderData.deliveryDate} • {orderData.deliveryTime}
-                </Text>
-                <TouchableOpacity style={styles.downloadBtn}>
-                  <Ionicons name="download-outline" size={scale(12)} color="#96252A" />
-                  <Text style={styles.downloadBtnText}>Download Invoice</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
+              );
+            })}
           </View>
 
-          <View style={styles.separator} />
+          <View style={styles.ratingLabelsRow}>
+            <Text style={styles.ratingLabelBad}>Very Bad</Text>
+            <Text style={styles.ratingLabelGreat}>Great</Text>
+          </View>
+        </View>
 
-          {/* Card 2: Order Items */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Order Items ({orderData.quantity})</Text>
-            <View style={styles.productContainer}>
-              {orderData.productImage ? (
-                <Image
-                  source={{ uri: orderData.productImage }}
-                  style={styles.productImage}
-                  resizeMode="cover"
+        {/* ============ 5. RATE THIS PRODUCT ============ */}
+        <View style={styles.card}>
+          <View style={styles.rateHeader}>
+            {orderData.productImage ? (
+              <Image
+                source={{ uri: orderData.productImage }}
+                style={styles.rateProductImg}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.rateProductImg,
+                  { backgroundColor: '#F5F5F5' },
+                ]}
+              />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rateTitle}>Rate this product</Text>
+              <Text style={styles.rateSubtitle} numberOfLines={1}>
+                {safe(orderData.productName)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.ratingRow}>
+            {[1, 2, 3, 4, 5].map(num => (
+              <TouchableOpacity
+                key={num}
+                style={styles.starBtn}
+                activeOpacity={0.7}
+                onPress={() => setProductRating(num)}
+              >
+                <Ionicons
+                  name={num <= productRating ? 'star' : 'star-outline'}
+                  size={scale(28)}
+                  color="#F59E0B"
                 />
-              ) : (
-                <View style={styles.productImagePlaceholder}>
-                  <Ionicons name="image-outline" size={30} color="#ccc" />
-                </View>
-              )}
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{orderData.productName}</Text>
-                <Text style={styles.productMeta}>
-                  Size: {orderData.size} • Qty: {orderData.quantity}
-                </Text>
-                <Text style={styles.productPrice}>₹{orderData.price}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Item Total</Text>
-              <Text style={styles.billValue}>₹{orderData.itemTotal}</Text>
-            </View>
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Shipping</Text>
-              <Text style={styles.billValue}>₹{orderData.shipping}</Text>
-            </View>
-            <View style={styles.billRow}>
-              <Text style={styles.billLabel}>Discount</Text>
-              <Text style={[styles.billValue, styles.discountValue]}>-₹{orderData.discount}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>₹{orderData.totalAmount}</Text>
-            </View>
+              </TouchableOpacity>
+            ))}
           </View>
+        </View>
 
-          <View style={styles.separator} />
-
-          {/* Card 3: Delivery Address */}
-          <View style={styles.card}>
-            <View style={styles.addressHeader}>
-              <View style={styles.addressIconContainer}>
-                <Ionicons name="location-outline" size={scale(20)} color="#96252A" />
-              </View>
-              <Text style={styles.sectionTitle}>Delivery Address</Text>
-            </View>
-            <View style={styles.addressContent}>
-              <Text style={styles.addressName}>{orderData.address?.name || 'Customer'}</Text>
-              <Text style={styles.addressText}>{orderData.address?.street || ''}</Text>
-              <Text style={styles.addressText}>
-                {orderData.address?.city || ''}, {orderData.address?.state || ''} - {orderData.address?.zipCode || ''}
+        {/* ============ 6. ITEM PRICE ============ */}
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.itemPriceLabel}>Item Price</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewBreakup}>View Breakup</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.itemPrice}>
+              ₹{orderData.price || 0}
+            </Text>
+            {orderData.mrp > orderData.price && (
+              <Text style={styles.itemMrp}>₹{orderData.mrp}</Text>
+            )}
+            {orderData.discountPercent > 0 && (
+              <Text style={styles.itemOff}>
+                {orderData.discountPercent}% Off
               </Text>
-              <Text style={styles.addressText}>
-                {orderData.address?.country || 'India'} • {orderData.address?.phone || ''}
+            )}
+          </View>
+          <Text style={styles.soldBy}>
+            Sold by: {safe(orderData.soldBy).toUpperCase()}
+          </Text>
+
+          {savingAmount > 0 && (
+            <View style={styles.savingsBanner}>
+              <Ionicons name="pricetag" size={scale(28)} color="#16A34A" />
+              <Text style={styles.savingsText}>
+                You're saving{' '}
+                <Text style={styles.savingsAmount}>
+                  ₹{savingAmount}
+                </Text>{' '}
+                on this item.
               </Text>
             </View>
-          </View>
+          )}
+        </View>
 
-          <View style={styles.separator} />
-
-          {/* Card 4: Payment Details */}
-          <View style={styles.card}>
-            <View style={styles.paymentHeader}>
-              <View style={styles.paymentIconContainer}>
-                <Ionicons name="card-outline" size={scale(20)} color="#96252A" />
-              </View>
-              <Text style={styles.sectionTitle}>Payment Details</Text>
+        {/* ============ 7. DELIVERY TO ============ */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconWrap}>
+              <Ionicons
+                name="person-outline"
+                size={scale(20)}
+                color="#7C3AED"
+              />
             </View>
-            <View style={styles.paymentContent}>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Payment Method</Text>
-                <Text style={styles.paymentValue}>{orderData.paymentMethod || 'N/A'}</Text>
-              </View>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Paid on</Text>
-                <Text style={styles.paymentValue}>{orderData.paidOn || 'N/A'}</Text>
-              </View>
-              <View style={styles.paymentRow}>
-                <Text style={styles.paymentLabel}>Amount</Text>
-                <Text style={styles.paymentValue}>₹{orderData.paidAmount || 0}</Text>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>Delivery To</Text>
+              <Text style={styles.sectionSubtitle}>
+                {safe(orderData.address.name)}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.separator} />
+          <View style={styles.divider} />
 
-          {/* Card 5: Need Help */}
-          <View style={styles.helpCard}>
-            <View style={styles.helpLeft}>
-              <View style={styles.helpIconContainer}>
-                <Ionicons name="headset" size={scale(22)} color="#96252A" />
-              </View>
-              <View style={styles.helpTextContainer}>
-                <Text style={styles.helpTitle}>Need Help?</Text>
-                <Text style={styles.helpSubtitle}>We are here to help you with your order</Text>
-              </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="call-outline" size={scale(18)} color="#444" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.infoLabel}>Contact Details</Text>
+              <Text style={styles.infoValue}>
+                {safe(orderData.address.phone)}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.contactSupportBtn}>
-              <Text style={styles.contactSupportText}>Contact Support</Text>
-              <Ionicons name="chevron-forward" size={scale(14)} color="#0C0C0C" />
-            </TouchableOpacity>
           </View>
 
-          <View style={styles.separator} />
+          <View style={styles.infoRow}>
+            <Ionicons
+              name="location-outline"
+              size={scale(18)}
+              color="#444"
+            />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.infoLabel}>Delivery Address</Text>
+              <Text style={styles.infoValue}>
+                {addressLine || 'N/A'}
+              </Text>
+            </View>
+          </View>
+        </View>
 
-          {/* Card 6: Action Buttons */}
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={[styles.actionBtn, styles.buyAgainBtn]}>
-              <Text style={styles.buyAgainText}>Buy Again</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.trackOrderBtn]}>
-              <Text style={styles.trackOrderText}>Track Order</Text>
-            </TouchableOpacity>
+        {/* ============ 8. PAYMENT STATUS ============ */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Payment Status</Text>
+          <View style={styles.paymentStatusRow}>
+            <Ionicons
+              name="checkmark-circle"
+              size={scale(18)}
+              color="#16A34A"
+            />
+            <Text style={styles.paymentStatusText}>
+              {safe(orderData.paymentStatus)}
+            </Text>
           </View>
 
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+          <View style={styles.divider} />
+
+          <Text style={styles.cardTitle}>Payment Method</Text>
+          <View style={styles.paymentMethodRow}>
+            <View style={styles.upiBadge}>
+              <Text style={styles.upiText}>
+                {safe(orderData.paymentMethod)}
+              </Text>
+            </View>
+            <Text style={styles.paymentMethodText}>
+              {safe(orderData.paymentMethod)}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.downloadInvoiceBtn}>
+            <Ionicons
+              name="download-outline"
+              size={scale(18)}
+              color="#151515"
+            />
+            <Text style={styles.downloadInvoiceText}>
+              Download Invoice
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ============ 9. UPDATES SENT TO ============ */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={[styles.sectionIconWrap, { backgroundColor: '#EDE9FE' }]}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={scale(20)}
+                color="#7C3AED"
+              />
+            </View>
+            <Text style={styles.sectionTitle}>Updates sent to</Text>
+          </View>
+
+          <View style={styles.twoColRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>Call</Text>
+              <Text style={styles.infoValue}>
+                {safe(orderData.address.phone)}
+              </Text>
+            </View>
+            <View style={{ flex: 1.4 }}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>
+                {safe(orderData.address.email)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ============ 10. ORDER DETAILS ============ */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <View
+              style={[styles.sectionIconWrap, { backgroundColor: '#F5F0EB' }]}
+            >
+              <Ionicons
+                name="cube-outline"
+                size={scale(20)}
+                color="#96252A"
+              />
+            </View>
+            <Text style={styles.sectionTitle}>Order details</Text>
+          </View>
+
+          <View style={styles.twoColRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>Ordered On</Text>
+              <Text style={styles.infoValue}>
+                {safe(orderData.placedDate)}
+              </Text>
+            </View>
+            <View style={{ flex: 1.4 }}>
+              <Text style={styles.infoLabel}>Order ID</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>
+                {safe(orderData.orderId)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ============ 11. HELP BANNER ============ */}
+        <View style={styles.helpCard}>
+          <View style={styles.helpIconWrap}>
+            <Ionicons name="headset" size={scale(20)} color="#96252A" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.helpTitle}>Need Help?</Text>
+            <Text style={styles.helpSubtitle}>
+              We are here to help you with your order
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.contactSupportBtn}>
+            <Text style={styles.contactSupportText}>Contact</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={scale(14)}
+              color="#96252A"
+            />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 export default OrderDetailsScreen;
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#F5F5F5',
   },
   scrollContent: {
-    paddingHorizontal: scale(14),
-    paddingBottom: 20,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#fff',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#666',
   },
   emptyContainer: {
     flex: 1,
@@ -478,198 +731,248 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  orderCard: {
+  heroCard: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(14),
-    marginBottom: 0,
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+    paddingVertical: scale(24),
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  orderCardInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  bgIcon: {
+    position: 'absolute',
   },
-  orderLeftSection: {
-    flex: 1,
-    justifyContent: 'flex-start',
+  heroImage: {
+    width: scale(160),
+    height: scale(200),
+    borderRadius: scale(10),
+    backgroundColor: '#F5F5F5',
   },
-  orderRightSection: {
-    flex: 1,
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
+  heroImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  separator: {
-    height: 8,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: scale(-14),
+  infoBlock: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(20),
+    alignItems: 'center',
+  },
+  brandName: {
+    fontSize: scale(13),
+    fontWeight: '800',
+    color: '#151515',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  productName: {
+    fontSize: scale(14),
+    fontWeight: '500',
+    color: '#151515',
+    textAlign: 'center',
+    marginBottom: 6,
+    lineHeight: scale(20),
+  },
+  productSub: {
+    fontSize: scale(12),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  orderIdLine: {
+    fontSize: scale(12),
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+
+  deliveredBanner: {
+    backgroundColor: '#E7F8EC',
+    marginHorizontal: scale(14),
+    marginTop: scale(10),
+    borderRadius: scale(12),
+    padding: scale(16),
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deliveredLabel: {
+    fontSize: scale(12),
+    color: '#151515',
+    marginBottom: 2,
+  },
+  deliveredDate: {
+    fontSize: scale(18),
+    fontWeight: '800',
+    color: '#16A34A',
+    marginBottom: 2,
+  },
+  deliveredTime: {
+    fontSize: scale(12),
+    color: '#151515',
+  },
+  deliveredIconWrap: {
+    width: scale(70),
+    height: scale(70),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
 
   card: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(14),
-    marginBottom: 0,
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+    marginHorizontal: scale(14),
+    marginTop: scale(10),
+    borderRadius: scale(12),
+    padding: scale(14),
   },
-
-  orderIdLabel: {
-    fontSize: scale(10),
-    color: '#888',
-    marginBottom: 2,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  orderId: {
-    fontSize: scale(16),
-    fontWeight: '700',
-    color: '#151515',
-    marginBottom: 4,
-  },
-  placedDate: {
-    fontSize: scale(12),
-    color: '#666',
-    marginTop: 2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: scale(8),
-    paddingVertical: scale(3),
-    borderRadius: 12,
-    gap: 3,
-    marginBottom: 4,
-  },
-  statusText: {
-    fontSize: scale(10),
-    fontWeight: '600',
-  },
-  deliveryText: {
-    fontSize: scale(12),
-    color: '#333',
-    fontWeight: '500',
-    marginBottom: 4,
-    textAlign: 'right',
-  },
-  downloadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  downloadBtnText: {
-    fontSize: scale(11),
-    color: '#96252A',
-    fontWeight: '600',
-  },
-
   cardTitle: {
     fontSize: scale(14),
     fontWeight: '700',
     color: '#151515',
-    marginBottom: 10,
+    marginBottom: 8,
   },
 
-  productContainer: {
+  rateHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    padding: scale(10),
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 14,
   },
-  productImage: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: 8,
-    marginRight: 10,
-    backgroundColor: '#f0f0f0',
-  },
-  productImagePlaceholder: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+  rateIconWrap: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(10),
+    backgroundColor: '#EDE9FE',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
-  productInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  productName: {
-    fontSize: scale(12),
-    fontWeight: '600',
-    color: '#151515',
-    marginBottom: 2,
-  },
-  productMeta: {
-    fontSize: scale(10),
-    color: '#888',
-    marginBottom: 2,
-  },
-  productPrice: {
-    fontSize: scale(12),
-    fontWeight: '700',
-    color: '#151515',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E8E8E8',
-    marginVertical: 6,
-  },
-  billRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 2,
-  },
-  billLabel: {
-    fontSize: scale(12),
-    color: '#666',
-  },
-  billValue: {
-    fontSize: scale(12),
-    color: '#333',
-    fontWeight: '500',
-  },
-  discountValue: {
-    color: '#E53935',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 2,
-  },
-  totalLabel: {
+  rateTitle: {
     fontSize: scale(14),
     fontWeight: '700',
     color: '#151515',
+    marginBottom: 2,
   },
-  totalValue: {
-    fontSize: scale(16),
-    fontWeight: '800',
-    color: '#96252A',
+  rateSubtitle: {
+    fontSize: scale(11),
+    color: '#777',
+    lineHeight: scale(15),
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  ratingCircle: {
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ratingNum: {
+    fontSize: scale(15),
+    fontWeight: '700',
+  },
+  ratingLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  ratingLabelBad: {
+    fontSize: scale(12),
+    color: '#F97316',
+    fontWeight: '700',
+  },
+  ratingLabelGreat: {
+    fontSize: scale(12),
+    color: '#16A34A',
+    fontWeight: '700',
+  },
+  rateProductImg: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(8),
+    marginRight: 10,
+    backgroundColor: '#F5F5F5',
+  },
+  starBtn: {
+    padding: 4,
   },
 
-  // Delivery Address
-  addressHeader: {
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  itemPriceLabel: {
+    fontSize: scale(13),
+    color: '#151515',
+  },
+  viewBreakup: {
+    fontSize: scale(13),
+    color: '#151515',
+    textDecorationLine: 'underline',
+    fontWeight: '500',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+  },
+  itemPrice: {
+    fontSize: scale(18),
+    fontWeight: '800',
+    color: '#151515',
+  },
+  itemMrp: {
+    fontSize: scale(13),
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
+  itemOff: {
+    fontSize: scale(13),
+    color: '#F97316',
+    fontWeight: '700',
+  },
+  soldBy: {
+    fontSize: scale(12),
+    color: '#777',
+    marginTop: 2,
+  },
+  savingsBanner: {
+    marginTop: 12,
+    backgroundColor: '#EAF7EE',
+    borderRadius: scale(8),
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  savingsText: {
+    flex: 1,
+    fontSize: scale(12),
+    color: '#151515',
+  },
+  savingsAmount: {
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-  addressIconContainer: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: 16,
-    backgroundColor: '#FCEBED',
+  sectionIconWrap: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(10),
+    backgroundColor: '#EDE9FE',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -679,152 +982,128 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#151515',
   },
-  addressContent: {
-    paddingLeft: scale(42),
+  sectionSubtitle: {
+    fontSize: scale(12),
+    color: '#666',
+    marginTop: 1,
   },
-  addressName: {
+  divider: {
+    height: 1,
+    backgroundColor: '#EFEFEF',
+    marginVertical: 10,
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  infoLabel: {
+    fontSize: scale(12),
+    color: '#777',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: scale(13),
+    color: '#151515',
+    fontWeight: '500',
+    lineHeight: scale(18),
+  },
+
+  paymentStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  paymentStatusText: {
+    fontSize: scale(13),
+    color: '#333',
+  },
+  paymentMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  upiBadge: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  upiText: {
+    fontSize: scale(11),
+    fontWeight: '700',
+    color: '#151515',
+  },
+  paymentMethodText: {
+    fontSize: scale(13),
+    color: '#333',
+  },
+  downloadInvoiceBtn: {
+    borderWidth: 1,
+    borderColor: '#D5D5D5',
+    borderRadius: scale(10),
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  downloadInvoiceText: {
     fontSize: scale(13),
     fontWeight: '600',
     color: '#151515',
-    marginBottom: 3,
-  },
-  addressText: {
-    fontSize: scale(12),
-    color: '#555',
-    lineHeight: 18,
-    marginBottom: 1,
   },
 
-  // Payment Details
-  paymentHeader: {
+  twoColRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  paymentIconContainer: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: 16,
-    backgroundColor: '#FCEBED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  paymentContent: {
-    paddingLeft: scale(42),
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 3,
-  },
-  paymentLabel: {
-    fontSize: scale(12),
-    color: '#888',
-    flex: 1,
-  },
-  paymentValue: {
-    fontSize: scale(13),
-    color: '#333',
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
+    marginTop: 4,
+    gap: 12,
   },
 
-  // Need Help
   helpCard: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(14),
+    marginHorizontal: scale(14),
+    marginTop: scale(10),
+    borderRadius: scale(12),
+    padding: scale(14),
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-    marginBottom: 0,
   },
-  helpLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  helpIconContainer: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: 16,
+  helpIconWrap: {
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
     backgroundColor: '#F5F0EB',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
-  },
-  helpTextContainer: {
-    flex: 1,
   },
   helpTitle: {
-    fontSize: scale(12),
-    fontWeight: '600',
+    fontSize: scale(13),
+    fontWeight: '700',
     color: '#151515',
   },
   helpSubtitle: {
-    fontSize: scale(10),
-    color: '#666',
+    fontSize: scale(11),
+    color: '#777',
+    marginTop: 1,
   },
   contactSupportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: 'black',
-    backgroundColor: 'transparent',
-    marginLeft: 10,
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1.2,
+    borderColor: '#96252A',
   },
   contactSupportText: {
     fontSize: scale(11),
-    fontWeight: '600',
-    color: 'black',
-    marginRight: 0,
-    marginLeft: 5,
-  },
-
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-    marginBottom: 70,
-  },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: scale(10),
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyAgainBtn: {
-    backgroundColor: '#151515',
-  },
-  buyAgainText: {
-    color: '#FFFFFF',
-    fontSize: scale(12),
-    fontWeight: '600',
-  },
-  trackOrderBtn: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#96252A',
-  },
-  trackOrderText: {
+    fontWeight: '700',
     color: '#96252A',
-    fontSize: scale(12),
-    fontWeight: '600',
-  },
-
-  bottomSpacer: {
-    height: 20,
   },
 });

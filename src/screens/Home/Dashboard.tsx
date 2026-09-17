@@ -22,7 +22,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
-import { getCartItems } from '../../api/cartApi';
 
 const { width } = Dimensions.get('window');
 
@@ -78,7 +77,7 @@ const premiumProducts = [
 ];
 
 // ============================================
-// TOP TABS
+// TOP TABS — AJIO style, fit-to-width, seamless
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -90,7 +89,11 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
     <View style={styles.topTabsBar}>
       <View style={styles.topTabsRow}>
         <TouchableOpacity
-          style={[styles.topTab, activeTab === 'home' && styles.topTabActive]}
+          style={[
+            styles.topTab,
+            styles.topTabLeft,
+            activeTab === 'home' && styles.topTabActive,
+          ]}
           onPress={() => onTabChange('home')}
           activeOpacity={0.9}
         >
@@ -98,7 +101,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
             <MaterialIcons
               name="storefront"
               size={16}
-              color="#000"
+              color="#9E0E26"
               style={{ marginRight: 6 }}
             />
             <Text style={styles.topTabText}>SansaHome</Text>
@@ -106,7 +109,11 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.topTab, activeTab === 'premium' && styles.topTabActive]}
+          style={[
+            styles.topTab,
+            styles.topTabRight,
+            activeTab === 'premium' && styles.topTabActive,
+          ]}
           onPress={() => onTabChange('premium')}
           activeOpacity={0.9}
         >
@@ -114,7 +121,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
             <MaterialIcons
               name="stars"
               size={16}
-              color="#000"
+              color="#9E0E26"
               style={{ marginRight: 6 }}
             />
             <Text style={styles.topTabText}>Premium</Text>
@@ -576,8 +583,7 @@ export default function Dashboard() {
 
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
-  const [cartCount, setCartCount] = useState(0);
-  const [favoriteCount, setFavoriteCount] = useState(0);   // ✅ ADD
+  const [favoriteCount, setFavoriteCount] = useState(0);
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
@@ -590,21 +596,11 @@ export default function Dashboard() {
     loadFavorites();
   }, []);
 
-  // ✅ Fetch cart + wishlist counts and listen for updates
+  // ✅ Fetch wishlist count and listen for updates
   useEffect(() => {
     let mounted = true;
 
     const fetchCounts = async () => {
-      // Cart count
-      try {
-        const cart = await getCartItems();
-        const list = Array.isArray(cart) ? cart : cart?.items || [];
-        if (mounted) setCartCount(list.length);
-      } catch {
-        if (mounted) setCartCount(0);
-      }
-
-      // ✅ Wishlist count
       try {
         const favs = await getFavoriteProducts();
         const list = Array.isArray(favs) ? favs : favs?.items || [];
@@ -617,13 +613,11 @@ export default function Dashboard() {
     fetchCounts();
 
     const listener = () => fetchCounts();
-    eventBus.on('CART_UPDATED', listener);
     eventBus.on('FAVORITE_UPDATED', listener);
     eventBus.on('ITEM_REMOVED', listener);
 
     return () => {
       mounted = false;
-      eventBus.off('CART_UPDATED', listener);
       eventBus.off('FAVORITE_UPDATED', listener);
       eventBus.off('ITEM_REMOVED', listener);
     };
@@ -686,10 +680,9 @@ export default function Dashboard() {
       });
       const data = await response.json();
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
-      setCategories([{ _id: '', name: 'All', isActive: true }, ...activeCategories]);
+      setCategories(activeCategories);
     } catch (error) {
       setCategories([
-        { _id: '', name: 'All' },
         { _id: '1', name: 'Sarees' },
         { _id: '2', name: 'Kurtis' },
         { _id: '3', name: 'Lehengas' },
@@ -747,7 +740,6 @@ export default function Dashboard() {
     }
   };
 
-  // Initial load
   useEffect(() => {
     const loadData = async () => {
       LoadingService.show();
@@ -763,7 +755,6 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  // Re-fetch on category / price change only (search is manual)
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
@@ -812,7 +803,6 @@ export default function Dashboard() {
     setModalVisible(false);
   };
 
-  // ✅ Manual search
   const handleSearch = async () => {
     const query = searchText.trim();
     setDebouncedSearchText(query);
@@ -820,16 +810,8 @@ export default function Dashboard() {
     LoadingService.show();
     setLoading(true);
     await Promise.all([
-      fetchNewArrivals({
-        searchText: query,
-        selectedCategory,
-        priceRange,
-      }),
-      fetchTrending({
-        searchText: query,
-        selectedCategory,
-        priceRange,
-      }),
+      fetchNewArrivals({ searchText: query, selectedCategory, priceRange }),
+      fetchTrending({ searchText: query, selectedCategory, priceRange }),
     ]);
     LoadingService.hide();
     setLoading(false);
@@ -883,7 +865,7 @@ export default function Dashboard() {
           horizontal
           showsHorizontalScrollIndicator={false}
           data={categories}
-          keyExtractor={item => item._id || 'all'}
+          keyExtractor={item => item._id || 'cat'}
           renderItem={({ item }) => (
             <CategoryItem
               item={item}
@@ -1014,7 +996,7 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Wishlist with badge */}
+        {/* Wishlist */}
         <TouchableOpacity
           style={styles.topIconBtn}
           onPress={() => navigation.navigate('FavoritesPage')}
@@ -1037,22 +1019,6 @@ export default function Dashboard() {
           hitSlop={6}
         >
           <Ionicons name="notifications-outline" size={26} color="#111" />
-        </TouchableOpacity>
-
-        {/* ✅ Cart with badge — same badge style as bottom tabs */}
-        <TouchableOpacity
-          style={styles.topIconBtn}
-          onPress={() => navigation.navigate('CartPage' as any)}
-          hitSlop={6}
-        >
-          <View style={{ position: 'relative' }}>
-            <Ionicons name="cart-outline" size={26} color="#111" />
-            {cartCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{cartCount}</Text>
-              </View>
-            )}
-          </View>
         </TouchableOpacity>
       </View>
 
@@ -1089,7 +1055,7 @@ export default function Dashboard() {
             <View style={styles.categoryFilter}>
               {categories.map(cat => (
                 <TouchableOpacity
-                  key={cat._id || 'all'}
+                  key={cat._id || 'cat'}
                   style={[
                     styles.categoryFilterButton,
                     selectedCategory === cat._id && styles.categoryFilterButtonActive,
@@ -1148,7 +1114,7 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES
+// STYLES — ALL SHADOWS REMOVED
 // ============================================
 const styles = StyleSheet.create({
   container: {
@@ -1162,12 +1128,12 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // TOP TABS
+  // TOP TABS — no shadow
   // ============================================
   topTabsBar: {
-    backgroundColor: '#fcfcfc',
+    backgroundColor: '#FFF0F3',
     marginHorizontal: -15,
-    paddingTop: 35,
+    paddingTop: 12,
     paddingBottom: 0,
     marginBottom: 0,
   },
@@ -1175,25 +1141,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    gap: 8,
+    gap: 0,
   },
   topTab: {
     flex: 1,
     height: 45,
-    backgroundColor: '#F5E6C8',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: '#E5D5B0',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: '#FFF0F3',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  topTabLeft: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 0,
+    borderRightWidth: 1,
+    borderColor: '#F0D5DC',
+  },
+  topTabRight: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 1,
+    borderBottomWidth: 0,
+    borderRightWidth: 1,
+    borderColor: '#F0D5DC',
+  },
   topTabActive: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E5D5B0',
+    borderColor: '#F0D5DC',
   },
   topTabInner: {
     flexDirection: 'row',
@@ -1203,11 +1184,11 @@ const styles = StyleSheet.create({
   topTabText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000',
+    color: '#9E0E26',
   },
 
   // ============================================
-  // SEARCH BAR ROW
+  // SEARCH BAR ROW — no shadow
   // ============================================
   searchRow: {
     flexDirection: 'row',
@@ -1228,11 +1209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    // ❌ removed shadow
   },
   searchLogo: {
     width: 24,
@@ -1248,8 +1225,6 @@ const styles = StyleSheet.create({
   topIconBtn: {
     padding: 2,
   },
-
-  // ✅ Badge — identical to CustomBottomTabs badge
   badge: {
     position: 'absolute',
     top: -5,
@@ -1294,7 +1269,7 @@ const styles = StyleSheet.create({
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
   // ============================================
-  // FEATURE BADGES
+  // FEATURE BADGES — no shadow
   // ============================================
   featuresContainer: {
     flexDirection: 'row',
@@ -1307,11 +1282,9 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 2,
     minHeight: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    // ❌ removed shadow
   },
   featureItem: {
     flexDirection: 'row',
@@ -1350,7 +1323,7 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // PRODUCT CARD
+  // PRODUCT CARD — no shadow
   // ============================================
   productCard: {
     width: '48%',
@@ -1358,11 +1331,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 18,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    // ❌ removed shadow
   },
   megaDropRow: {
     flexDirection: 'row',
@@ -1391,11 +1362,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
-    elevation: 2,
+    // ❌ removed shadow
   },
   ratingPill: {
     position: 'absolute',
@@ -1408,11 +1375,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 3,
     gap: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+    // ❌ removed shadow
   },
   ratingPillText: {
     color: '#111',
@@ -1467,11 +1430,11 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 13,
-    color: '#F58220',
+    color: '#9E0E26',
     fontWeight: '700',
   },
 
-  // Premium
+  // Premium — no shadow
   premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
   premiumHeader: {
     flexDirection: 'row',
@@ -1514,13 +1477,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 16,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
     borderWidth: 1,
     borderColor: '#FCEBED',
+    // ❌ removed shadow
   },
   premiumImageWrapper: { position: 'relative', height: 180 },
   premiumImage: { width: '100%', height: '100%', resizeMode: 'cover' },
@@ -1544,11 +1503,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
-    elevation: 2,
+    // ❌ removed shadow
   },
   premiumInfo: { padding: 10, backgroundColor: '#fff' },
   premiumName: {
@@ -1599,10 +1554,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  newArrivalTitle: { fontSize: 15, fontWeight: 'bold' },
+  newArrivalTitle: { fontSize: 12, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
   noRecordsText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#999',
     textAlign: 'center',
     marginTop: 20,

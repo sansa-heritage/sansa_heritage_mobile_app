@@ -1,28 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Animated,
   Easing,
   Image,
   Modal,
-  Dimensions,
   Platform,
 } from 'react-native';
 import eventBus from '../../services/eventBus';
 import { LOADING_EVENTS } from '../../services/LoadingService';
 
-const { width } = Dimensions.get('window');
-
-interface LoadingState {
-  visible: boolean;
-}
-
 const AnimatedLogoLoader: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  
-  // Simple animations
+
+  // Animations
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -55,35 +47,36 @@ const AnimatedLogoLoader: React.FC = () => {
   }, []);
 
   const startAnimations = () => {
-    // Fade in
+    // Fade in overlay
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
 
-    // Simple rotation
+    // Continuous rotation of the maroon arc
+    rotateAnim.setValue(0);
     Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 1500,
+        duration: 1200,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     ).start();
 
-    // Gentle breathing
+    // Gentle breathing scale on the logo
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.08,
-          duration: 800,
+          toValue: 1.06,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
-          toValue: 0.92,
-          duration: 800,
+          toValue: 0.96,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -105,20 +98,32 @@ const AnimatedLogoLoader: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <Modal 
-      transparent 
-      visible={visible} 
+    <Modal
+      transparent
+      visible={visible}
       animationType="none"
       statusBarTranslucent
     >
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-        <View style={styles.container}>
-          {/* Logo with rotation and breathing */}
+        <View style={styles.loaderWrap}>
+          {/* Rotating maroon arc (outer ring) */}
           <Animated.View
             style={[
-              styles.logoWrapper,
+              styles.arcWrap,
               {
-                transform: [{ rotate: spin }, { scale: scaleAnim }],
+                transform: [{ rotate: spin }],
+              },
+            ]}
+          >
+            <View style={styles.arc} />
+          </Animated.View>
+
+          {/* Inner white circle with the Sansa logo */}
+          <Animated.View
+            style={[
+              styles.logoCircle,
+              {
+                transform: [{ scale: scaleAnim }],
               },
             ]}
           >
@@ -134,41 +139,63 @@ const AnimatedLogoLoader: React.FC = () => {
   );
 };
 
+const SIZE = 78;            // outer loader diameter
+const INNER = 60;           // inner white circle diameter
+const BORDER = 3;           // arc thickness
+
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
-      android: {
-        elevation: 999,
-      },
-      ios: {
-        zIndex: 999,
-      },
+      android: { elevation: 999 },
+      ios: { zIndex: 999 },
     }),
   },
-  container: {
-    alignItems: 'center',
+  loaderWrap: {
+    width: SIZE,
+    height: SIZE,
     justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  logoWrapper: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#fff',
-    borderRadius: 45,
+
+  // Rotating arc
+  arcWrap: {
+    position: 'absolute',
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+  },
+  arc: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    borderWidth: BORDER,
+    borderColor: '#F2E1C0',     // light cream full ring (background)
+    borderTopColor: '#9E0E26',  // maroon arc on top (visible rotating segment)
+    borderRightColor: '#9E0E26',
+  },
+
+  // Inner white circle holding the logo
+  logoCircle: {
+    width: INNER,
+    height: INNER,
+    borderRadius: INNER / 2,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#D4A017',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 38,
+    height: 38,
   },
 });
 

@@ -225,8 +225,6 @@
 //   },
 // });
 
-// export default Header;
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -237,17 +235,20 @@ import {
   StatusBar,
   Platform,
 } from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from "../../models/types";
 import { NotificationBadge } from "../NotificationBadge";
 import { getFavoriteProducts } from "../../api/favoriteApi";
+import { getCartItems } from "../../api/cartApi";
 import eventBus from "../../services/eventBus";
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
-// Route name to display name mapping
+/* ================= DISPLAY NAME MAP ================= */
+
 const getDisplayName = (routeName: string, params?: any): string => {
   if (routeName === 'CategoryScreen' && params?.displayTitle) {
     return params.displayTitle;
@@ -290,6 +291,8 @@ const getDisplayName = (routeName: string, params?: any): string => {
   return routeMap[routeName];
 };
 
+/* ================= COMPONENT ================= */
+
 interface HeaderProps {
   currentRoute: string;
   routeParams?: any;
@@ -300,35 +303,69 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const isDashboard = currentRoute === "Dashboard";
   const isWishlist =
     currentRoute === "FavoritesPage" || currentRoute === "FavoriteScreen";
+  const isCart = currentRoute === "CartPage";
+  const isOrders = currentRoute === "OrdersPage";
+  const isOrderDetails = currentRoute === "OrderDetails";
+
+  // ✅ Hide notification bell on these pages
+  const hideNotification =
+    currentRoute === "CategoryScreen" ||
+    currentRoute === "ProductDetails";
 
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+  const [ordersCount, setOrdersCount] = useState(0);
 
   useEffect(() => {
-    if (isDashboard) return;
+    if (isDashboard || isOrderDetails) return;
 
     let mounted = true;
 
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       try {
         const items = await getFavoriteProducts();
-        if (mounted) setWishlistCount(items?.length || 0);
+        const wishlistArr = Array.isArray(items)
+          ? items
+          : items?.items ?? items?.data ?? [];
+        if (mounted) setWishlistCount(wishlistArr.length);
       } catch {
         if (mounted) setWishlistCount(0);
       }
+
+      try {
+        const cart = await getCartItems();
+        const list = Array.isArray(cart)
+          ? cart
+          : cart?.items ?? cart?.data?.items ?? cart?.data ?? [];
+        if (mounted) setCartCount(list.length);
+      } catch {
+        if (mounted) setCartCount(0);
+      }
     };
 
-    fetchCount();
+    fetchCounts();
 
-    const listener = () => fetchCount();
+    const listener = () => fetchCounts();
+    const ordersListener = (payload: any) => {
+      if (!mounted) return;
+      if (typeof payload?.count === 'number') {
+        setOrdersCount(payload.count);
+      }
+    };
+
     eventBus.on("ITEM_REMOVED", listener);
     eventBus.on("FAVORITE_UPDATED", listener);
+    eventBus.on("CART_UPDATED", listener);
+    eventBus.on("ORDERS_UPDATED", ordersListener);
 
     return () => {
       mounted = false;
       eventBus.off("ITEM_REMOVED", listener);
       eventBus.off("FAVORITE_UPDATED", listener);
+      eventBus.off("CART_UPDATED", listener);
+      eventBus.off("ORDERS_UPDATED", ordersListener);
     };
-  }, [currentRoute, isDashboard]);
+  }, [currentRoute, isDashboard, isOrderDetails]);
 
   const navigateToNotifications = () => {
     navigation.navigate('NotificationScreen');
@@ -340,10 +377,42 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
     }
   };
 
-  // ✅ Dashboard draws its own tab bar + search row, so skip the Header there
   if (isDashboard) {
     return null;
   }
+
+  /* ========== ORDER DETAILS — Only "Help" button ========== */
+  if (isOrderDetails) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="#FFFFFF"
+          translucent={false}
+        />
+        <View style={styles.header}>
+          <View style={styles.leftRow}>
+            <TouchableOpacity onPress={goBack} style={styles.backButton}>
+              <MaterialIcons name="arrow-back" size={24} color="#151515" />
+            </TouchableOpacity>
+
+            <Text style={styles.pageTitle} numberOfLines={1}>
+              {getDisplayName(currentRoute, routeParams)}
+            </Text>
+          </View>
+
+          <View style={styles.rightSection}>
+            <TouchableOpacity style={styles.helpBtn} activeOpacity={0.7}>
+              <Ionicons name="headset-outline" size={20} color="#151515" />
+              <Text style={styles.helpBtnText}>Help</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* ========== DEFAULT HEADER (all other pages) ========== */
 
   const shouldShowBack = !isDashboard;
 
@@ -362,31 +431,77 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          <Text style={styles.pageTitle}>
+          <Text style={styles.pageTitle} numberOfLines={1}>
             {getDisplayName(currentRoute, routeParams)}
+
+            {isCart && cartCount > 0 && (
+              <Text style={styles.countText}> ({cartCount})</Text>
+            )}
+
             {isWishlist && wishlistCount > 0 && (
               <Text style={styles.countText}> ({wishlistCount})</Text>
+            )}
+
+            {isOrders && ordersCount > 0 && (
+              <Text style={styles.countText}> ({ordersCount})</Text>
             )}
           </Text>
         </View>
 
         <View style={styles.rightSection}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => navigation.navigate('FavoritesPage')}
-          >
-            <MaterialIcons name="favorite-border" size={24} color="#151515" />
-          </TouchableOpacity>
-          <NotificationBadge
-            size={24}
-            color="#151515"
-            onPress={navigateToNotifications}
-          />
+          {/* ✅ Wishlist — hidden ONLY on Wishlist + Orders pages */}
+          {!isWishlist && !isOrders && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate('FavoritesPage')}
+            >
+              <View>
+                <Ionicons name="heart-outline" size={26} color="#151515" />
+                {wishlistCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {wishlistCount > 9 ? '9+' : wishlistCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* ✅ Cart — hidden ONLY on Cart + Orders pages */}
+          {!isCart && !isOrders && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate('CartPage')}
+            >
+              <View>
+                <Ionicons name="cart-outline" size={26} color="#151515" />
+                {cartCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {cartCount > 9 ? '9+' : cartCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* ✅ Notification bell — hidden on Category + ProductDetails only */}
+          {!hideNotification && (
+            <NotificationBadge
+              size={24}
+              color="#151515"
+              onPress={navigateToNotifications}
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>
   );
 };
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -415,10 +530,11 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   pageTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "600",
     color: "#151515",
     marginLeft: 4,
+    flexShrink: 1,
   },
   countText: {
     fontSize: 15,
@@ -432,6 +548,40 @@ const styles = StyleSheet.create({
   iconButton: {
     marginRight: 16,
     padding: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 20,
+    backgroundColor: '#0C0C0C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+
+  helpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    borderColor: '#D5D5D5',
+    backgroundColor: '#FFFFFF',
+  },
+  helpBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#151515',
   },
 });
 
