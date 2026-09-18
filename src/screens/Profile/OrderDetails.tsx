@@ -663,7 +663,7 @@ const OrderDetailsScreen = () => {
         </View>
 
         {/* ============ 11. HELP BANNER ============ */}
-        <View style={styles.helpCard}>
+        {/* <View style={styles.helpCard}>
           <View style={styles.helpIconWrap}>
             <Ionicons name="headset" size={scale(20)} color="#96252A" />
           </View>
@@ -681,7 +681,7 @@ const OrderDetailsScreen = () => {
               color="#96252A"
             />
           </TouchableOpacity>
-        </View>
+        </View> */}
       </ScrollView>
     </View>
   );

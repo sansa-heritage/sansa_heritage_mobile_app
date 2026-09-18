@@ -315,7 +315,7 @@ const FavoriteScreen = () => {
           >
             <Ionicons
               name={outOfStock ? 'repeat-outline' : 'bag-add-outline'}
-              size={16}
+              size={12}
               color="#9E0E26"
             />
           </TouchableOpacity>
@@ -527,27 +527,18 @@ const styles = StyleSheet.create({
   },
 
   // ✅ Add / Similar pill — ONLY bg color changed. Same shape, same padding, same icon.
-  addPill: {
-    position: 'absolute',
-    bottom: -14,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#FFF0F3',       // ✅ soft pink (was #FFFFFF)
-    borderWidth: 1.2,
-    borderColor: '#9E0E26',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    zIndex: 2,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
+ addPill: {
+  position: 'absolute',
+  bottom: -12,             // slightly tighter to the card edge
+  right: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FFF0F3',   // soft pink, no border
+  borderRadius: 6,              // smaller radius
+  paddingHorizontal: 6,         // tighter horizontal padding
+  paddingVertical: 4,           // tighter vertical padding
+  zIndex: 2,
+},
 
   // Info section
   info: {

@@ -83,6 +83,20 @@ const premiumProducts = [
 ];
 
 // ============================================
+// TITLE SPLITTER — bold first N words, rest normal
+// ============================================
+const splitTitle = (fullName: string, boldWords = 2) => {
+  const words = (fullName || '').trim().split(/\s+/);
+  if (words.length <= boldWords) {
+    return { boldPart: fullName || '', normalPart: '' };
+  }
+  return {
+    boldPart: words.slice(0, boldWords).join(' '),
+    normalPart: words.slice(boldWords).join(' '),
+  };
+};
+
+// ============================================
 // TOP TABS — AJIO style
 // ============================================
 interface TopTabsProps {
@@ -360,7 +374,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD
+// PRODUCT CARD — ✅ bold-prefix title
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -383,6 +397,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       : originalPrice;
 
   const rating = Number(item.rating || 0);
+
+  // ✅ Bold-prefix title split
+  const { boldPart, normalPart } = splitTitle(item.name || 'Product', 2);
 
   return (
     <TouchableOpacity
@@ -414,11 +431,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
@@ -433,8 +450,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </View>
 
       <View style={styles.productInfo}>
+        {/* ✅ Bold first 2 words + normal rest */}
         <Text numberOfLines={1} style={styles.productTitle}>
-          {item.name}
+          <Text style={styles.productTitleBold}>{boldPart}</Text>
+          {normalPart ? (
+            <Text style={styles.productTitleNormal}> {normalPart}</Text>
+          ) : null}
         </Text>
 
         {discountPercent >= 20 && (
@@ -456,7 +477,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 // ============================================
-// PREMIUM PRODUCT CARD
+// PREMIUM PRODUCT CARD — ✅ bold-prefix title
 // ============================================
 interface PremiumCardProps {
   item: any;
@@ -473,6 +494,9 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
 }) => {
   const discountedPrice =
     item.price - (item.price * (item.discountPercent || 0)) / 100;
+
+  // ✅ Bold-prefix title split
+  const { boldPart, normalPart } = splitTitle(item.name || 'Product', 2);
 
   return (
     <TouchableOpacity
@@ -509,19 +533,23 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
       </View>
 
       <View style={styles.premiumInfo}>
+        {/* ✅ Bold first 2 words + normal rest */}
         <Text numberOfLines={1} style={styles.premiumName}>
-          {item.name}
+          <Text style={styles.premiumNameBold}>{boldPart}</Text>
+          {normalPart ? (
+            <Text style={styles.premiumNameNormal}> {normalPart}</Text>
+          ) : null}
         </Text>
 
         <View style={styles.premiumPriceRow}>
@@ -1155,7 +1183,7 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES — AJIO-style tabs + status bar safe
+// STYLES
 // ============================================
 const styles = StyleSheet.create({
   container: {
@@ -1163,12 +1191,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
 
-  // ✅ Safe-area wrapper for the tab bar (pink fills the status bar gap)
-  topTabsSafe: {
-    backgroundColor: '#FFF0F3',
-  },
-
-  // Content padding
   mainScrollContent: {
     paddingHorizontal: 15,
   },
@@ -1178,18 +1200,19 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // ============================================
-  // TOP TABS — AJIO style
-  // ============================================
+  // TOP TABS
+  topTabsSafe: {
+    backgroundColor: '#FFFF',
+  },
   topTabsBar: {
-    backgroundColor: '#FFF0F3',
-    paddingTop: 4,
+    backgroundColor: '#FFFF',
+    paddingTop: 0,
     paddingBottom: 0,
   },
   topTabsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     gap: 0,
   },
   topTab: {
@@ -1200,8 +1223,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
   },
-
-  // Left tab — rounded top corners only
   topTabLeft: {
     borderTopLeftRadius: 14,
     borderTopRightRadius: 0,
@@ -1213,8 +1234,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#F2D5DC',
   },
-
-  // Right tab — rounded top corners only
   topTabRight: {
     borderTopLeftRadius: 0,
     borderTopRightRadius: 14,
@@ -1226,15 +1245,11 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#F2D5DC',
   },
-
-  // Active tab → white surface, seamless with content below
   topTabActive: {
     backgroundColor: '#FFFFFF',
     borderColor: '#F2D5DC',
-    // A subtle bottom border to hide the seam with content
     borderBottomWidth: 0,
   },
-
   topTabInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1251,9 +1266,7 @@ const styles = StyleSheet.create({
     color: '#9E0E26',
   },
 
-  // ============================================
   // SEARCH BAR ROW
-  // ============================================
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1330,9 +1343,7 @@ const styles = StyleSheet.create({
   },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  // ============================================
   // FEATURE BADGES
-  // ============================================
   featuresContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1383,9 +1394,7 @@ const styles = StyleSheet.create({
     lineHeight: 9,
   },
 
-  // ============================================
   // PRODUCT CARD
-  // ============================================
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
@@ -1451,12 +1460,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingBottom: 10,
   },
+  // ✅ Changed — no fontWeight on wrapper, inner Texts control weight
   productTitle: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#111',
     marginBottom: 6,
   },
+  productTitleBold: {
+    fontWeight: '700',
+    color: '#111',
+  },
+  productTitleNormal: {
+    fontWeight: '400',
+    color: '#333',
+  },
+
   megaDropInline: {
     alignSelf: 'flex-start',
     backgroundColor: '#FCEBED',
@@ -1562,12 +1580,21 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   premiumInfo: { padding: 10, backgroundColor: '#fff' },
+  // ✅ Changed — no fontWeight on wrapper, inner Texts control weight
   premiumName: {
     fontSize: 13,
-    fontWeight: '600',
     color: '#1a1a1a',
     marginBottom: 2,
   },
+  premiumNameBold: {
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  premiumNameNormal: {
+    fontWeight: '400',
+    color: '#333',
+  },
+
   premiumPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1693,7 +1720,7 @@ const styles = StyleSheet.create({
   },
   bannerItem: {
     width: width - 30,
-    height: 190,
+    height: 200,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',

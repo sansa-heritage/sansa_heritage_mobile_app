@@ -52,6 +52,33 @@ const App = () => {
 
 
 
+  // useEffect(() => {
+  //   const checkStatus = async () => {
+  //     try {
+  //       await AsyncStorage.removeItem("introSeen");
+  //       const token = await AsyncStorage.getItem("authToken");
+  //       setIsLoggedIn(!!token);
+
+  //       const introSeen = await AsyncStorage.getItem("introSeen");
+  //       setShowIntro(!introSeen);
+  //     } catch (err) {
+  //       console.error("Error checking login:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   const init = async () => {
+  //     // …do multiple sync or async tasks
+  //   };
+
+  //   init().finally(async () => {
+  //     await BootSplash.hide({ fade: true });
+  //     console.log("BootSplash has been hidden successfully");
+  //   });
+  //   checkStatus();
+  // }, []);
+
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -63,9 +90,8 @@ const App = () => {
         setShowIntro(!introSeen);
       } catch (err) {
         console.error("Error checking login:", err);
-      } finally {
-        setLoading(false);
       }
+      // ✅ setLoading(false) removed — SplashScreen.onFinish handles it
     };
 
     const init = async () => {
@@ -78,8 +104,6 @@ const App = () => {
     });
     checkStatus();
   }, []);
-
-
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove(["authToken", "userID", "username", "email"]);

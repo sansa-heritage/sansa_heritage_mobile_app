@@ -134,7 +134,7 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
 
         {/* LOGOUT BUTTON - Outlined style with red border */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#E53935" />
+          <Ionicons name="log-out-outline" size={22} color="#9E0E26" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
     borderWidth: 1.5,
-    borderColor: '#E53935',
+    borderColor: '#9E0E26',
     elevation: 1,
     shadowColor: '#000',
     shadowOpacity: 0.03,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    color: '#E53935',
+    color: '#9E0E26',
     fontWeight: '600',
     marginLeft: 10,
   },

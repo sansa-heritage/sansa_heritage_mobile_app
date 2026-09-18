@@ -412,7 +412,7 @@ const MyOrdersScreen: React.FC = () => {
         )}
 
         {/* Help section auto-adjusts above Android nav bar / iPhone home bar */}
-        <View
+        {/* <View
           style={[
             styles.helpSection,
             { marginBottom: Math.max(insets.bottom, 12) + 8 },
@@ -434,7 +434,7 @@ const MyOrdersScreen: React.FC = () => {
               <Text style={styles.contactBtnText}>Contact Us</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </View> */}
       </View>
     </View>
   );

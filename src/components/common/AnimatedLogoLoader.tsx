@@ -59,7 +59,7 @@ const AnimatedLogoLoader: React.FC = () => {
     Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 1200,
+        duration: 900,
         easing: Easing.linear,
         useNativeDriver: true,
       })
@@ -69,13 +69,13 @@ const AnimatedLogoLoader: React.FC = () => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.06,
+          toValue: 1.05,
           duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
-          toValue: 0.96,
+          toValue: 0.97,
           duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
@@ -106,7 +106,7 @@ const AnimatedLogoLoader: React.FC = () => {
     >
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         <View style={styles.loaderWrap}>
-          {/* Rotating maroon arc (outer ring) */}
+          {/* Rotating maroon arc — hugs the inner circle */}
           <Animated.View
             style={[
               styles.arcWrap,
@@ -118,7 +118,7 @@ const AnimatedLogoLoader: React.FC = () => {
             <View style={styles.arc} />
           </Animated.View>
 
-          {/* Inner white circle with the Sansa logo */}
+          {/* Inner white circle with the Sansa logo — zoomed in */}
           <Animated.View
             style={[
               styles.logoCircle,
@@ -139,9 +139,10 @@ const AnimatedLogoLoader: React.FC = () => {
   );
 };
 
-const SIZE = 78;            // outer loader diameter
-const INNER = 60;           // inner white circle diameter
-const BORDER = 3;           // arc thickness
+const ARC_THICKNESS = 3;           // spinner stroke width
+const OUTER_SIZE = 68;             // overall loader size (smaller than before)
+const INNER_SIZE = OUTER_SIZE - ARC_THICKNESS * 2 - 2;  // ~60px — logo circle
+const LOGO_SIZE = INNER_SIZE - 10; // logo fits snug with a small padding
 
 const styles = StyleSheet.create({
   overlay: {
@@ -155,47 +156,46 @@ const styles = StyleSheet.create({
     }),
   },
   loaderWrap: {
-    width: SIZE,
-    height: SIZE,
+    width: OUTER_SIZE,
+    height: OUTER_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
 
-  // Rotating arc
+  // Rotating arc — same size as outer, sits exactly at the edge
   arcWrap: {
     position: 'absolute',
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
+    width: OUTER_SIZE,
+    height: OUTER_SIZE,
+    borderRadius: OUTER_SIZE / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   arc: {
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
-    borderWidth: BORDER,
-    borderColor: '#F2E1C0',     // light cream full ring (background)
-    borderTopColor: '#9E0E26',  // maroon arc on top (visible rotating segment)
+    width: OUTER_SIZE,
+    height: OUTER_SIZE,
+    borderRadius: OUTER_SIZE / 2,
+    borderWidth: ARC_THICKNESS,
+    // White base ring (invisible against white bg, but gives contrast for the spinner)
+    borderColor: '#FFFFFF',
+    // Maroon arc — same as logo color
+    borderTopColor: '#9E0E26',
     borderRightColor: '#9E0E26',
   },
 
-  // Inner white circle holding the logo
+  // Inner white circle holding the logo — smaller than outer to sit tight
   logoCircle: {
-    width: INNER,
-    height: INNER,
-    borderRadius: INNER / 2,
+    width: INNER_SIZE,
+    height: INNER_SIZE,
+    borderRadius: INNER_SIZE / 2,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
   },
   logo: {
-    width: 38,
-    height: 38,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
   },
 });
 

@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
     height: height * 0.8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginTop: 10,
+    marginTop: 0,
     textAlign: 'center',
   },
   description: {
@@ -197,17 +197,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 22,
+   
   },
   indicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
+    marginTop:10,
+    marginBottom:10,
   },
   buttonContainer: {
     alignItems: 'center',
