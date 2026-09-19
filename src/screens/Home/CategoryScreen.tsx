@@ -101,9 +101,9 @@ const COLOR_OPTIONS = [
   { id: 'green', label: 'Green', color: '#1B5E20' },
   { id: 'blue', label: 'Blue', color: '#1565C0' },
   { id: 'yellow', label: 'Yellow', color: '#FFD600' },
-  { id: 'black', label: 'Black', color: '#000000' },
-  { id: 'white', label: 'White', color: '#FFFFFF' },
-  { id: 'purple', label: 'Purple', color: '#8E24AA' },
+  // { id: 'black', label: 'Black', color: '#000000' },
+  // { id: 'white', label: 'White', color: '#FFFFFF' },
+  // { id: 'purple', label: 'Purple', color: '#8E24AA' },
 ];
 
 const MIN_PRICE = 0;

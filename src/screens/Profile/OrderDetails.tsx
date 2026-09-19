@@ -9,10 +9,13 @@ import {
   Dimensions,
   Image,
   Alert,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import { getOrderById } from '../../api/orderApi';
 import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
@@ -25,7 +28,6 @@ const scale = (size: number) => {
 };
 
 /* ================= SAFE VALUE HELPER ================= */
-// Returns fallback ('N/A') if value is null/undefined/empty string
 const safe = (value: any, fallback: string = 'N/A') => {
   if (value === null || value === undefined) return fallback;
   const str = String(value).trim();
@@ -118,12 +120,12 @@ const OrderDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [deliveryRating, setDeliveryRating] = useState(0);
   const [productRating, setProductRating] = useState(0);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (orderId) {
       fetchOrderDetails();
     } else {
-      // Demo fallback when opening without ID
       setOrderData({
         orderId: '#1340152 85527753057801',
         brand: 'DYMORA',
@@ -173,7 +175,6 @@ const OrderDetailsScreen = () => {
       const order = response.order;
       const product = order.products?.[0] || {};
 
-      // ✅ Every value safely resolved with fallback
       const price = Number(product?.price) || 0;
       const mrp = Number(product?.mrp) || price;
       const discountPercent = Number(product?.discount) || 0;
@@ -184,30 +185,24 @@ const OrderDetailsScreen = () => {
         brand: safe(product?.brand, 'Brand'),
         status: safe(order?.status, 'Processing'),
 
-        // Delivery banner (fallback to updatedAt if deliveredAt missing)
         deliveryDate: formatDate(order?.deliveredAt || order?.updatedAt),
         deliveryTime: formatTime(order?.deliveredAt || order?.updatedAt),
 
-        // Placed info
         placedDate: formatDate(order?.createdAt),
         placedTime: formatTime(order?.createdAt),
 
-        // Product
         productName: safe(product?.name, 'Product'),
         productSubtitle: safe(product?.description ? '1 Piece' : '1 Piece'),
         productImage: product?.image || '',
         size: safe(product?.size),
         quantity,
 
-        // Pricing
         price,
         mrp,
         discountPercent,
 
-        // Sold by
         soldBy: safe(product?.seller || product?.brand, 'Seller'),
 
-        // Address (each field with fallback)
         address: {
           name: safe(order?.shippingAddress?.name || order?.user?.name, 'Customer'),
           street: safe(order?.shippingAddress?.street),
@@ -223,7 +218,6 @@ const OrderDetailsScreen = () => {
           email: safe(order?.user?.email, 'N/A'),
         },
 
-        // Payment
         paymentMethod: safe(order?.paymentInfo?.paymentMethod, 'N/A'),
         paymentStatus: safe(
           order?.paymentInfo?.status || order?.isPaid ? 'Paid Online' : null,
@@ -240,6 +234,113 @@ const OrderDetailsScreen = () => {
     }
   };
 
+  /* ================= ✅ DOWNLOAD INVOICE ================= */
+
+ const handleDownloadInvoice = async () => {
+  if (!orderId) {
+    Alert.alert('Error', 'Order ID not available');
+    return;
+  }
+  if (downloading) return;
+
+  try {
+    setDownloading(true);
+    LoadingService.show('Downloading invoice...');
+
+    const token = await AsyncStorage.getItem('authToken');
+    if (!token) {
+      Alert.alert('Login Required', 'Please login to download invoice.');
+      return;
+    }
+
+    const baseURL = config.baseURL || '';
+
+    // ─────────────────────────────────────────────────────
+    // Step 1: Get short-lived signed URL
+    // ─────────────────────────────────────────────────────
+    const linkRes = await fetch(
+      `${baseURL}api/order/${orderId}/invoice-link`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      },
+    );
+
+    if (!linkRes.ok) {
+      throw new Error(`Could not create invoice link (${linkRes.status})`);
+    }
+
+    const linkJson = await linkRes.json();
+    if (!linkJson?.success || !linkJson?.url) {
+      throw new Error(linkJson?.message || 'Invalid invoice link response');
+    }
+
+    const signedUrl = `${baseURL}${linkJson.url}`;
+    console.log('📥 Signed invoice URL:', signedUrl);
+
+    // ─────────────────────────────────────────────────────
+    // Step 2: Download via signed URL
+    // ─────────────────────────────────────────────────────
+    const { dirs } = ReactNativeBlobUtil.fs;
+    const fileName = `Invoice-${orderId}.pdf`;
+    const iosFilePath = `${dirs.DocumentDir}/${fileName}`;
+
+    const res = await ReactNativeBlobUtil.config({
+      // ✅ Android: DownloadManager owns the file — no fileCache/path here
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: fileName,
+        description: 'Order Invoice',
+        mime: 'application/pdf',
+        mediaScannable: true,
+      },
+      // ✅ iOS: no DownloadManager — save to a real path
+      ...(Platform.OS === 'ios' && {
+        fileCache: true,
+        path: iosFilePath,
+      }),
+    }).fetch('GET', signedUrl, {
+      Accept: 'application/pdf',
+    });
+
+    const status = res.info().status;
+    console.log('📥 Invoice response status:', status);
+
+    if (status !== 200) {
+      const body = await res.text();
+      console.error('❌ Server error body:', body);
+      throw new Error(`Server returned ${status}`);
+    }
+
+    if (Platform.OS === 'ios') {
+      const finalPath = res.path();
+      console.log('✅ Invoice saved at:', finalPath);
+      ReactNativeBlobUtil.ios.previewDocument(finalPath);
+    } else {
+      console.log('✅ Invoice handed off to DownloadManager');
+    }
+
+    Alert.alert(
+      'Success',
+      Platform.OS === 'ios'
+        ? 'Invoice downloaded. You can share or save it from the preview.'
+        : 'Invoice downloaded to your Downloads folder.',
+    );
+  } catch (err: any) {
+    console.error('Invoice download error:', err);
+    Alert.alert(
+      'Download Failed',
+      err?.message || 'Could not download the invoice. Please try again.',
+    );
+  } finally {
+    setDownloading(false);
+    LoadingService.hide();
+  }
+};
   /* ================= LOADING / EMPTY ================= */
 
   if (loading) return <View style={styles.loadingContainer} />;
@@ -262,7 +363,6 @@ const OrderDetailsScreen = () => {
   const isDelivered = orderData.status === 'Delivered';
   const savingAmount = orderData.mrp - orderData.price;
 
-  // Full address string
   const addressLine = [
     orderData.address.street,
     orderData.address.area,
@@ -328,9 +428,6 @@ const OrderDetailsScreen = () => {
 
         {/* ============ 2. BRAND + PRODUCT INFO ============ */}
         <View style={styles.infoBlock}>
-          {/* <Text style={styles.brandName}>
-            {safe(orderData.brand).toUpperCase()}
-          </Text> */}
           <Text style={styles.productName}>
             {safe(orderData.productName)}
           </Text>
@@ -403,8 +500,8 @@ const OrderDetailsScreen = () => {
               const color = isGreen
                 ? '#16A34A'
                 : isYellow
-                ? '#F59E0B'
-                : '#F97316';
+                  ? '#F59E0B'
+                  : '#F97316';
               return (
                 <TouchableOpacity
                   key={num}
@@ -588,14 +685,23 @@ const OrderDetailsScreen = () => {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.downloadInvoiceBtn}>
+          {/* ✅ Download Invoice — wired up */}
+          <TouchableOpacity
+            style={[
+              styles.downloadInvoiceBtn,
+              downloading && { opacity: 0.6 },
+            ]}
+            onPress={handleDownloadInvoice}
+            disabled={downloading}
+            activeOpacity={0.7}
+          >
             <Ionicons
-              name="download-outline"
+              name={downloading ? 'hourglass-outline' : 'download-outline'}
               size={scale(18)}
               color="#151515"
             />
             <Text style={styles.downloadInvoiceText}>
-              Download Invoice
+              {downloading ? 'Downloading...' : 'Download Invoice'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -640,7 +746,7 @@ const OrderDetailsScreen = () => {
               <Ionicons
                 name="cube-outline"
                 size={scale(20)}
-                color="#96252A"
+                color="#9E0E26"
               />
             </View>
             <Text style={styles.sectionTitle}>Order details</Text>
@@ -661,27 +767,6 @@ const OrderDetailsScreen = () => {
             </View>
           </View>
         </View>
-
-        {/* ============ 11. HELP BANNER ============ */}
-        {/* <View style={styles.helpCard}>
-          <View style={styles.helpIconWrap}>
-            <Ionicons name="headset" size={scale(20)} color="#96252A" />
-          </View>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.helpTitle}>Need Help?</Text>
-            <Text style={styles.helpSubtitle}>
-              We are here to help you with your order
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.contactSupportBtn}>
-            <Text style={styles.contactSupportText}>Contact</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={scale(14)}
-              color="#96252A"
-            />
-          </TouchableOpacity>
-        </View> */}
       </ScrollView>
     </View>
   );
@@ -720,7 +805,7 @@ const styles = StyleSheet.create({
   },
   goBackBtn: {
     marginTop: 20,
-    backgroundColor: '#96252A',
+    backgroundColor: '#9E0E26',
     paddingHorizontal: 30,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1099,11 +1184,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1.2,
-    borderColor: '#96252A',
+    borderColor: '#9E0E26',
   },
   contactSupportText: {
     fontSize: scale(11),
     fontWeight: '700',
-    color: '#96252A',
+    color: '#9E0E26',
   },
 });

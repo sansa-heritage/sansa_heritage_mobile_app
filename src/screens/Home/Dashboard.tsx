@@ -1343,15 +1343,16 @@ const styles = StyleSheet.create({
   },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  // FEATURE BADGES
+  // ============================================
+  // ✅ FEATURE BADGES — START/END GAP REDUCED
+  // ============================================
   featuresContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 0,   // ✅ was 4 → reduced start/end gap
     marginVertical: 4,
     marginHorizontal: 0,
     minHeight: 44,
@@ -1359,10 +1360,11 @@ const styles = StyleSheet.create({
     borderColor: '#F0F0F0',
   },
   featureItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    paddingHorizontal: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 0,
   },
   featureIconWrapper: {
     width: 22,
@@ -1378,9 +1380,12 @@ const styles = StyleSheet.create({
     height: 22,
     backgroundColor: '#D0D0D0',
     alignSelf: 'center',
-    marginHorizontal: 2,
+    marginHorizontal: 0,
   },
-  featureTextWrapper: { flex: 1, justifyContent: 'center' },
+  featureTextWrapper: {
+    flexShrink: 1,
+    justifyContent: 'center',
+  },
   featureTitle: {
     fontSize: 9,
     color: '#9E0E26',

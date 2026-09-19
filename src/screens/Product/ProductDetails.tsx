@@ -1000,12 +1000,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   finalPrice: {
-    fontSize: 22,
+    fontSize: 14,
     fontWeight: "700",
     color: "#000",
   },
   mrp: {
-    fontSize: 15,
+    fontSize: 12,
     textDecorationLine: "line-through",
     color: "#888",
   },

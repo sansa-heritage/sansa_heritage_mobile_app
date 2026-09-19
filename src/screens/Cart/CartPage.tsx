@@ -639,6 +639,9 @@ const CartScreen: React.FC = () => {
   const amountPayable =
     subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
 
+  /* ✅ Total you saved on this order (savings + coupon) */
+  const totalYouSaved = savings + couponDiscount;
+
   /* ================= LOADER ================= */
 
   if (error) {
@@ -889,7 +892,7 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Free Shipping */}
+              {/* ✅ Free shipping progress bar — shows ONLY until threshold reached */}
               {cartItems.length > 0 && !isFreeShipping && (
                 <View style={styles.freeShippingCard}>
                   <View style={styles.shippingRow}>
@@ -923,26 +926,9 @@ const CartScreen: React.FC = () => {
                 </View>
               )}
 
-              {cartItems.length > 0 && isFreeShipping && (
-                <View
-                  style={[styles.freeShippingCard, styles.shippingAchieved]}
-                >
-                  <View style={styles.shippingRow}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color="#4CAF50"
-                    />
-                    <Text style={styles.shippingAchievedText}>
-                      🎉 Free Shipping Applied!
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Order Details */}
+              {/* ✅ Price Details (renamed from Order Details) */}
               <View style={styles.orderDetailsCard}>
-                <Text style={styles.sectionTitle}>Order Details</Text>
+                <Text style={styles.sectionTitle}>Price Details</Text>
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Bag Total</Text>
                   <Text style={styles.billValue}>₹{bagTotal.toFixed(0)}</Text>
@@ -981,6 +967,24 @@ const CartScreen: React.FC = () => {
                 </View>
               </View>
 
+              {/* ✅ You're saving pill — Myntra style */}
+              {totalYouSaved > 0 && (
+                <View style={styles.savedCard}>
+                  <View style={styles.savedPill}>
+                    <View style={styles.savedIconCircle}>
+                      <Ionicons name="pricetag" size={14} color="#fff" />
+                    </View>
+                    <Text style={styles.savedText}>
+                      You're saving{' '}
+                      <Text style={styles.savedAmount}>
+                        ₹{totalYouSaved.toFixed(0)}
+                      </Text>{' '}
+                      on this order
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {/* Policy */}
               <View style={styles.policyCard}>
                 <View style={styles.policyHeader}>
@@ -1000,7 +1004,12 @@ const CartScreen: React.FC = () => {
                       will be refunded excluding convenience fee.
                     </Text>
                   </View>
-                  <TouchableOpacity style={styles.policyRight}>
+                  <TouchableOpacity
+                    style={styles.policyRight}
+                    onPress={() =>
+                      navigation.navigate('PrivacyPolicy' as any)
+                    }
+                  >
                     <Text style={styles.readPolicy}>Read policy</Text>
                     <Ionicons
                       name="chevron-forward"
@@ -1180,7 +1189,6 @@ const styles = StyleSheet.create({
     paddingBottom: 140,
   },
 
-  /* ✅ NO SHADOW — thin border */
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1210,7 +1218,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  /* ── ITEM LIST — unchanged structure ── */
+  /* ── ITEM LIST ── */
   itemWrapper: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
@@ -1441,7 +1449,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  /* ✅ NO SHADOW — thin border */
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1466,16 +1473,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#9E0E26',
   },
-  shippingAchieved: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#F1F8E9',
-  },
-  shippingAchievedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#2E7D32',
-    marginLeft: 6,
-  },
   progressBarContainer: {
     height: 5,
     backgroundColor: '#E0E0E0',
@@ -1498,7 +1495,6 @@ const styles = StyleSheet.create({
     color: '#999',
   },
 
-  /* ✅ NO SHADOW — thin border */
   orderDetailsCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1552,7 +1548,42 @@ const styles = StyleSheet.create({
     color: '#9E0E26',
   },
 
-  /* ✅ NO SHADOW — only top border */
+  /* ✅ "You saved" pill (Myntra style) */
+  savedCard: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  savedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#A5D6A7',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  savedIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  savedText: {
+    fontSize: 12,
+    color: '#1B5E20',
+    fontWeight: '600',
+    flex: 1,
+  },
+  savedAmount: {
+    fontWeight: '800',
+    color: '#1B5E20',
+    textDecorationLine: 'underline',
+  },
+
   footer: {
     position: 'absolute',
     bottom: 40,
@@ -1591,7 +1622,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* ✅ NO SHADOW — thin border */
   policyCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1645,7 +1675,6 @@ const styles = StyleSheet.create({
     height: 60,
   },
 
-  /* ── Empty State ── */
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1676,7 +1705,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* ── Modals ── */
   qtyModalOverlay: {
     flex: 1,
     justifyContent: 'center',
