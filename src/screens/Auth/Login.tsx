@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
+  // Alert,
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -23,15 +23,13 @@ import { registerWithGoogle } from '../../api/authApi';
 import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
-
-
+import { snackbar } from '../../components/common/Snackbar';   // ✅ ADD THIS
 
 // ✅ Configure Google Sign-In with account picker support
 GoogleSignin.configure({
   webClientId: '782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com',
   iosClientId: '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
   offlineAccess: false,
-  // ✅ Add this to force account selection
   hostedDomain: '',
   forceCodeForRefreshToken: false,
 });
@@ -57,16 +55,13 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       await GoogleSignin.hasPlayServices();
 
-      // ✅ Check if user is already signed in
       const currentUser = await GoogleSignin.getCurrentUser();
-      
-      // If user is already signed in, sign out to show account picker
+
       if (currentUser) {
         console.log('User already signed in, signing out to show account picker...');
         await GoogleSignin.signOut();
       }
 
-      // ✅ Sign in - this will show the account picker
       const result = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(result)) {
@@ -74,7 +69,6 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
 
       const user = result.data.user;
-
       console.log('Selected User:', user);
 
       const payload = {
@@ -102,6 +96,10 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         ]);
 
         await authService.login(token, username, email);
+
+        // ✅ Success message
+        snackbar.success('Logged in successfully', `Welcome, ${username || 'User'}!`);
+
         onLoginSuccess();
       } else {
         throw new Error(res?.message || 'Registration failed');
@@ -110,13 +108,13 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       console.log('Google Sign-In Error:', error);
 
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert('Cancelled', 'Google Sign-In was cancelled.');
+        snackbar.warning('Google Sign-In was cancelled.', 'Cancelled');
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert('In Progress', 'Google Sign-In is already in progress.');
+        snackbar.info('Google Sign-In is already in progress.');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Google Play Services are not available.');
+        snackbar.error('Google Play Services are not available.');
       } else {
-        Alert.alert('Login Failed', error.message || 'Something went wrong');
+        snackbar.error(error.message || 'Something went wrong', 'Login Failed');
       }
     } finally {
       setIsLoading(false);
@@ -130,6 +128,7 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       if (!email || !password) {
         setError('All fields are required');
+        snackbar.warning('Please enter email and password', 'Missing Fields');
         setIsLoading(false);
         return;
       }
@@ -144,7 +143,9 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       console.log('Login response:', data);
 
       if (!response.ok || !data.token) {
-        setError(data.message || 'Invalid credentials');
+        const msg = data.message || 'Invalid credentials';
+        setError(msg);
+        snackbar.error(msg, 'Login Failed');
         setIsLoading(false);
         return;
       }
@@ -164,11 +165,15 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       await authService.login(token, username, emailAddr);
 
       setError('');
-      onLoginSuccess();
 
+      // ✅ Success message
+      snackbar.success('Logged in successfully', `Welcome, ${username || 'User'}!`);
+
+      onLoginSuccess();
     } catch (error) {
       console.error('Error during login:', error);
       setError('Invalid credentials');
+      snackbar.error('Invalid credentials', 'Login Failed');
     } finally {
       setIsLoading(false);
     }
@@ -234,8 +239,8 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
           onPress={handleLogin}
           disabled={isLoading}
         >
@@ -250,8 +255,8 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <View style={styles.line} />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.googleButton, isLoading && styles.googleButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.googleButton, isLoading && styles.googleButtonDisabled]}
           onPress={onSignIn}
           disabled={isLoading}
         >
@@ -264,7 +269,7 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       </View>
 
       <Text style={styles.signupText}>
-        Don’t have an account?{' '}
+        Don't have an account?{' '}
         <Text style={styles.signupLink} onPress={handleSignUp}>
           Sign Up
         </Text>

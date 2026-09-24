@@ -40,6 +40,7 @@ import ReturnRefundPolicyScreen from "./src/screens/Info/Refund&ReturnPage";
 import AnimatedLogoLoader from "./src/components/common/AnimatedLogoLoader";
 import OrderDetailsScreen from "./src/screens/Profile/OrderDetails";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Snackbar from "./src/components/common/Snackbar";
 
 const Stack = createStackNavigator();
 
@@ -213,7 +214,8 @@ const App = () => {
           </NavigationContainer>
           <AnimatedLogoLoader />
         </View>
-
+        {/* ✅ Snackbar — mounted at root level so it's above all screens */}
+        <Snackbar />
       </NotificationProvider>
     </SafeAreaProvider>
   );

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
 } from 'react-native';
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -18,7 +17,7 @@ import { registerWithGoogle } from '../../api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { RootStackParamList } from '../../models/types';
-import { Toast } from '../../components/common/Toast';
+import { snackbar } from '../../components/common/Snackbar';
 import DeviceInfo from 'react-native-device-info';
 
 const SignUpPage = () => {
@@ -37,10 +36,10 @@ const SignUpPage = () => {
     setIsLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
+      await GoogleSignin.signIn();
 
       const userInfo = await GoogleSignin.getCurrentUser();
-      let payload = {
+      const payload = {
         googleId: userInfo?.user.id,
         email: userInfo?.user.email,
         username: userInfo?.user.name,
@@ -53,11 +52,13 @@ const SignUpPage = () => {
         await AsyncStorage.setItem('userID', res?._id);
         await AsyncStorage.setItem('username', res?.username || '');
         await AsyncStorage.setItem('email', res?.email || '');
+
+        snackbar.success('Account created successfully');
         navigation.dispatch(StackActions.replace('Dashboard'));
       }
     } catch (error: any) {
       console.log('Google Sign-in Error:', error);
-      Alert.alert('Login Failed', error.message);
+      snackbar.error(error.message || 'Google Sign-In failed', 'Login Failed');
     } finally {
       setIsLoading(false);
     }
@@ -68,6 +69,7 @@ const SignUpPage = () => {
 
     if (!username || !email || !password) {
       setError('All fields are required');
+      snackbar.warning('Please fill all fields', 'Missing Fields');
       return;
     }
 
@@ -80,8 +82,8 @@ const SignUpPage = () => {
       });
 
       if (response.status === 201) {
-        Toast.show('success', 'You have successfully signed up!');
         setError('');
+        snackbar.success('You have successfully signed up!');
         navigation.navigate('Login');
       }
     } catch (error: any) {
@@ -89,10 +91,10 @@ const SignUpPage = () => {
       if (error.response) {
         const message = error.response.data.message || 'Signup failed';
         setError(message);
-        Toast.show('error', message);
+        snackbar.error(message, 'Signup Failed');
       } else {
         setError('Network error. Please try again.');
-        Toast.show('error', 'Network error.');
+        snackbar.error('Network error. Please try again.');
       }
     } finally {
       setIsLoading(false);

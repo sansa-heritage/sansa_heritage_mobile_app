@@ -22,6 +22,7 @@ import { addToCart, removeFromCart } from '../../api/cartApi';
 import { RootStackParamList } from '../../models/types';
 import { Address } from '../../models/address';
 import LoadingService from '../../services/LoadingService';
+import { snackbar } from '../../components/common/Snackbar';
 
 const { height, width } = Dimensions.get('window');
 
@@ -439,7 +440,7 @@ const CartScreen: React.FC = () => {
       setActiveItemIndex(-1);
     } catch (e: any) {
       console.log('Update size error:', e);
-      Alert.alert('Error', 'Failed to update size. Please try again.');
+      snackbar.error('Failed to update size. Please try again.');
     } finally {
       LoadingService.hide();
     }
@@ -491,7 +492,7 @@ const CartScreen: React.FC = () => {
       );
     } catch (e) {
       console.log('Update quantity error:', e);
-      Alert.alert('Error', 'Failed to update quantity. Please try again.');
+      snackbar.error('Failed to update quantity. Please try again.');
     } finally {
       LoadingService.hide();
     }
@@ -546,7 +547,7 @@ const CartScreen: React.FC = () => {
             setCartItems(prev => prev.filter((_, i) => i !== index));
             await fetchCart();
 
-            Alert.alert('Success', 'Item removed from cart');
+            snackbar.success('Item removed from cart');
           } catch (error: any) {
             console.error('❌ Remove item error:', error);
 
@@ -561,13 +562,13 @@ const CartScreen: React.FC = () => {
 
                 setCartItems(prev => prev.filter((_, i) => i !== index));
                 await fetchCart();
-                Alert.alert('Success', 'Item removed from cart');
+                snackbar.success('Item removed from cart');
               } catch (retryError: any) {
                 await fetchCart();
-                Alert.alert('Info', 'Item has been removed successfully.');
+                snackbar.info('Item has been removed successfully.');
               }
             } else {
-              Alert.alert('Error', error.message || 'Failed to remove item.');
+              snackbar.error(error.message || 'Failed to remove item.');
             }
           } finally {
             LoadingService.hide();
@@ -581,7 +582,7 @@ const CartScreen: React.FC = () => {
 
   const handleApplyCoupon = () => {
     if (!couponCode.trim()) {
-      Alert.alert('Error', 'Please enter a coupon code');
+      snackbar.warning('Please enter a coupon code');
       return;
     }
 
@@ -589,14 +590,14 @@ const CartScreen: React.FC = () => {
       const total = bagTotal - savings;
       setCouponDiscount(total * 0.1);
       setCouponApplied(true);
-      Alert.alert('Success', 'Coupon applied successfully!');
+      snackbar.success('Coupon applied successfully!');
     } else if (couponCode.toUpperCase() === 'SAVE20') {
       const total = bagTotal - savings;
       setCouponDiscount(total * 0.2);
       setCouponApplied(true);
-      Alert.alert('Success', 'Coupon applied successfully!');
+      snackbar.success('Coupon applied successfully!');
     } else {
-      Alert.alert('Invalid Coupon', 'Please enter a valid coupon code');
+      snackbar.error('Please enter a valid coupon code', 'Invalid Coupon');
     }
   };
 
@@ -639,7 +640,6 @@ const CartScreen: React.FC = () => {
   const amountPayable =
     subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
 
-  /* ✅ Total you saved on this order (savings + coupon) */
   const totalYouSaved = savings + couponDiscount;
 
   /* ================= LOADER ================= */
@@ -714,7 +714,9 @@ const CartScreen: React.FC = () => {
 
             <Text style={styles.name} numberOfLines={2}>
               <Text style={styles.nameBold}>{boldPart}</Text>
-              {normalPart ? <Text style={styles.nameNormal}> {normalPart}</Text> : null}
+              {normalPart ? (
+                <Text style={styles.nameNormal}> {normalPart}</Text>
+              ) : null}
             </Text>
 
             <View style={styles.dropdownRow}>
@@ -892,7 +894,7 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* ✅ Free shipping progress bar — shows ONLY until threshold reached */}
+              {/* Free shipping progress bar */}
               {cartItems.length > 0 && !isFreeShipping && (
                 <View style={styles.freeShippingCard}>
                   <View style={styles.shippingRow}>
@@ -926,7 +928,7 @@ const CartScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* ✅ Price Details (renamed from Order Details) */}
+              {/* Price Details */}
               <View style={styles.orderDetailsCard}>
                 <Text style={styles.sectionTitle}>Price Details</Text>
                 <View style={styles.billRow}>
@@ -967,7 +969,7 @@ const CartScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* ✅ You're saving pill — Myntra style */}
+              {/* You're saving pill */}
               {totalYouSaved > 0 && (
                 <View style={styles.savedCard}>
                   <View style={styles.savedPill}>
@@ -1006,9 +1008,7 @@ const CartScreen: React.FC = () => {
                   </View>
                   <TouchableOpacity
                     style={styles.policyRight}
-                    onPress={() =>
-                      navigation.navigate('PrivacyPolicy' as any)
-                    }
+                    onPress={() => navigation.navigate('PrivacyPolicy' as any)}
                   >
                     <Text style={styles.readPolicy}>Read policy</Text>
                     <Ionicons
@@ -1548,7 +1548,7 @@ const styles = StyleSheet.create({
     color: '#9E0E26',
   },
 
-  /* ✅ "You saved" pill (Myntra style) */
+  /* "You saved" pill */
   savedCard: {
     marginHorizontal: 16,
     marginBottom: 10,
