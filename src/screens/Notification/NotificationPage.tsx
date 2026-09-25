@@ -37,8 +37,6 @@ const NotificationScreen: React.FC = () => {
 
   const tabs = ["All", "Orders", "Offers", "Updates", "Reminders"];
 
-  // ✅ FIXED: wrap the initial fetch with the global loader so
-  // the AnimatedLogoLoader appears (same as other screens).
   useEffect(() => {
     const load = async () => {
       LoadingService.show('Loading notifications...');
@@ -51,8 +49,6 @@ const NotificationScreen: React.FC = () => {
     load();
   }, []);
 
-  // ✅ Pull-to-refresh stays silent (uses the RefreshControl spinner
-  // instead of the full-screen global loader).
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchNotifications();
@@ -166,24 +162,16 @@ const NotificationScreen: React.FC = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        style={[
-          styles.notificationCard,
-          !item.read && styles.unreadCard
-        ]}
+        style={[styles.notificationCard, !item.read && styles.unreadCard]}
         onPress={() => handleNotificationPress(item)}
       >
-        {/* ICON */}
+        {/* ICON — compact */}
         <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: notificationIcon.bg,
-            },
-          ]}
+          style={[styles.iconCircle, { backgroundColor: notificationIcon.bg }]}
         >
           <Ionicons
             name={notificationIcon.icon}
-            size={40}
+            size={scale(20)}
             color={notificationIcon.color}
           />
         </View>
@@ -192,7 +180,7 @@ const NotificationScreen: React.FC = () => {
         <View style={styles.cardContent}>
           <View style={styles.cardTopRow}>
             <Text
-              numberOfLines={2}
+              numberOfLines={1}
               style={[
                 styles.notificationTitle,
                 !item.read && styles.unreadTitle,
@@ -205,10 +193,7 @@ const NotificationScreen: React.FC = () => {
             </Text>
           </View>
 
-          <Text
-            numberOfLines={2}
-            style={styles.notificationBody}
-          >
+          <Text numberOfLines={2} style={styles.notificationBody}>
             {item.body}
           </Text>
 
@@ -224,9 +209,9 @@ const NotificationScreen: React.FC = () => {
                 }
               }}
             >
-              <Text style={styles.actionText}>
+              {/* <Text style={styles.actionText}>
                 {getActionText(item.type)} →
-              </Text>
+              </Text> */}
             </TouchableOpacity>
           )}
         </View>
@@ -284,14 +269,13 @@ const NotificationScreen: React.FC = () => {
 
       {/* NOTIFICATIONS LIST */}
       {loading && notifications.length === 0 ? (
-        // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
         <View style={styles.loading} />
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconContainer}>
             <Ionicons
               name="notifications-off-outline"
-              size={scale(50)}
+              size={scale(40)}
               color="#D1D5DB"
             />
           </View>
@@ -333,35 +317,17 @@ const styles = StyleSheet.create({
   titleSection: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: scale(16),
-    paddingTop: scale(12),
-    paddingBottom: scale(8),
+    justifyContent: "flex-end",
+    paddingHorizontal: scale(14),
+    paddingTop: scale(8),
+    paddingBottom: scale(4),
     backgroundColor: "#F8F9FA",
   },
 
-  titleLeft: {
-    flex: 1,
-  },
-
-  title: {
-    fontSize: scale(20),
-    fontWeight: "700",
-    color: "#151515",
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: scale(12),
-    color: "#6B7280",
-    fontWeight: "400",
-    marginTop: 2,
-  },
-
   markAllButton: {
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(4),
-    borderRadius: 16,
+    paddingHorizontal: scale(9),
+    paddingVertical: scale(3),
+    borderRadius: 14,
     backgroundColor: "#96252A",
   },
 
@@ -375,20 +341,20 @@ const styles = StyleSheet.create({
      TABS
   ========================================== */
   tabsWrapper: {
-    paddingHorizontal: scale(16),
-    paddingBottom: scale(10),
+    paddingHorizontal: scale(14),
+    paddingBottom: scale(8),
     backgroundColor: "#F8F9FA",
   },
 
   tabsContent: {
-    paddingRight: scale(16),
-    gap: 6,
+    paddingRight: scale(14),
+    gap: 5,
   },
 
   tab: {
-    paddingHorizontal: scale(14),
-    paddingVertical: scale(6),
-    borderRadius: 16,
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(5),
+    borderRadius: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -428,30 +394,28 @@ const styles = StyleSheet.create({
      LIST
   ========================================== */
   listContent: {
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(12),
     paddingTop: scale(4),
     paddingBottom: scale(20),
   },
 
   /* ==========================================
-     NOTIFICATION CARD
+     NOTIFICATION CARD — COMPACT
   ========================================== */
   notificationCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",   // ✅ top-align so tall icons don't stretch card
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#F3F4F6",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 12,
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(10),
+    marginBottom: 6,
     shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 1,
   },
 
@@ -462,15 +426,16 @@ const styles = StyleSheet.create({
   },
 
   /* ==========================================
-     ICON
+     ICON — COMPACT
   ========================================== */
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(10),
+    marginRight: scale(8),
+    marginTop: 1,
     flexShrink: 0,
   },
 
@@ -479,8 +444,6 @@ const styles = StyleSheet.create({
   ========================================== */
   cardContent: {
     flex: 1,
-    alignSelf: "stretch",
-    justifyContent: "center",
     minWidth: 0,
   },
 
@@ -493,8 +456,8 @@ const styles = StyleSheet.create({
 
   notificationTitle: {
     flex: 1,
-    fontSize: scale(13),
-    lineHeight: 18,
+    fontSize: scale(12.5),
+    lineHeight: scale(16),
     color: "#111827",
     fontWeight: "600",
     marginRight: 6,
@@ -514,28 +477,30 @@ const styles = StyleSheet.create({
   },
 
   notificationBody: {
-    fontSize: scale(12),
-    lineHeight: 17,
+    fontSize: scale(11.5),
+    lineHeight: scale(15),
     color: "#6B7280",
     fontWeight: "400",
-    marginBottom: 3,
+    marginBottom: 2,
   },
 
   actionText: {
-    fontSize: scale(12),
+    fontSize: scale(11.5),
     color: "#96252A",
     fontWeight: "600",
+    marginTop: 1,
   },
 
   /* ==========================================
-     UNREAD DOT
+     UNREAD DOT — smaller
   ========================================== */
   unreadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: "#96252A",
-    marginLeft: 6,
+    marginLeft: 5,
+    marginTop: scale(6),
     flexShrink: 0,
   },
 
@@ -559,20 +524,20 @@ const styles = StyleSheet.create({
   },
 
   emptyIconContainer: {
-    width: scale(70),
-    height: scale(70),
-    borderRadius: scale(35),
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
     backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   emptyTitle: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontWeight: "600",
     color: "#151515",
-    marginTop: 8,
+    marginTop: 6,
   },
 
   emptySubtitle: {
@@ -580,7 +545,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     textAlign: "center",
     marginTop: 4,
-    lineHeight: 18,
+    lineHeight: 17,
   },
 });
 
