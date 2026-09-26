@@ -41,6 +41,7 @@ import AnimatedLogoLoader from "./src/components/common/AnimatedLogoLoader";
 import OrderDetailsScreen from "./src/screens/Profile/OrderDetails";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Snackbar from "./src/components/common/Snackbar";
+import HelpCenterScreen from "./src/screens/Info/HelpCenterScreen";
 
 const Stack = createStackNavigator();
 
@@ -196,6 +197,8 @@ const App = () => {
 
                   {/* ✅ Add OrderDetails Screen here */}
                   <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+                  <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+
 
 
                   <Stack.Screen name="AccountPage">

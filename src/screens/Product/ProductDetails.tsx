@@ -6,13 +6,10 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
   Modal,
   FlatList,
   Dimensions,
   Share,
-  Platform,
 } from "react-native";
 import {
   SafeAreaView,
@@ -30,7 +27,8 @@ import { addToFavoritesList } from "../../api/favoriteApi";
 import { getAddresses } from "../../api/profileApi";
 import { Address } from "../../models/address";
 import eventBus from "../../services/eventBus";
-import { Toast } from "../../components/common/Toast";
+// ✅ FIXED — replaced Toast with snackbar
+import { snackbar } from "../../components/common/Snackbar";
 import LoadingService from "../../services/LoadingService";
 
 const { width, height } = Dimensions.get("window");
@@ -85,7 +83,6 @@ const ProductPage = () => {
   const [sizeGuideData, setSizeGuideData] = useState<any[]>([]);
   const [activeColumns, setActiveColumns] = useState<string[]>([]);
 
-  // ✅ Compact footer reserved height
   const FOOTER_HEIGHT = 58 + insets.bottom;
 
   /* ============ VALIDATION ============ */
@@ -151,9 +148,10 @@ const ProductPage = () => {
     }
   };
 
+  // ✅ FIXED — Alert.alert → snackbar.warning
   const showSizeGuide = () => {
     if (!productDetails?.sizes || productDetails.sizes.length === 0) {
-      Alert.alert('Size Guide', 'No size information available.', [{ text: 'OK' }]);
+      snackbar.warning('No size information available.', 'Size Guide');
       return;
     }
 
@@ -176,11 +174,12 @@ const ProductPage = () => {
     setSizeGuideVisible(true);
   };
 
+  // ✅ FIXED — Toast.show → snackbar.success
   const selectAddress = async (address: Address) => {
     setSelectedAddress(address);
     await AsyncStorage.setItem("selectedAddress", JSON.stringify(address));
     setAddressModalVisible(false);
-    Toast.show('success', 'Address selected');
+    snackbar.success('Address selected');
   };
 
   const navigateToAddressScreen = () => {
@@ -250,11 +249,7 @@ const ProductPage = () => {
   }, [navigation]);
 
   if (loading || !productDetails) {
-    return (
-      <View style={styles.loader}>
-        {/* <ActivityIndicator size="large" color="#9E0E26" /> */}
-      </View>
-    );
+    return <View style={styles.loader} />;
   }
 
   const productImages =
@@ -271,14 +266,15 @@ const ProductPage = () => {
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
 
+  // ✅ FIXED — all Alert.alert → snackbar
   const handleAddToCart = async () => {
     const validation = validateSelections();
     if (!validation.valid) {
-      Alert.alert('Selection Required', validation.errors.join('\n\n'), [{ text: 'OK' }]);
+      snackbar.warning(validation.errors.join('\n'), 'Selection Required');
       return;
     }
     if (!token || !userId) {
-      Alert.alert('Error', 'Please login to add items to cart');
+      snackbar.warning('Please login to add items to cart');
       return;
     }
 
@@ -304,7 +300,8 @@ const ProductPage = () => {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      Toast.show('success', 'Product added to cart successfully!');
+      // ✅ FIXED — snackbar success
+      snackbar.success('Product added to cart successfully!');
       eventBus.emit("ITEM_REMOVED", { id: 123 });
       if (selectedAddress) {
         await AsyncStorage.setItem("selectedAddress", JSON.stringify(selectedAddress));
@@ -312,26 +309,24 @@ const ProductPage = () => {
       navigation.navigate('CartPage');
     } catch (err: any) {
       console.error('Add to cart error:', err);
-      Alert.alert('Error', err.message || 'Failed to add product to cart.');
+      // ✅ FIXED — snackbar error
+      snackbar.error(err.message || 'Failed to add product to cart.');
     } finally {
       LoadingService.hide();
     }
   };
 
+  // ✅ FIXED — all Alert.alert → snackbar
   const handleBuyNow = () => {
     const validation = validateSelections();
     if (!validation.valid) {
-      Alert.alert('Selection Required', validation.errors.join('\n\n'), [{ text: 'OK' }]);
+      snackbar.warning(validation.errors.join('\n'), 'Selection Required');
       return;
     }
     if (!selectedAddress) {
-      Alert.alert(
-        'Address Required',
+      snackbar.warning(
         'Please add a delivery address before proceeding to checkout',
-        [
-          { text: 'OK' },
-          { text: 'Add Address', onPress: () => navigateToAddressScreen() },
-        ]
+        'Address Required',
       );
       return;
     }
@@ -535,7 +530,8 @@ const ProductPage = () => {
                     ]}
                     onPress={() => {
                       if (isOutOfStock) {
-                        Alert.alert('Out of Stock', 'This size is currently out of stock.');
+                        // ✅ FIXED — Alert → snackbar
+                        snackbar.warning('This size is currently out of stock.', 'Out of Stock');
                       } else {
                         setSelectedSize(s);
                       }
@@ -618,13 +614,11 @@ const ProductPage = () => {
         </View>
       </ScrollView>
 
-      {/* ✅ FOOTER — no minHeight, natural height, safe-area padded */}
+      {/* FOOTER */}
       <View
         style={[
           styles.footer,
-          {
-            paddingBottom: Math.max(insets.bottom, 10),
-          },
+          { paddingBottom: Math.max(insets.bottom, 10) },
         ]}
       >
         <TouchableOpacity style={styles.buyNow} onPress={handleBuyNow}>
@@ -872,13 +866,8 @@ const ProductPage = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
+  safeArea: { flex: 1, backgroundColor: '#F5F5F5' },
+  scrollContent: { paddingBottom: 20 },
   loader: {
     flex: 1,
     justifyContent: "center",
@@ -887,17 +876,12 @@ const styles = StyleSheet.create({
   },
 
   /* IMAGE */
-  imageWrapper: {
-    backgroundColor: "#fff",
-    position: "relative",
-    width: width,
-  },
+  imageWrapper: { backgroundColor: "#fff", position: "relative", width: width },
   image: {
     width: width,
     height: Math.min(width * 1.15, height * 0.55),
     resizeMode: "cover",
   },
-
   shareBtn: {
     position: "absolute",
     right: 15,
@@ -905,7 +889,6 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 20,
   },
-
   dotContainer: {
     position: "absolute",
     bottom: 12,
@@ -926,14 +909,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  thumbnailContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 8,
-  },
-  thumbnailList: {
-    paddingHorizontal: 12,
-    gap: 8,
-  },
+  thumbnailContainer: { backgroundColor: "#fff", paddingVertical: 8 },
+  thumbnailList: { paddingHorizontal: 12, gap: 8 },
   thumbnailItem: {
     width: 56,
     height: 56,
@@ -942,30 +919,13 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     overflow: "hidden",
   },
-  thumbnailActive: {
-    borderColor: "#9E0E26",
-  },
-  thumbnailImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
+  thumbnailActive: { borderColor: "#9E0E26" },
+  thumbnailImage: { width: "100%", height: "100%", resizeMode: "cover" },
 
-  card: {
-    backgroundColor: "#fff",
-    marginTop: 8,
-    padding: 14,
-  },
+  card: { backgroundColor: "#fff", marginTop: 8, padding: 14 },
 
-  title: {
-    fontSize: 16,
-    color: "#000",
-    lineHeight: 22,
-  },
-  titleBold: {
-    fontWeight: "700",
-    color: "#000",
-  },
+  title: { fontSize: 16, color: "#000", lineHeight: 22 },
+  titleBold: { fontWeight: "700", color: "#000" },
 
   ratingPill: {
     flexDirection: "row",
@@ -980,11 +940,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
-  ratingPillText: {
-    color: "#111",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  ratingPillText: { color: "#111", fontSize: 12, fontWeight: "700" },
   ratingPillDivider: {
     width: 1,
     height: 10,
@@ -999,38 +955,18 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
   },
-  finalPrice: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#000",
-  },
-  mrp: {
-    fontSize: 12,
-    textDecorationLine: "line-through",
-    color: "#888",
-  },
+  finalPrice: { fontSize: 14, fontWeight: "700", color: "#000" },
+  mrp: { fontSize: 12, textDecorationLine: "line-through", color: "#888" },
   offBadge: {
     backgroundColor: "#FEE2E2",
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  offText: {
-    color: "#DC2626",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  tax: {
-    fontSize: 12,
-    color: "#777",
-    marginTop: 5,
-  },
+  offText: { color: "#DC2626", fontSize: 12, fontWeight: "600" },
+  tax: { fontSize: 12, color: "#777", marginTop: 5 },
 
-  section: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
-  },
+  section: { fontSize: 14, fontWeight: "600", color: "#000" },
 
   sizeHeader: {
     flexDirection: "row",
@@ -1040,23 +976,10 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
   },
-  sizeGuideBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  sizeGuideText: {
-    color: "#9E0E26",
-    fontSize: 12,
-    fontWeight: "500",
-  },
+  sizeGuideBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+  sizeGuideText: { color: "#9E0E26", fontSize: 12, fontWeight: "500" },
 
-  colorRow: {
-    flexDirection: "row",
-    gap: 10,
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
+  colorRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: 8 },
   colorDot: {
     width: 30,
     height: 30,
@@ -1066,17 +989,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  colorActive: {
-    borderColor: "#9E0E26",
-    borderWidth: 3,
-  },
+  colorActive: { borderColor: "#9E0E26", borderWidth: 3 },
 
-  sizeGrid: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
+  sizeGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 8 },
   sizeBox: {
     minWidth: 44,
     height: 40,
@@ -1089,27 +1004,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     position: "relative",
   },
-  sizeActive: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#9E0E26",
-    borderWidth: 1.8,
-  },
-  sizeOutOfStock: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E5E7EB",
-  },
-  sizeText: {
-    fontWeight: "600",
-    color: "#333",
-    fontSize: 12,
-  },
-  sizeTextActive: {
-    color: "#9E0E26",
-    fontWeight: "700",
-  },
-  sizeTextOutOfStock: {
-    color: "#D1D5DB",
-  },
+  sizeActive: { backgroundColor: "#FFFFFF", borderColor: "#9E0E26", borderWidth: 1.8 },
+  sizeOutOfStock: { backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" },
+  sizeText: { fontWeight: "600", color: "#333", fontSize: 12 },
+  sizeTextActive: { color: "#9E0E26", fontWeight: "700" },
+  sizeTextOutOfStock: { color: "#D1D5DB" },
   outOfStockLabel: {
     fontSize: 7,
     color: "#d32f2f",
@@ -1119,20 +1018,9 @@ const styles = StyleSheet.create({
     right: 3,
   },
 
-  myntraDeliveryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  myntraDeliveryText: {
-    fontSize: 13,
-    color: "#555",
-    flex: 1,
-  },
-  myntraDeliveryBold: {
-    fontWeight: "700",
-    color: "#000",
-  },
+  myntraDeliveryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  myntraDeliveryText: { fontSize: 13, color: "#555", flex: 1 },
+  myntraDeliveryBold: { fontWeight: "700", color: "#000" },
   myntraChangeText: {
     color: "#9E0E26",
     fontSize: 12,
@@ -1145,27 +1033,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  myntraInfoItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-  },
+  myntraInfoItem: { flex: 1, alignItems: "center", gap: 4 },
   myntraInfoLabel: {
     fontSize: 11,
     fontWeight: "600",
     color: "#000",
     textAlign: "center",
   },
-  myntraInfoSub: {
-    fontSize: 10,
-    color: "#666",
-    textAlign: "center",
-  },
-  myntraInfoDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "#E5E7EB",
-  },
+  myntraInfoSub: { fontSize: 10, color: "#666", textAlign: "center" },
+  myntraInfoDivider: { width: 1, height: 40, backgroundColor: "#E5E7EB" },
 
   detail: {
     fontSize: 13,
@@ -1176,7 +1052,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* ✅ FOOTER — natural height, no minHeight inflation */
   footer: {
     position: "absolute",
     bottom: 0,
@@ -1226,23 +1101,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  zoomContainer: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
-  zoomScroll: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  zoomImage: {
-    width: "100%",
-    height: "100%",
-  },
-  closeBtn: {
-    position: "absolute",
-    right: 20,
-    zIndex: 10,
-  },
+  zoomContainer: { flex: 1, backgroundColor: "#000" },
+  zoomScroll: { flex: 1, justifyContent: "center" },
+  zoomImage: { width: "100%", height: "100%" },
+  closeBtn: { position: "absolute", right: 20, zIndex: 10 },
 
   sizeGuideOverlay: {
     flex: 1,
@@ -1264,14 +1126,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  sizeGuideTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  sizeGuideClose: {
-    padding: 4,
-  },
+  sizeGuideTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  sizeGuideClose: { padding: 4 },
   sizeGuideTable: {
     borderRadius: 8,
     overflow: 'hidden',
@@ -1279,10 +1135,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     minWidth: 260,
   },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#000000',
-  },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#000000' },
   tableHeaderCell: {
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -1292,24 +1145,16 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: 'rgba(255,255,255,0.15)',
   },
-  tableHeaderCellFirst: {
-    minWidth: 66,
-  },
+  tableHeaderCellFirst: { minWidth: 66 },
   tableHeaderText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
   },
-  tableRow: {
-    flexDirection: 'row',
-  },
-  tableRowEven: {
-    backgroundColor: '#F8FAFC',
-  },
-  tableRowOdd: {
-    backgroundColor: '#FFFFFF',
-  },
+  tableRow: { flexDirection: 'row' },
+  tableRowEven: { backgroundColor: '#F8FAFC' },
+  tableRowOdd: { backgroundColor: '#FFFFFF' },
   tableCell: {
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -1319,9 +1164,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#F1F5F9',
   },
-  tableCellFirst: {
-    minWidth: 66,
-  },
+  tableCellFirst: { minWidth: 66 },
   tableCellText: {
     color: '#334155',
     fontSize: 13,
@@ -1334,9 +1177,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  tableCellEmpty: {
-    color: '#CBD5E1',
-  },
+  tableCellEmpty: { color: '#CBD5E1' },
   measurementGuide: {
     marginTop: 14,
     paddingTop: 14,
@@ -1375,11 +1216,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     alignItems: 'center',
   },
-  closeSizeGuideText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  closeSizeGuideText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
 
   addressModalOverlay: {
     flex: 1,
@@ -1399,14 +1236,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  addressModalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  addressModalClose: {
-    padding: 4,
-  },
+  addressModalTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  addressModalClose: { padding: 4 },
   addressOption: {
     padding: 14,
     borderWidth: 1,
@@ -1430,19 +1261,9 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
-  addressOptionText: {
-    flex: 1,
-  },
-  addressOptionStreet: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  addressOptionDetail: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-  },
+  addressOptionText: { flex: 1 },
+  addressOptionStreet: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  addressOptionDetail: { fontSize: 12, color: '#6B7280', marginTop: 2 },
   addressDefaultBadge: {
     marginTop: 8,
     backgroundColor: '#DCFCE7',
@@ -1451,15 +1272,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
-  addressDefaultText: {
-    color: '#16A34A',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  noAddressContainer: {
-    alignItems: 'center',
-    paddingVertical: 36,
-  },
+  addressDefaultText: { color: '#16A34A', fontSize: 10, fontWeight: '600' },
+  noAddressContainer: { alignItems: 'center', paddingVertical: 36 },
   noAddressTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -1485,11 +1299,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginBottom: 10,
   },
-  addNewAddressText: {
-    color: '#9E0E26',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  addNewAddressText: { color: '#9E0E26', fontWeight: '600', fontSize: 14 },
 });
 
 export default ProductPage;

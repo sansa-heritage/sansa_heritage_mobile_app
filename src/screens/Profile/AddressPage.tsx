@@ -16,7 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import { Address } from '../../models/address';
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { Toast } from '../../components/common/Toast';
+// ✅ FIXED — replaced Toast with snackbar
+import { snackbar } from '../../components/common/Snackbar';
 import LoadingService from '../../services/LoadingService';
 
 const { width } = Dimensions.get('window');
@@ -42,7 +43,7 @@ export default function AddressScreen({ navigation }) {
     const fetchAddresses = async () => {
         const token = await AsyncStorage.getItem('authToken');
         setLoading(true);
-        LoadingService.show('Loading addresses...');   // ✅ ADDED
+        LoadingService.show('Loading addresses...');
 
         try {
             const response = await fetch(`${config.baseURL}api/auth/addresses`, {
@@ -53,9 +54,7 @@ export default function AddressScreen({ navigation }) {
                 },
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
             const json = await response.json();
             const list = json.addresses || [];
@@ -72,34 +71,27 @@ export default function AddressScreen({ navigation }) {
             }
         } catch (err) {
             console.log('Error fetching addresses', err);
-            Toast.show('error', 'Failed to load addresses');
+            // ✅ FIXED — Toast → snackbar
+            snackbar.error('Failed to load addresses');
         } finally {
             setLoading(false);
-            LoadingService.hide();                      // ✅ ADDED
+            LoadingService.hide();
         }
     };
 
-    useEffect(() => {
-        fetchAddresses();
-    }, []);
+    useEffect(() => { fetchAddresses(); }, []);
 
     const onSelectAddress = async (address: Address) => {
         setSelectedAddress(address._id);
         await AsyncStorage.setItem("selectedAddress", JSON.stringify(address));
-        Toast.show('success', 'Address selected');
+        // ✅ FIXED — Toast → snackbar
+        snackbar.success('Address selected');
     };
 
     const openAddModal = () => {
         setIsEditMode(false);
         setEditingId(null);
-        setNewAddress({
-            street: '',
-            city: '',
-            state: '',
-            country: '',
-            zipCode: '',
-            phone: ''
-        });
+        setNewAddress({ street: '', city: '', state: '', country: '', zipCode: '', phone: '' });
         setAddressModalVisible(true);
     };
 
@@ -137,7 +129,8 @@ export default function AddressScreen({ navigation }) {
     const saveAddress = async () => {
         const validationError = validateAddress();
         if (validationError) {
-            Toast.show('error', validationError);
+            // ✅ FIXED — Toast → snackbar
+            snackbar.error(validationError);
             return;
         }
 
@@ -146,7 +139,8 @@ export default function AddressScreen({ navigation }) {
         try {
             const storedToken = await AsyncStorage.getItem("authToken");
             if (!storedToken) {
-                Toast.show('error', 'Please login again');
+                // ✅ FIXED
+                snackbar.error('Please login again');
                 LoadingService.hide();
                 return;
             }
@@ -182,30 +176,27 @@ export default function AddressScreen({ navigation }) {
             const data = await response.json();
 
             if (response.ok) {
-                Toast.show('success', isEditMode ? 'Address updated successfully' : 'Address added successfully');
+                // ✅ FIXED
+                snackbar.success(isEditMode ? 'Address updated successfully' : 'Address added successfully');
                 setAddressModalVisible(false);
                 await fetchAddresses();
-                setNewAddress({
-                    street: '',
-                    city: '',
-                    state: '',
-                    country: '',
-                    zipCode: '',
-                    phone: ''
-                });
+                setNewAddress({ street: '', city: '', state: '', country: '', zipCode: '', phone: '' });
             } else {
-                Toast.show('error', data.message || (isEditMode ? 'Update failed' : 'Add failed'));
+                // ✅ FIXED
+                snackbar.error(data.message || (isEditMode ? 'Update failed' : 'Add failed'));
             }
 
         } catch (err: any) {
             console.error('Save address error:', err);
-            Toast.show('error', err.message || 'Something went wrong');
+            // ✅ FIXED
+            snackbar.error(err.message || 'Something went wrong');
         } finally {
             LoadingService.hide();
         }
     };
 
     const deleteAddress = (addressId: string) => {
+        // ✅ Keep Alert here — needs Cancel/Delete buttons
         Alert.alert(
             'Delete Address',
             'Are you sure you want to delete this address?',
@@ -220,20 +211,18 @@ export default function AddressScreen({ navigation }) {
                             const storedToken = await AsyncStorage.getItem("authToken");
                             const response = await fetch(`${config.baseURL}api/auth/addresses/${addressId}`, {
                                 method: 'DELETE',
-                                headers: {
-                                    Authorization: `Bearer ${storedToken}`,
-                                },
+                                headers: { Authorization: `Bearer ${storedToken}` },
                             });
 
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                            Toast.show('success', 'Address deleted successfully');
+                            // ✅ FIXED
+                            snackbar.success('Address deleted successfully');
                             await fetchAddresses();
                         } catch (err) {
                             console.error('Delete error:', err);
-                            Toast.show('error', 'Failed to delete address');
+                            // ✅ FIXED
+                            snackbar.error('Failed to delete address');
                         } finally {
                             LoadingService.hide();
                         }
@@ -257,15 +246,15 @@ export default function AddressScreen({ navigation }) {
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(data.message || `HTTP error! status: ${response.status}`);
 
-            Toast.show('success', 'Default address updated');
+            // ✅ FIXED
+            snackbar.success('Default address updated');
             await fetchAddresses();
         } catch (err: any) {
             console.error('Set default error:', err);
-            Toast.show('error', err.message || 'Failed to set default address');
+            // ✅ FIXED
+            snackbar.error(err.message || 'Failed to set default address');
         } finally {
             LoadingService.hide();
         }
@@ -280,7 +269,6 @@ export default function AddressScreen({ navigation }) {
                 onPress={() => onSelectAddress(item)}
                 activeOpacity={0.85}
             >
-                {/* Top row: name + badges */}
                 <View style={styles.cardTopRow}>
                     <View style={styles.cardTitleRow}>
                         <Text style={styles.cardName}>Delivery Address</Text>
@@ -290,51 +278,24 @@ export default function AddressScreen({ navigation }) {
                             </View>
                         )}
                     </View>
-
-                    {isSelected && (
-                        <Ionicons name="checkmark-circle" size={20} color="#96252A" />
-                    )}
+                    {isSelected && <Ionicons name="checkmark-circle" size={20} color="#96252A" />}
                 </View>
 
-                {/* Address lines */}
-                <Text style={styles.addressLine} numberOfLines={2}>
-                    {item.street}
-                </Text>
-                <Text style={styles.addressLine}>
-                    {item.city}, {item.state} - {item.zipCode}
-                </Text>
-                <Text style={styles.addressLine}>
-                    {item.country}
-                </Text>
-                {item.phone ? (
-                    <Text style={styles.phoneLine}>Phone: {item.phone}</Text>
-                ) : null}
+                <Text style={styles.addressLine} numberOfLines={2}>{item.street}</Text>
+                <Text style={styles.addressLine}>{item.city}, {item.state} - {item.zipCode}</Text>
+                <Text style={styles.addressLine}>{item.country}</Text>
+                {item.phone ? <Text style={styles.phoneLine}>Phone: {item.phone}</Text> : null}
 
-                {/* Actions row */}
                 <View style={styles.cardActions}>
-                    <TouchableOpacity
-                        onPress={() => openEditModal(item)}
-                        style={styles.actionLink}
-                    >
+                    <TouchableOpacity onPress={() => openEditModal(item)} style={styles.actionLink}>
                         <Ionicons name="create-outline" size={14} color="#96252A" />
-                        {/* <Text style={styles.actionLinkText}>EDIT</Text> */}
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => deleteAddress(item._id)}
-                        style={styles.actionLink}
-                    >
+                    <TouchableOpacity onPress={() => deleteAddress(item._id)} style={styles.actionLink}>
                         <Ionicons name="trash-outline" size={14} color="#96252A" />
-                        {/* <Text style={styles.actionLinkText}>DELETE</Text> */}
                     </TouchableOpacity>
-
                     {!item.isDefault && (
-                        <TouchableOpacity
-                            onPress={() => setDefaultAddress(item._id)}
-                            style={styles.actionLink}
-                        >
+                        <TouchableOpacity onPress={() => setDefaultAddress(item._id)} style={styles.actionLink}>
                             <Ionicons name="star-outline" size={14} color="#96252A" />
-                            {/* <Text style={styles.actionLinkText}>SET DEFAULT</Text> */}
                         </TouchableOpacity>
                     )}
                 </View>
@@ -342,15 +303,11 @@ export default function AddressScreen({ navigation }) {
         );
     };
 
-    // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
-    if (loading) {
-        return <View style={styles.loadingContainer} />;
-    }
+    if (loading) return <View style={styles.loadingContainer} />;
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* HEADER */}
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeft}>
                         <Text style={styles.headerTitle}>Saved Addresses</Text>
@@ -372,18 +329,11 @@ export default function AddressScreen({ navigation }) {
                         renderItem={renderAddressItem}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
-                        getItemLayout={(data, index) => ({
-                            length: 220,
-                            offset: 220 * index,
-                            index,
-                        })}
+                        getItemLayout={(data, index) => ({ length: 220, offset: 220 * index, index })}
                         onScrollToIndexFailed={(info) => {
                             const wait = new Promise(resolve => setTimeout(resolve, 500));
                             wait.then(() => {
-                                flatListRef.current?.scrollToIndex({
-                                    index: info.index,
-                                    animated: true
-                                });
+                                flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
                             });
                         }}
                     />
@@ -402,7 +352,6 @@ export default function AddressScreen({ navigation }) {
                     </View>
                 )}
 
-                {/* ADD / EDIT MODAL */}
                 <Modal
                     visible={addressModalVisible}
                     animationType="slide"
@@ -544,30 +493,12 @@ export default function AddressScreen({ navigation }) {
     );
 }
 
-/* ==================== STYLES ==================== */
+/* ===== STYLES ===== */
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#F8FAFC',
-        paddingHorizontal: 16,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 14,
-        color: '#6B7280',
-    },
-
-    // ================= HEADER =================
+    safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+    container: { flex: 1, backgroundColor: '#F8FAFC', paddingHorizontal: 16 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
+    loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280' },
     headerContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -575,28 +506,10 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         backgroundColor: '#F8FAFC',
     },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#111827',
-        letterSpacing: 0.2,
-    },
-    addressCount: {
-        backgroundColor: '#F1F5F9',
-        paddingHorizontal: 8,
-        paddingVertical: 1,
-        borderRadius: 10,
-    },
-    addressCountText: {
-        fontSize: 11,
-        color: '#64748B',
-        fontWeight: '600',
-    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827', letterSpacing: 0.2 },
+    addressCount: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 1, borderRadius: 10 },
+    addressCountText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
     addButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -607,19 +520,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#96252A',
     },
-    addButtonText: {
-        color: '#96252A',
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-
-    // ================= LIST =================
-    listContent: {
-        paddingBottom: 20,
-    },
-
-    // ================= CARD (AJIO/MYNTRA STYLE) =================
+    addButtonText: { color: '#96252A', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    listContent: { paddingBottom: 20 },
     addressCard: {
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
@@ -628,22 +530,9 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },
-    selectedCard: {
-        borderColor: '#96252A',
-        borderWidth: 1.5,
-        backgroundColor: '#FFFBFB',
-    },
-    cardTopRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    cardTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
+    selectedCard: { borderColor: '#96252A', borderWidth: 1.5, backgroundColor: '#FFFBFB' },
+    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     cardName: {
         fontSize: 12,
         fontWeight: '700',
@@ -651,29 +540,10 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
-    defaultBadge: {
-        backgroundColor: '#DCFCE7',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 3,
-    },
-    defaultBadgeText: {
-        color: '#16A34A',
-        fontSize: 9,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-    addressLine: {
-        fontSize: 13,
-        color: '#374151',
-        lineHeight: 19,
-        marginBottom: 1,
-    },
-    phoneLine: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginTop: 4,
-    },
+    defaultBadge: { backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3 },
+    defaultBadgeText: { color: '#16A34A', fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+    addressLine: { fontSize: 13, color: '#374151', lineHeight: 19, marginBottom: 1 },
+    phoneLine: { fontSize: 12, color: '#6B7280', marginTop: 4 },
     cardActions: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -683,172 +553,46 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
     },
-    actionLink: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    actionLinkText: {
-        fontSize: 11,
-        color: '#96252A',
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-
-    // ================= EMPTY STATE =================
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 40,
-    },
+    actionLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    actionLinkText: { fontSize: 11, color: '#96252A', fontWeight: '700', letterSpacing: 0.5 },
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
     emptyIconContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#F3F4F6',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
+        width: 100, height: 100, borderRadius: 50,
+        backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginBottom: 16,
     },
-    emptyTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#0F172A',
-        marginTop: 8,
-    },
-    emptySubtitle: {
-        fontSize: 13,
-        color: '#94A3B8',
-        textAlign: 'center',
-        marginTop: 6,
-        lineHeight: 19,
-    },
-    emptyAddButton: {
-        marginTop: 24,
-        backgroundColor: '#96252A',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 6,
-    },
-    emptyAddButtonText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 12,
-        letterSpacing: 0.5,
-    },
-
-    // ================= MODAL =================
+    emptyTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A', marginTop: 8 },
+    emptySubtitle: { fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 6, lineHeight: 19 },
+    emptyAddButton: { marginTop: 24, backgroundColor: '#96252A', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 6 },
+    emptyAddButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12, letterSpacing: 0.5 },
     modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center', alignItems: 'center', padding: 16,
     },
-    modalContent: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 20,
-        width: '100%',
-        maxHeight: '90%',
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 18,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#0F172A',
-    },
-    closeButton: {
-        padding: 4,
-    },
-    inputGroup: {
-        marginBottom: 14,
-    },
-    inputLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#0F172A',
-        marginBottom: 6,
-    },
-    inputHelper: {
-        fontSize: 11,
-        color: '#94A3B8',
-        marginBottom: 6,
-    },
+    modalContent: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, width: '100%', maxHeight: '90%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+    modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+    closeButton: { padding: 4 },
+    inputGroup: { marginBottom: 14 },
+    inputLabel: { fontSize: 13, fontWeight: '600', color: '#0F172A', marginBottom: 6 },
+    inputHelper: { fontSize: 11, color: '#94A3B8', marginBottom: 6 },
     inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 8,
-        backgroundColor: '#F8FAFC',
-        paddingHorizontal: 10,
+        flexDirection: 'row', alignItems: 'center',
+        borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8,
+        backgroundColor: '#F8FAFC', paddingHorizontal: 10,
     },
-    inputIcon: {
-        marginRight: 8,
-    },
-    input: {
-        flex: 1,
-        paddingVertical: 10,
-        fontSize: 14,
-        color: '#0F172A',
-    },
-    rowInputs: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    phoneWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
+    inputIcon: { marginRight: 8 },
+    input: { flex: 1, paddingVertical: 10, fontSize: 14, color: '#0F172A' },
+    rowInputs: { flexDirection: 'row', gap: 12 },
+    phoneWrapper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     countryCodeContainer: {
-        backgroundColor: '#F1F5F9',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 10,
+        borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB',
     },
-    countryCode: {
-        fontSize: 14,
-        color: '#0F172A',
-        fontWeight: '600',
-    },
-    modalActions: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 18,
-    },
-    actionButton: {
-        flex: 1,
-        paddingVertical: 13,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    cancelButton: {
-        backgroundColor: '#F1F5F9',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    cancelButtonText: {
-        color: '#64748B',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    saveButton: {
-        backgroundColor: '#96252A',
-    },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 14,
-        letterSpacing: 0.5,
-    },
+    countryCode: { fontSize: 14, color: '#0F172A', fontWeight: '600' },
+    modalActions: { flexDirection: 'row', gap: 12, marginTop: 18 },
+    actionButton: { flex: 1, paddingVertical: 13, borderRadius: 8, alignItems: 'center' },
+    cancelButton: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E5E7EB' },
+    cancelButtonText: { color: '#64748B', fontWeight: '600', fontSize: 14 },
+    saveButton: { backgroundColor: '#96252A' },
+    saveButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
 });

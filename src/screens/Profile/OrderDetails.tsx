@@ -8,7 +8,6 @@ import {
   StatusBar,
   Dimensions,
   Image,
-  Alert,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ import ReactNativeBlobUtil from 'react-native-blob-util';
 import { getOrderById } from '../../api/orderApi';
 import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
+import { snackbar } from '../../components/common/Snackbar';
 
 const { width } = Dimensions.get('window');
 
@@ -27,24 +27,19 @@ const scale = (size: number) => {
   return Math.round((width / baseWidth) * size);
 };
 
-/* ================= SAFE VALUE HELPER ================= */
 const safe = (value: any, fallback: string = 'N/A') => {
   if (value === null || value === undefined) return fallback;
   const str = String(value).trim();
   return str === '' ? fallback : str;
 };
 
-/* ================= DATE / TIME HELPERS ================= */
-
 const formatDate = (dateString?: string | null) => {
   if (!dateString) return 'N/A';
   try {
-    // Handle "September 18, 2026 at 05:33:00 PM"
     if (typeof dateString === 'string' && dateString.includes(' at ')) {
       const parts = dateString.split(' at ');
       if (parts.length === 2) return parts[0].trim();
     }
-    // Handle ISO dates
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-IN', {
@@ -60,7 +55,6 @@ const formatDate = (dateString?: string | null) => {
 const formatTime = (dateString?: string | null) => {
   if (!dateString) return 'N/A';
   try {
-    // Handle "September 18, 2026 at 05:33:00 PM"
     if (typeof dateString === 'string' && dateString.includes(' at ')) {
       const parts = dateString.split(' at ');
       if (parts.length === 2) return parts[1].trim();
@@ -77,7 +71,6 @@ const formatTime = (dateString?: string | null) => {
   }
 };
 
-/* ================= IMAGE HELPER (supports base64 + URL) ================= */
 const resolveImage = (raw: string | undefined | null) => {
   if (!raw) return null;
   if (raw.startsWith('data:image')) return { uri: raw };
@@ -86,7 +79,23 @@ const resolveImage = (raw: string | undefined | null) => {
   return { uri: `${base}${raw.startsWith('/') ? '' : '/'}${raw}` };
 };
 
-/* ================= COMPONENT ================= */
+/* ============================================================
+   ✅ Split helper — matches MyOrders
+   Bold first 2 words, rest normal.
+   If title has 2 or fewer words, make the whole thing bold.
+   ============================================================ */
+const splitTitle = (fullName: string, boldWords = 2) => {
+  const words = (fullName || 'Product').trim().split(/\s+/);
+
+  if (words.length <= boldWords) {
+    return { boldPart: fullName || 'Product', normalPart: '' };
+  }
+
+  return {
+    boldPart: words.slice(0, boldWords).join(' '),
+    normalPart: words.slice(boldWords).join(' '),
+  };
+};
 
 const OrderDetailsScreen = () => {
   const navigation = useNavigation();
@@ -101,9 +110,8 @@ const OrderDetailsScreen = () => {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    if (orderId) {
-      fetchOrderDetails();
-    } else {
+    if (orderId) fetchOrderDetails();
+    else {
       setOrderData(null);
       setLoading(false);
     }
@@ -115,18 +123,16 @@ const OrderDetailsScreen = () => {
       LoadingService.show('Loading order details...');
 
       const response = await getOrderById(orderId);
-      if (!response || !response.success) {
+      if (!response || !response.success)
         throw new Error('Failed to fetch order details');
-      }
 
       const order = response.order;
       const products = Array.isArray(order.products) ? order.products : [];
 
-      // ✅ Compute totals + savings across ALL products
       const totalMrp = products.reduce((sum: number, p: any) => {
         const price = Number(p.price) || 0;
         const qty = Number(p.quantity) || 1;
-        const mrp = Number(p.mrp) || price; // fallback to price if no mrp
+        const mrp = Number(p.mrp) || price;
         return sum + mrp * qty;
       }, 0);
 
@@ -140,7 +146,6 @@ const OrderDetailsScreen = () => {
 
       const totalSavings = Math.max(0, totalMrp - totalPrice);
 
-      // ✅ Normalize each product
       const normalizedProducts = products.map((p: any) => {
         const price = Number(p.price) || 0;
         const qty = Number(p.quantity) || 1;
@@ -166,19 +171,14 @@ const OrderDetailsScreen = () => {
         _id: order?._id || '',
         orderId: order?._id ? `#${order._id.slice(-18)}` : 'N/A',
         status: safe(order?.status, 'Processing'),
-
         placedDate: formatDate(order?.createdAt),
         placedTime: formatTime(order?.createdAt),
-
         deliveryDate: formatDate(order?.deliveredAt || order?.updatedAt),
         deliveryTime: formatTime(order?.deliveredAt || order?.updatedAt),
-
         products: normalizedProducts,
         totalPrice,
         totalMrp,
         totalSavings,
-
-        // ✅ Correct field mapping
         address: {
           name: safe(
             order?.shippingAddress?.name ||
@@ -198,8 +198,6 @@ const OrderDetailsScreen = () => {
           ),
           email: safe(order?.user?.email, 'N/A'),
         },
-
-        // ✅ paymentInfo is optional in your data
         paymentMethod: safe(
           order?.paymentInfo?.paymentMethod || order?.paymentInfo?.method,
           'Razorpay',
@@ -211,7 +209,7 @@ const OrderDetailsScreen = () => {
       });
     } catch (error: any) {
       console.error('Error fetching order details:', error);
-      Alert.alert('Error', error.message || 'Failed to load order details');
+      snackbar.error(error.message || 'Failed to load order details');
       setOrderData(null);
     } finally {
       setLoading(false);
@@ -219,11 +217,9 @@ const OrderDetailsScreen = () => {
     }
   };
 
-  /* ================= ✅ DOWNLOAD INVOICE ================= */
-
   const handleDownloadInvoice = async () => {
     if (!orderId) {
-      Alert.alert('Error', 'Order ID not available');
+      snackbar.error('Order ID not available');
       return;
     }
     if (downloading) return;
@@ -234,7 +230,7 @@ const OrderDetailsScreen = () => {
 
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
-        Alert.alert('Login Required', 'Please login to download invoice.');
+        snackbar.warning('Please login to download invoice.', 'Login Required');
         return;
       }
 
@@ -251,9 +247,8 @@ const OrderDetailsScreen = () => {
         },
       );
 
-      if (!linkRes.ok) {
+      if (!linkRes.ok)
         throw new Error(`Could not create invoice link (${linkRes.status})`);
-      }
 
       const linkJson = await linkRes.json();
       if (!linkJson?.success || !linkJson?.url) {
@@ -298,16 +293,14 @@ const OrderDetailsScreen = () => {
         ReactNativeBlobUtil.ios.previewDocument(finalPath);
       }
 
-      Alert.alert(
-        'Success',
+      snackbar.success(
         Platform.OS === 'ios'
           ? 'Invoice downloaded. You can share or save it from the preview.'
           : 'Invoice downloaded to your Downloads folder.',
       );
     } catch (err: any) {
       console.error('Invoice download error:', err);
-      Alert.alert(
-        'Download Failed',
+      snackbar.error(
         err?.message || 'Could not download the invoice. Please try again.',
       );
     } finally {
@@ -315,8 +308,6 @@ const OrderDetailsScreen = () => {
       LoadingService.hide();
     }
   };
-
-  /* ================= LOADING / EMPTY ================= */
 
   if (loading) return <View style={styles.loadingContainer} />;
 
@@ -349,12 +340,12 @@ const OrderDetailsScreen = () => {
 
   const firstProduct = orderData.products[0];
 
-  /* ================= UI ================= */
+  /* ✅ Split the hero product name — 2 words bold, rest normal */
+  const heroSplit = splitTitle(firstProduct.name);
 
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -362,7 +353,6 @@ const OrderDetailsScreen = () => {
           { paddingBottom: 40 + insets.bottom },
         ]}
       >
-        {/* ============ 1. PRODUCT HERO (first product image) ============ */}
         <View style={styles.heroCard}>
           <Ionicons
             name="shirt-outline"
@@ -402,22 +392,27 @@ const OrderDetailsScreen = () => {
           )}
         </View>
 
-        {/* ============ 2. ORDER SUMMARY ============ */}
+        {/* Hero name: bold first 2 words, normal rest */}
         <View style={styles.infoBlock}>
           <Text style={styles.productName}>
-            {orderData.products.length > 1
-              ? `${orderData.products.length} items in this order`
-              : firstProduct.name}
+            {orderData.products.length > 1 ? (
+              `${orderData.products.length} items in this order`
+            ) : (
+              <>
+                <Text style={styles.productNameBold}>{heroSplit.boldPart}</Text>
+                {heroSplit.normalPart ? (
+                  <Text style={styles.productNameNormal}>
+                    {' '}
+                    {heroSplit.normalPart}
+                  </Text>
+                ) : null}
+              </>
+            )}
           </Text>
-          <Text style={styles.productSub}>
-            Total: ₹{orderData.totalPrice}
-          </Text>
-          <Text style={styles.orderIdLine}>
-            Order ID: {orderData.orderId}
-          </Text>
+          <Text style={styles.productSub}>Total: ₹{orderData.totalPrice}</Text>
+          <Text style={styles.orderIdLine}>Order ID: {orderData.orderId}</Text>
         </View>
 
-        {/* ============ 3. DELIVERED BANNER ============ */}
         {isDelivered && (
           <View style={styles.deliveredBanner}>
             <View style={{ flex: 1 }}>
@@ -447,7 +442,6 @@ const OrderDetailsScreen = () => {
           </View>
         )}
 
-        {/* ============ 4. RATE DELIVERY ============ */}
         <View style={styles.card}>
           <View style={styles.rateHeader}>
             <View style={styles.rateIconWrap}>
@@ -502,10 +496,11 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
 
-        {/* ============ 5. ✅ ALL PRODUCTS IN ORDER ============ */}
         {orderData.products.map((product: any, idx: number) => {
           const imgSrc = resolveImage(product.image);
           const saving = Math.max(0, product.mrp - product.price);
+          /* ✅ Same 2-word split for each product row */
+          const split = splitTitle(product.name);
 
           return (
             <View key={product._id || idx} style={styles.card}>
@@ -521,11 +516,16 @@ const OrderDetailsScreen = () => {
                   />
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text
-                    style={styles.rateTitle}
-                    numberOfLines={2}
-                  >
-                    {product.name}
+                  <Text style={styles.rateTitle} numberOfLines={2}>
+                    <Text style={styles.rateTitleBold}>
+                      {split.boldPart}
+                    </Text>
+                    {split.normalPart ? (
+                      <Text style={styles.rateTitleNormal}>
+                        {' '}
+                        {split.normalPart}
+                      </Text>
+                    ) : null}
                   </Text>
                   <Text style={styles.rateSubtitle} numberOfLines={1}>
                     {product.size ? `Size: ${product.size} · ` : ''}
@@ -547,9 +547,10 @@ const OrderDetailsScreen = () => {
                 )}
               </View>
 
-              {/* Rate this product */}
               <View style={styles.productRateRow}>
-                <Text style={styles.productRateLabel}>Rate this product:</Text>
+                <Text style={styles.productRateLabel}>
+                  Rate this product:
+                </Text>
                 <View style={{ flexDirection: 'row' }}>
                   {[1, 2, 3, 4, 5].map(n => (
                     <TouchableOpacity
@@ -585,7 +586,6 @@ const OrderDetailsScreen = () => {
           );
         })}
 
-        {/* ============ 6. DELIVERY TO ============ */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconWrap}>
@@ -609,9 +609,7 @@ const OrderDetailsScreen = () => {
             <Ionicons name="call-outline" size={scale(18)} color="#444" />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.infoLabel}>Contact Details</Text>
-              <Text style={styles.infoValue}>
-                {orderData.address.phone}
-              </Text>
+              <Text style={styles.infoValue}>{orderData.address.phone}</Text>
             </View>
           </View>
 
@@ -623,14 +621,11 @@ const OrderDetailsScreen = () => {
             />
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.infoLabel}>Delivery Address</Text>
-              <Text style={styles.infoValue}>
-                {addressLine || 'N/A'}
-              </Text>
+              <Text style={styles.infoValue}>{addressLine || 'N/A'}</Text>
             </View>
           </View>
         </View>
 
-        {/* ============ 7. PAYMENT + DOWNLOAD INVOICE ============ */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Payment Status</Text>
           <View style={styles.paymentStatusRow}>
@@ -649,11 +644,8 @@ const OrderDetailsScreen = () => {
           <Text style={styles.cardTitle}>Payment Method</Text>
           <View style={styles.paymentMethodRow}>
             <View style={styles.upiBadge}>
-              <Text style={styles.upiText}>
-                {orderData.paymentMethod}
-              </Text>
+              <Text style={styles.upiText}>{orderData.paymentMethod}</Text>
             </View>
-            
           </View>
 
           <TouchableOpacity
@@ -676,7 +668,6 @@ const OrderDetailsScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ============ 8. UPDATES SENT TO ============ */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <View
@@ -694,9 +685,7 @@ const OrderDetailsScreen = () => {
           <View style={styles.twoColRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Call</Text>
-              <Text style={styles.infoValue}>
-                {orderData.address.phone}
-              </Text>
+              <Text style={styles.infoValue}>{orderData.address.phone}</Text>
             </View>
             <View style={{ flex: 1.4 }}>
               <Text style={styles.infoLabel}>Email</Text>
@@ -707,7 +696,6 @@ const OrderDetailsScreen = () => {
           </View>
         </View>
 
-        {/* ============ 9. ORDER DETAILS ============ */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <View
@@ -725,9 +713,7 @@ const OrderDetailsScreen = () => {
           <View style={styles.twoColRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Ordered On</Text>
-              <Text style={styles.infoValue}>
-                {orderData.placedDate}
-              </Text>
+              <Text style={styles.infoValue}>{orderData.placedDate}</Text>
             </View>
             <View style={{ flex: 1.4 }}>
               <Text style={styles.infoLabel}>Order ID</Text>
@@ -746,9 +732,7 @@ const OrderDetailsScreen = () => {
             </View>
             <View style={{ flex: 1.4 }}>
               <Text style={styles.infoLabel}>Total Paid</Text>
-              <Text style={styles.infoValue}>
-                ₹{orderData.totalPrice}
-              </Text>
+              <Text style={styles.infoValue}>₹{orderData.totalPrice}</Text>
             </View>
           </View>
         </View>
@@ -759,8 +743,7 @@ const OrderDetailsScreen = () => {
 
 export default OrderDetailsScreen;
 
-/* ================= STYLES (unchanged + 2 new) ================= */
-
+/* ===== STYLES ===== */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F5F5F5' },
   scrollContent: { paddingTop: 8 },
@@ -791,7 +774,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   goBackBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-
   heroCard: {
     backgroundColor: '#FFFFFF',
     paddingVertical: scale(24),
@@ -806,8 +788,10 @@ const styles = StyleSheet.create({
     borderRadius: scale(10),
     backgroundColor: '#F5F5F5',
   },
-  heroImagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
-
+  heroImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   infoBlock: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: scale(20),
@@ -822,6 +806,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: scale(20),
   },
+  productNameBold: {
+    fontWeight: '800',
+    color: '#151515',
+  },
+  productNameNormal: {
+    fontWeight: '400',
+    color: '#4A4A4A',
+  },
   productSub: {
     fontSize: scale(12),
     color: '#666',
@@ -834,7 +826,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-
   deliveredBanner: {
     backgroundColor: '#E7F8EC',
     marginHorizontal: scale(14),
@@ -844,7 +835,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  deliveredLabel: { fontSize: scale(12), color: '#151515', marginBottom: 2 },
+  deliveredLabel: {
+    fontSize: scale(12),
+    color: '#151515',
+    marginBottom: 2,
+  },
   deliveredDate: {
     fontSize: scale(18),
     fontWeight: '800',
@@ -859,7 +854,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 10,
   },
-
   card: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: scale(14),
@@ -873,7 +867,6 @@ const styles = StyleSheet.create({
     color: '#151515',
     marginBottom: 8,
   },
-
   rateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -893,6 +886,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#151515',
     marginBottom: 2,
+  },
+  rateTitleBold: {
+    fontWeight: '800',
+    color: '#151515',
+  },
+  rateTitleNormal: {
+    fontWeight: '400',
+    color: '#4A4A4A',
   },
   rateSubtitle: {
     fontSize: scale(11),
@@ -936,20 +937,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   starBtn: { padding: 2 },
-
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  itemPriceLabel: { fontSize: scale(13), color: '#151515' },
-  viewBreakup: {
-    fontSize: scale(13),
-    color: '#151515',
-    textDecorationLine: 'underline',
-    fontWeight: '500',
-  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -957,16 +944,21 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     flexWrap: 'wrap',
   },
-  itemPrice: { fontSize: scale(18), fontWeight: '800', color: '#151515' },
+  itemPrice: {
+    fontSize: scale(18),
+    fontWeight: '800',
+    color: '#151515',
+  },
   itemMrp: {
     fontSize: scale(13),
     color: '#999',
     textDecorationLine: 'line-through',
   },
-  itemOff: { fontSize: scale(13), color: '#F97316', fontWeight: '700' },
-  soldBy: { fontSize: scale(12), color: '#777', marginTop: 2 },
-
-  // ✅ New styles for per-product rating row
+  itemOff: {
+    fontSize: scale(13),
+    color: '#F97316',
+    fontWeight: '700',
+  },
   productRateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -979,7 +971,6 @@ const styles = StyleSheet.create({
     color: '#555',
     fontWeight: '500',
   },
-
   savingsBanner: {
     marginTop: 8,
     backgroundColor: '#EAF7EE',
@@ -992,7 +983,6 @@ const styles = StyleSheet.create({
   },
   savingsText: { flex: 1, fontSize: scale(12), color: '#151515' },
   savingsAmount: { fontWeight: '800', color: '#16A34A' },
-
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1018,20 +1008,22 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   divider: { height: 1, backgroundColor: '#EFEFEF', marginVertical: 10 },
-
   infoRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  infoLabel: { fontSize: scale(12), color: '#777', marginBottom: 2 },
+  infoLabel: {
+    fontSize: scale(12),
+    color: '#777',
+    marginBottom: 2,
+  },
   infoValue: {
     fontSize: scale(13),
     color: '#151515',
     fontWeight: '500',
     lineHeight: scale(18),
   },
-
   paymentStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1051,8 +1043,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
   },
-  upiText: { fontSize: scale(11), fontWeight: '700', color: '#151515' },
-  paymentMethodText: { fontSize: scale(13), color: '#333' },
+  upiText: {
+    fontSize: scale(11),
+    fontWeight: '700',
+    color: '#151515',
+  },
   downloadInvoiceBtn: {
     borderWidth: 1,
     borderColor: '#D5D5D5',
@@ -1069,6 +1064,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#151515',
   },
-
   twoColRow: { flexDirection: 'row', marginTop: 4, gap: 12 },
 });

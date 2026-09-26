@@ -21,13 +21,21 @@ import Slider from '@react-native-community/slider';
 import { StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
-import { addToFavoritesList, getFavoriteProducts } from '../../api/favoriteApi';
+// ✅ FIXED — added removeFromFavoritesList + snackbar
+import {
+  addToFavoritesList,
+  removeFromFavoritesList,
+  getFavoriteProducts,
+} from '../../api/favoriteApi';
+import { snackbar } from '../../components/common/Snackbar';
 import { RootStackParamList } from '../../models/types';
 import eventBus from '../../services/eventBus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
+// ✅ FIXED — NotificationBadge component (already built)
+import NotificationBadge from '../../components/NotificationBadge';
 
 const { width } = Dimensions.get('window');
 
@@ -380,11 +388,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -425,7 +433,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 // ============================================
-// ✅ FIXED — PREMIUM PRODUCT CARD (matches SansaHome exactly)
+// PREMIUM PRODUCT CARD
 // ============================================
 interface PremiumCardProps {
   item: any;
@@ -468,7 +476,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
       <View style={styles.imageWrapper}>
         <Image source={getImageSource(item)} style={styles.productImage} />
 
-        {/* Premium tag — only visual differentiator */}
         <View style={styles.premiumTag}>
           <Text style={styles.premiumTagText}>{item.tag || 'PREMIUM'}</Text>
         </View>
@@ -486,11 +493,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -531,7 +538,7 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
 };
 
 // ============================================
-// ✅ FIXED — PREMIUM SECTION (FlatList numColumns=2)
+// PREMIUM SECTION
 // ============================================
 const PremiumSection: React.FC<{
   items: any[];
@@ -690,18 +697,27 @@ export default function Dashboard() {
     }
   };
 
+  // ✅ FIXED — now calls the correct API on add vs remove
   const toggleFavorite = async (id: string) => {
     try {
-      const updated = favorites.includes(id)
-        ? favorites.filter(fav => fav !== id)
-        : [...favorites, id];
+      const isAlreadyFav = favorites.includes(id);
 
-      setFavorites(updated);
-      await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+      if (isAlreadyFav) {
+        await removeFromFavoritesList(id);
+        const updated = favorites.filter(fav => fav !== id);
+        setFavorites(updated);
+        await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+      } else {
+        await addToFavoritesList(id);
+        const updated = [...favorites, id];
+        setFavorites(updated);
+        await AsyncStorage.setItem('favorites', JSON.stringify(updated));
+      }
 
-      addToFavoritesList(id);
+      eventBus.emit('FAVORITE_UPDATED', {});
       eventBus.emit('ITEM_REMOVED', { id: 123 });
     } catch (err) {
+      // ✅ api layer already shows the error snackbar
       console.error('Error toggling favorite:', err);
     }
   };
@@ -766,9 +782,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -796,9 +811,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -818,9 +832,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1106,6 +1119,7 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
+        {/* Wishlist with count badge — unchanged */}
         <TouchableOpacity
           style={styles.topIconBtn}
           onPress={() => navigation.navigate('FavoritesPage')}
@@ -1121,13 +1135,8 @@ export default function Dashboard() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.topIconBtn}
-          onPress={() => navigation.navigate('NotificationScreen' as any)}
-          hitSlop={6}
-        >
-          <Ionicons name="notifications-outline" size={26} color="#111" />
-        </TouchableOpacity>
+        {/* ✅ FIXED — uses NotificationBadge which pulls unread count from context */}
+        <NotificationBadge size={26} color="#111" style={styles.topIconBtn} />
       </View>
 
       <FlatList
@@ -1176,7 +1185,7 @@ export default function Dashboard() {
                   style={[
                     styles.categoryFilterButton,
                     selectedCategory === cat._id &&
-                      styles.categoryFilterButtonActive,
+                    styles.categoryFilterButtonActive,
                   ]}
                   onPress={() => {
                     setSelectedCategory(cat._id);
@@ -1188,7 +1197,7 @@ export default function Dashboard() {
                     style={[
                       styles.categoryFilterText,
                       selectedCategory === cat._id &&
-                        styles.categoryFilterTextActive,
+                      styles.categoryFilterTextActive,
                     ]}
                   >
                     {cat.name}
@@ -1356,12 +1365,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -5,
-    right: -10,
+    top: -2,
+    right: -7,
     backgroundColor: '#0C0C0C',
     borderRadius: 20,
-    minWidth: 18,
-    height: 18,
+    minWidth: 14,
+    height: 14,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -1566,7 +1575,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // ✅ FIXED — Premium styles now consistent with SansaHome
+  // Premium styles
   premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
   premiumHeader: {
     flexDirection: 'row',
@@ -1598,8 +1607,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 2,
   },
-
-  // ✅ Premium tag — the only visual differentiator from SansaHome cards
   premiumTag: {
     position: 'absolute',
     top: 8,

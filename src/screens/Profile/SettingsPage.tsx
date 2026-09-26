@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
-  Alert,
   ScrollView,
   SafeAreaView,
   StatusBar,
@@ -14,12 +13,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
+// ✅ FIXED — added snackbar
+import { snackbar } from '../../components/common/Snackbar';
 
 const SettingsScreen = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  
-  // Notification preferences
+
   const [preferences, setPreferences] = useState({
     orderUpdates: true,
     promotions: true,
@@ -60,7 +60,7 @@ const SettingsScreen = () => {
       if (!token) return;
 
       const updatedPreferences = { ...preferences, [key]: value };
-      
+
       const response = await fetch(`${config.baseURL}api/notifications/preferences`, {
         method: 'PUT',
         headers: {
@@ -69,14 +69,15 @@ const SettingsScreen = () => {
         },
         body: JSON.stringify(updatedPreferences),
       });
-      
+
       const data = await response.json();
       if (data.success) {
         setPreferences(updatedPreferences);
       }
     } catch (error) {
       console.error('Error updating preference:', error);
-      Alert.alert('Error', 'Failed to update preferences');
+      // ✅ FIXED — Alert.alert → snackbar
+      snackbar.error('Failed to update preferences');
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,6 @@ const SettingsScreen = () => {
     navigation.navigate(screen as never);
   };
 
-  // Support & Information items (with chevron)
   const supportItems = [
     { id: 'email-support', label: 'Email Support', icon: 'mail-outline' },
     { id: 'faq', label: 'FAQ', icon: 'help-circle-outline' },
@@ -94,7 +94,6 @@ const SettingsScreen = () => {
     { id: 'terms', label: 'Terms & Conditions', icon: 'document-text-outline' },
   ];
 
-  // Notification items (with toggle switches)
   const notificationItems = [
     { id: 'pushNotifications', label: 'Push Notifications', icon: 'notifications-outline' },
     { id: 'orderUpdates', label: 'Order Updates', icon: 'cart-outline' },
@@ -108,15 +107,11 @@ const SettingsScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F6F6F6" />
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        {/* <Text style={styles.header}>Settings</Text> */}
-
-        {/* Support & Information Section */}
         <Text style={styles.sectionTitle}>Support & Information</Text>
         <View style={styles.card}>
           {supportItems.map((item, index) => (
@@ -145,7 +140,6 @@ const SettingsScreen = () => {
           ))}
         </View>
 
-        {/* Notifications Section */}
         <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>
           {notificationItems.map((item, index) => (
@@ -179,21 +173,13 @@ const SettingsScreen = () => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F6F6F6',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F6F6F6',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F6F6F6' },
+  container: { flex: 1, backgroundColor: '#F6F6F6' },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 60, // Increased for better scrolling
+    paddingBottom: 60,
     paddingTop: 8,
   },
-
-  // Header
   header: {
     fontSize: 28,
     fontWeight: '700',
@@ -201,8 +187,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
   },
-
-  // Section Title
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
@@ -210,8 +194,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: 0.5,
   },
-
-  // Card
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -223,8 +205,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-
-  // Menu Item
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -233,11 +213,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-    minHeight: 50, // Ensures consistent height
+    minHeight: 50,
   },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
+  menuItemLast: { borderBottomWidth: 0 },
   menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',

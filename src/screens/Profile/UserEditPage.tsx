@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUserDetails, updateProfile } from "../../api/profileApi";
-import { Toast } from "../../components/common/Toast";
-
+// ✅ FIXED — replaced Toast with snackbar
+import { snackbar } from "../../components/common/Snackbar";
 
 const UpdateProfileScreen = () => {
     const [username, setUsername] = useState<any>(null);
@@ -11,7 +11,6 @@ const UpdateProfileScreen = () => {
     const [phone, setPhone] = useState<any>(null);
 
     useEffect(() => {
-
         loadUserData();
     }, []);
 
@@ -19,17 +18,20 @@ const UpdateProfileScreen = () => {
         try {
             const storedToken = await AsyncStorage.getItem('authToken');
             if (!storedToken) {
-                return Toast.show("error", "User not logged in");
+                // ✅ FIXED
+                return snackbar.error("User not logged in");
             }
             const data = { username, email, phone };
 
             const res = await updateProfile(data);
-            loadUserData()
-            Toast.show("success", "Profile updated successfully");
+            loadUserData();
+            // ✅ FIXED
+            snackbar.success("Profile updated successfully");
 
         } catch (error: any) {
             console.log(error);
-            Toast.show("error", error.response?.data?.message || "Something went wrong");
+            // ✅ FIXED
+            snackbar.error(error.response?.data?.message || "Something went wrong");
         }
     };
 
@@ -65,7 +67,6 @@ const UpdateProfileScreen = () => {
                 value={email}
                 onChangeText={setEmail}
                 placeholderTextColor="#888"
-
             />
 
             <TouchableOpacity style={styles.btn} onPress={handleUpdate}>

@@ -50,6 +50,7 @@ const getDisplayName = (routeName: string, params?: any): string => {
     'ProductDetails': 'Product Details',
     'CategoryScreen': 'Categories',
     'Dashboard': 'Dashboard',
+    'HelpCenter': 'Help Center',
   };
 
   if (!routeMap[routeName]) {
@@ -81,13 +82,17 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const isOrderDetails = currentRoute === "OrderDetails";
 
   // ✅ Hide notification bell on these pages
+  //    ✅ NEW — NotificationScreen also hides the bell (can't navigate to itself)
   const hideNotification =
     currentRoute === "CategoryScreen" ||
     currentRoute === "ProductDetails" ||
-    currentRoute === "CartPage";
+    currentRoute === "CartPage" ||
+    currentRoute === "NotificationScreen";
 
-  // ✅ Hide ALL icons on AccountPage
-  const hideAllIcons = currentRoute === "AccountPage";
+  // ✅ Hide ALL icons on AccountPage AND HelpCenter
+  //    ✅ NEW — HelpCenter is a focused flow, no wishlist/cart/bell
+  const hideAllIcons =
+    currentRoute === "AccountPage" || currentRoute === "HelpCenter";
 
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
@@ -179,7 +184,15 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
           </View>
 
           <View style={styles.rightSection}>
-            <TouchableOpacity style={styles.helpBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.helpBtn}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate('HelpCenter', {
+                  orderId: routeParams?.orderId,
+                })
+              }
+            >
               <Ionicons name="headset-outline" size={20} color="#151515" />
               <Text style={styles.helpBtnText}>Help</Text>
             </TouchableOpacity>
@@ -226,7 +239,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
         </View>
 
         <View style={styles.rightSection}>
-          {/* ✅ Wishlist — hidden on Wishlist, Orders, and AccountPage */}
+          {/* ✅ Wishlist — hidden on Wishlist, Orders, AccountPage, HelpCenter */}
           {!isWishlist && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -245,7 +258,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Cart — hidden on Cart, Orders, and AccountPage */}
+          {/* ✅ Cart — hidden on Cart, Orders, AccountPage, HelpCenter */}
           {!isCart && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -264,7 +277,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart, and AccountPage */}
+          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart, NotificationScreen, AccountPage, HelpCenter */}
           {!hideNotification && !hideAllIcons && (
             <NotificationBadge
               size={24}
