@@ -79,11 +79,6 @@ const resolveImage = (raw: string | undefined | null) => {
   return { uri: `${base}${raw.startsWith('/') ? '' : '/'}${raw}` };
 };
 
-/* ============================================================
-   ✅ Split helper — matches MyOrders
-   Bold first 2 words, rest normal.
-   If title has 2 or fewer words, make the whole thing bold.
-   ============================================================ */
 const splitTitle = (fullName: string, boldWords = 2) => {
   const words = (fullName || 'Product').trim().split(/\s+/);
 
@@ -217,6 +212,7 @@ const OrderDetailsScreen = () => {
     }
   };
 
+  // ✅ FIXED — Android path fix + uses generateInvoicePDF on backend (logo included)
   const handleDownloadInvoice = async () => {
     if (!orderId) {
       snackbar.error('Order ID not available');
@@ -261,6 +257,7 @@ const OrderDetailsScreen = () => {
       const { dirs } = ReactNativeBlobUtil.fs;
       const fileName = `Invoice-${orderId}.pdf`;
       const iosFilePath = `${dirs.DocumentDir}/${fileName}`;
+      const androidFilePath = `${dirs.DownloadDir}/${fileName}`;
 
       const res = await ReactNativeBlobUtil.config({
         addAndroidDownloads: {
@@ -270,6 +267,7 @@ const OrderDetailsScreen = () => {
           description: 'Order Invoice',
           mime: 'application/pdf',
           mediaScannable: true,
+          path: androidFilePath,
         },
         ...(Platform.OS === 'ios' && {
           fileCache: true,
@@ -279,14 +277,27 @@ const OrderDetailsScreen = () => {
         Accept: 'application/pdf',
       });
 
-      const status = res.info().status;
-      console.log('📥 Invoice response status:', status);
+      // ✅ FIXED — Android DownloadManager doesn't return status in info()
+      let ok = false;
 
-      if (status !== 200) {
-        const body = await res.text();
-        console.error('❌ Server error body:', body);
-        throw new Error(`Server returned ${status}`);
+      if (Platform.OS === 'android') {
+        try {
+          ok = await ReactNativeBlobUtil.fs.exists(androidFilePath);
+        } catch {
+          ok = false;
+        }
+      } else {
+        const status = res.info().status;
+        ok = status === 200;
+        if (!ok) {
+          const body = await res.text();
+          console.error('❌ Server error body:', body);
+        }
       }
+
+      console.log('📥 Invoice download ok:', ok);
+
+      if (!ok) throw new Error('Invoice download failed');
 
       if (Platform.OS === 'ios') {
         const finalPath = res.path();
@@ -339,8 +350,6 @@ const OrderDetailsScreen = () => {
     .join(', ');
 
   const firstProduct = orderData.products[0];
-
-  /* ✅ Split the hero product name — 2 words bold, rest normal */
   const heroSplit = splitTitle(firstProduct.name);
 
   return (
@@ -392,7 +401,6 @@ const OrderDetailsScreen = () => {
           )}
         </View>
 
-        {/* Hero name: bold first 2 words, normal rest */}
         <View style={styles.infoBlock}>
           <Text style={styles.productName}>
             {orderData.products.length > 1 ? (
@@ -499,7 +507,6 @@ const OrderDetailsScreen = () => {
         {orderData.products.map((product: any, idx: number) => {
           const imgSrc = resolveImage(product.image);
           const saving = Math.max(0, product.mrp - product.price);
-          /* ✅ Same 2-word split for each product row */
           const split = splitTitle(product.name);
 
           return (
@@ -743,7 +750,7 @@ const OrderDetailsScreen = () => {
 
 export default OrderDetailsScreen;
 
-/* ===== STYLES ===== */
+/* ===== STYLES (unchanged) ===== */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F5F5F5' },
   scrollContent: { paddingTop: 8 },
