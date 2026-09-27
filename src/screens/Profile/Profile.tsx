@@ -3,23 +3,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackActions, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ImageBackground, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Image, StyleSheet, ImageBackground, TouchableOpacity, ScrollView } from 'react-native';
 import { Address } from '../../models/address';
 import { authService } from '../../services/AuthService';
+// ✅ FIXED — added snackbar
+import { snackbar } from '../../components/common/Snackbar';
+
 interface ProfileProps {
   onLogout: () => void;
 }
+
 const ProfileScreen: React.FC<ProfileProps> = ({ onLogout }) => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const navigation = useNavigation<StackNavigationProp<any>>();
+
   const handleLogout = async () => {
     await authService.logout();
-    onLogout()
+    onLogout();
     navigation.dispatch(StackActions.replace('Login'));
   };
-  // Fetch addresses from API
+
   const fetchAddresses = async () => {
     const storedToken = await AsyncStorage.getItem('authToken');
     const name = await AsyncStorage.getItem('username');
@@ -42,58 +47,55 @@ const ProfileScreen: React.FC<ProfileProps> = ({ onLogout }) => {
         throw new Error('Failed to fetch addresses');
       }
 
-      const data = await response.json(); // Parse response to JSON
+      const data = await response.json();
       console.log(data.addresses[0]);
 
-      setAddresses(data.addresses || []); // Assuming data is of type Address[]
+      setAddresses(data.addresses || []);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to fetch addresses');
-
-    };
-  }
-
+      // ✅ FIXED — Alert.alert → snackbar
+      snackbar.error(error.message || 'Failed to fetch addresses');
+    }
+  };
 
   useEffect(() => {
     fetchAddresses();
     console.log(username);
-
   }, []);
+
   return (
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ paddingBottom: 80 }} // space for footer/tabs
+      contentContainerStyle={{ paddingBottom: 80 }}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.container}>
         <View style={{ flexDirection: "row", justifyContent: "flex-end", padding: 10 }}>
-          <TouchableOpacity onPress={ e => {
-            handleLogout()
-          }} style={{ paddingHorizontal: 10, paddingVertical: 5 }}>
+          <TouchableOpacity
+            onPress={e => { handleLogout(); }}
+            style={{ paddingHorizontal: 10, paddingVertical: 5 }}
+          >
             <Text style={{ color: "red", fontWeight: "bold" }}>Logout</Text>
           </TouchableOpacity>
         </View>
 
-
         <Text style={styles.header}>My Orders</Text>
         <View style={styles.profileContainer}>
           <ImageBackground
-            source={require('../../../assets/images/Rectangle 426.png')}  // Background image
+            source={require('../../../assets/images/Rectangle 426.png')}
             style={styles.backgroundImage}
           >
             <Image
-              source={require('../../../assets/images/profile.png')}   // Profile image
+              source={require('../../../assets/images/profile.png')}
               style={styles.profileImage}
             />
           </ImageBackground>
         </View>
 
-        {/* Name and Email */}
         <View style={styles.aboutInfo}>
           <Text style={styles.name}>{username !== 'undefined' ? username : 'Guest User'}</Text>
           <Text style={styles.email}>{email}</Text>
         </View>
 
-        {/* Stats Section */}
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
             <Image source={require('../../../assets/images/Ticket.png')} style={styles.icon} />
@@ -144,55 +146,27 @@ const ProfileScreen: React.FC<ProfileProps> = ({ onLogout }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-    width: '100%',
-  },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    margin: 20,
-    textAlign: 'center',
-    zIndex: 1
-  },
-  profileContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#fff', width: '100%' },
+  header: { fontSize: 20, fontWeight: 'bold', margin: 20, textAlign: 'center', zIndex: 1 },
+  profileContainer: { alignItems: 'center', justifyContent: 'center', width: '100%' },
   backgroundImage: {
-    width: '100%', // Set the size for the background image
+    width: '100%',
     height: 264,
-    justifyContent: 'center', // Centers the profile image
-    alignItems: 'center', // Centers the profile image
-    marginTop: -100
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -100,
   },
   profileImage: {
-    width: 85, // Adjust the size of the profile image
+    width: 85,
     height: 85,
     borderRadius: 60,
     borderWidth: 2,
     borderColor: '#00A0FF',
     marginTop: 137,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 10,
-  },
-  email: {
-    fontSize: 16,
-    color: '#777',
-    textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 20,
-  },
+  name: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
+  email: { fontSize: 16, color: '#777', textAlign: 'center' },
+  statsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 20 },
   statBox: {
     alignItems: 'center',
     flex: 1,
@@ -201,27 +175,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
     borderRadius: 10,
   },
-  icon: {
-    width: 24,
-    height: 24,
-    marginBottom: 5,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#777',
-  },
-  aboutInfo: {
-    marginTop: 35,
-  },
-  aboutInfoLabel: {
-    fontWeight: 'bold',
-    marginVertical: 10,
-    fontSize: 18,
-  },
+  icon: { width: 24, height: 24, marginBottom: 5 },
+  statNumber: { fontSize: 18, fontWeight: 'bold' },
+  statLabel: { fontSize: 14, color: '#777' },
+  aboutInfo: { marginTop: 35 },
+  aboutInfoLabel: { fontWeight: 'bold', marginVertical: 10, fontSize: 18 },
   personalInfo: {
     backgroundColor: '#F7F7F7',
     padding: 15,
@@ -230,20 +188,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15, // Add vertical space between each row
-  },
-  infoLabel: {
-    fontWeight: 'bold',
-    color: '#333',
-    fontSize: 16,
-  },
-  infoValue: {
-    fontSize: 16,
-    color: '#777',
-  },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
+  infoLabel: { fontWeight: 'bold', color: '#333', fontSize: 16 },
+  infoValue: { fontSize: 16, color: '#777' },
 });
 
 export default ProfileScreen;

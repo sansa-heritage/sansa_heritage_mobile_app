@@ -59,7 +59,7 @@ const AnimatedLogoLoader: React.FC = () => {
     Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
-        duration: 900,
+        duration: 1800,
         easing: Easing.linear,
         useNativeDriver: true,
       })
@@ -140,7 +140,7 @@ const AnimatedLogoLoader: React.FC = () => {
 };
 
 const ARC_THICKNESS = 3;           // spinner stroke width
-const OUTER_SIZE = 68;             // overall loader size (smaller than before)
+const OUTER_SIZE = 50;             // overall loader size (smaller than before)
 const INNER_SIZE = OUTER_SIZE - ARC_THICKNESS * 2 - 2;  // ~60px — logo circle
 const LOGO_SIZE = INNER_SIZE - 10; // logo fits snug with a small padding
 

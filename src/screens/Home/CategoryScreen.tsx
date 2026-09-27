@@ -9,10 +9,10 @@ import {
   SafeAreaView,
   StyleSheet,
   TextInput,
-  Alert,
   Modal,
   ScrollView,
   PanResponder,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
@@ -26,6 +26,8 @@ import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import eventBus from '../../services/eventBus';
+// ✅ FIXED — added snackbar
+import { snackbar } from '../../components/common/Snackbar';
 
 const { width } = Dimensions.get("window");
 const BASE_URL = config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
@@ -101,9 +103,6 @@ const COLOR_OPTIONS = [
   { id: 'green', label: 'Green', color: '#1B5E20' },
   { id: 'blue', label: 'Blue', color: '#1565C0' },
   { id: 'yellow', label: 'Yellow', color: '#FFD600' },
-  // { id: 'black', label: 'Black', color: '#000000' },
-  // { id: 'white', label: 'White', color: '#FFFFFF' },
-  // { id: 'purple', label: 'Purple', color: '#8E24AA' },
 ];
 
 const MIN_PRICE = 0;
@@ -166,6 +165,7 @@ export default function CategoryScreen() {
     }
   };
 
+  // ✅ FIXED — no more Alert; api layer shows the snackbar
   const toggleFavorite = async (id: string) => {
     try {
       const isAlreadyFav = favorites.includes(id);
@@ -184,27 +184,28 @@ export default function CategoryScreen() {
       eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      Alert.alert('Error', 'Failed to update wishlist. Please try again.');
+      // ✅ api layer already shows the error snackbar
     }
   };
 
+  // ✅ FIXED — Alert.alert → snackbar
   const handleAddToCart = async (item: any) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
-        Alert.alert('Login Required', 'Please login to add items to cart.');
+        snackbar.warning('Please login to add items to cart', 'Login Required');
         return;
       }
       LoadingService.show('Adding to cart...');
       const colorValue = item.colors?.[0]?._id || item.colors?.[0]?.name || null;
       const sizeValue = item.sizes?.[0]?._id || item.sizes?.[0]?.label || null;
       await addToCart(item._id, 1, colorValue, sizeValue);
-      Alert.alert('Success', 'Item added to cart successfully!');
+      // ✅ no snackbar here — api layer already fired "Item added to cart"
       eventBus.emit('CART_UPDATED', {});
       eventBus.emit('ITEM_REMOVED', { id: 123 });
     } catch (error: any) {
       console.error('Add to cart error:', error);
-      Alert.alert('Error', error?.message || 'Failed to add item to cart.');
+      // ✅ no snackbar here — api layer already fired the error
     } finally {
       LoadingService.hide();
     }
@@ -606,15 +607,23 @@ export default function CategoryScreen() {
           </View>
         )}
 
-        {/* ✅ FILTER MODAL */}
+        {/* ✅ FILTER MODAL — now closes on tap outside */}
         <Modal
           visible={filterModalVisible}
           transparent
           animationType="slide"
           onRequestClose={() => setFilterModalVisible(false)}
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalSheet, { maxHeight: '88%' }]}>
+          {/* ✅ FIXED — backdrop Pressable closes the modal on tap outside */}
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setFilterModalVisible(false)}
+          >
+            {/* Stop propagation when tapping inside the sheet */}
+            <Pressable
+              style={[styles.modalSheet, { maxHeight: '88%' }]}
+              onPress={(e) => e.stopPropagation()}
+            >
               {/* Top drag handle */}
               <View style={styles.dragHandleWrap}>
                 <View style={styles.dragHandle} />
@@ -854,7 +863,7 @@ export default function CategoryScreen() {
                 <View style={{ height: 4 }} />
               </ScrollView>
 
-              {/* ✅ Footer with safe area bottom inset — buttons NEVER hide behind nav bar */}
+              {/* Footer with safe area bottom inset — buttons NEVER hide behind nav bar */}
               <View
                 style={[
                   styles.modalFooter,
@@ -869,8 +878,8 @@ export default function CategoryScreen() {
                   <Text style={styles.applyBtnText}>Apply Filters ({filterCount})</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       </View>
     </SafeAreaView>
@@ -1191,7 +1200,7 @@ const styles = StyleSheet.create({
   colorLabel: { fontSize: 10.5, color: '#333', marginTop: 3, fontWeight: '600' },
   colorLabelActive: { color: BRAND_COLOR, fontWeight: '800' },
 
-  /* ✅ Footer — buttons sit ABOVE the phone nav bar thanks to insets */
+  /* Footer */
   modalFooter: {
     flexDirection: 'row',
     paddingHorizontal: 16,

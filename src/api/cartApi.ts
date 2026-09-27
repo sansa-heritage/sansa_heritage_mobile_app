@@ -1,5 +1,7 @@
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// ✅ FIXED — added snackbar import
+import { snackbar } from '../components/common/Snackbar';
 
 export const addToCart = async (
   productId: string,
@@ -49,9 +51,15 @@ export const addToCart = async (
 
     const data = await response.json();
     console.log('Item added to cart:', data);
+
+    // ✅ FIXED — snackbar on success
+    snackbar.success('Item added to cart');
+
     return data;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to add item to cart:', err);
+    // ✅ FIXED — snackbar on error
+    snackbar.error(err?.message || 'Failed to add item to cart');
     throw err;
   }
 };
@@ -105,13 +113,20 @@ export const removeFromCart = async (
 
     const data = await response.json();
     console.log('Item removed from cart:', data);
+
+    // ✅ FIXED — snackbar on success
+    snackbar.success('Item removed from cart');
+
     return data;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to remove item from cart:', err);
+    // ✅ FIXED — snackbar on error
+    snackbar.error(err?.message || 'Failed to remove item from cart');
     throw err;
   }
 };
 
+// ✅ UNCHANGED — no toasts in this function
 export const getCartItems = async () => {
   try {
     const token = await AsyncStorage.getItem('authToken');

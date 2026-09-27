@@ -1,8 +1,9 @@
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Toast } from '../components/common/Toast';
+// ✅ FIXED — replaced Toast with snackbar
+import { snackbar } from '../components/common/Snackbar';
 
-export const addToFavoritesList = async productId => {
+export const addToFavoritesList = async (productId: string) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
 
@@ -10,7 +11,7 @@ export const addToFavoritesList = async productId => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${storedToken}`, // Ensure token is passed
+        Authorization: `Bearer ${storedToken}`,
       },
       body: JSON.stringify({ productId }),
     });
@@ -22,15 +23,16 @@ export const addToFavoritesList = async productId => {
       throw new Error(data.message || 'Failed to add to favorites');
     }
 
-    Toast.show('success', 'Product added to favorites');
+    // ✅ FIXED — snackbar instead of Toast
+    snackbar.success('Product added to favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('error', error.message);
+    // ✅ FIXED — snackbar instead of Toast
+    snackbar.error(error.message || 'Failed to add to favorites');
   }
 };
 
-
-export const removeFromFavoritesList = async productId => {
+export const removeFromFavoritesList = async (productId: string) => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
 
@@ -50,14 +52,16 @@ export const removeFromFavoritesList = async productId => {
       throw new Error(data.message || 'Failed to remove from favorites');
     }
 
-    Toast.show('success', 'Product removed from favorites');
+    // ✅ FIXED — snackbar instead of Toast
+    snackbar.success('Product removed from favorites');
   } catch (error: any) {
     console.error('Error:', error);
-    Toast.show('error', error.message);
+    // ✅ FIXED — snackbar instead of Toast
+    snackbar.error(error.message || 'Failed to remove from favorites');
   }
 };
 
-// Function to fetch all favorite products
+// ✅ UNCHANGED — no toasts in this function
 export const getFavoriteProducts = async () => {
   try {
     const storedToken = await AsyncStorage.getItem('authToken');
@@ -73,7 +77,7 @@ export const getFavoriteProducts = async () => {
     }
 
     const data = await response.json();
-    return data.favorites; // Returns list of favorite products
+    return data.favorites;
   } catch (error: any) {
     console.error('Error fetching favorite products:', error.message);
     throw error.message;

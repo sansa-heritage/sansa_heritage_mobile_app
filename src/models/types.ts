@@ -25,6 +25,7 @@ export type RootStackParamList = {
   UpdateProfileScreen: undefined;
   NotificationScreen: undefined;
   CardsScreen: undefined;
+  HelpCenter: { orderId?: string } | undefined;
 
   // Add other routes as needed
 };

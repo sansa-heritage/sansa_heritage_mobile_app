@@ -16,7 +16,6 @@ import LoadingService from "../../services/LoadingService";
 
 const { width } = Dimensions.get('window');
 
-// Responsive font size scaling
 const scale = (size: number) => {
   const baseWidth = 375;
   return Math.round((width / baseWidth) * size);
@@ -37,8 +36,6 @@ const NotificationScreen: React.FC = () => {
 
   const tabs = ["All", "Orders", "Offers", "Updates", "Reminders"];
 
-  // ✅ FIXED: wrap the initial fetch with the global loader so
-  // the AnimatedLogoLoader appears (same as other screens).
   useEffect(() => {
     const load = async () => {
       LoadingService.show('Loading notifications...');
@@ -51,8 +48,6 @@ const NotificationScreen: React.FC = () => {
     load();
   }, []);
 
-  // ✅ Pull-to-refresh stays silent (uses the RefreshControl spinner
-  // instead of the full-screen global loader).
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchNotifications();
@@ -71,39 +66,25 @@ const NotificationScreen: React.FC = () => {
 
   const getActionText = (type: string) => {
     switch (type) {
-      case "order":
-        return "View Order";
-      case "promotion":
-        return "Shop Now";
-      case "payment":
-        return "View Details";
-      case "cart":
-        return "View Cart";
-      case "wishlist":
-        return "View Wishlist";
-      default:
-        return "View Details";
+      case "order": return "View Order";
+      case "promotion": return "Shop Now";
+      case "payment": return "View Details";
+      case "cart": return "View Cart";
+      case "wishlist": return "View Wishlist";
+      default: return "View Details";
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "order":
-        return { icon: "cube-outline", color: "#96252A", bg: "#FCEBED" };
-      case "promotion":
-        return { icon: "pricetag-outline", color: "#267B76", bg: "#E9F8F6" };
-      case "cart":
-        return { icon: "cart-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "wishlist":
-        return { icon: "heart-outline", color: "#3D7AA7", bg: "#EDF6FF" };
-      case "payment":
-        return { icon: "wallet-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "reminder":
-        return { icon: "time-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "system":
-        return { icon: "ribbon-outline", color: "#72559A", bg: "#F4EFFB" };
-      default:
-        return { icon: "notifications-outline", color: "#96252A", bg: "#FCEBED" };
+      case "order": return { icon: "cube-outline", color: "#9E0E26", bg: "#FCEBED" };
+      case "promotion": return { icon: "pricetag-outline", color: "#267B76", bg: "#E9F8F6" };
+      case "cart": return { icon: "cart-outline", color: "#B57724", bg: "#FFF3E4" };
+      case "wishlist": return { icon: "heart-outline", color: "#3D7AA7", bg: "#EDF6FF" };
+      case "payment": return { icon: "wallet-outline", color: "#B57724", bg: "#FFF3E4" };
+      case "reminder": return { icon: "time-outline", color: "#B57724", bg: "#FFF3E4" };
+      case "system": return { icon: "ribbon-outline", color: "#72559A", bg: "#F4EFFB" };
+      default: return { icon: "notifications-outline", color: "#9E0E26", bg: "#FCEBED" };
     }
   };
 
@@ -120,16 +101,9 @@ const NotificationScreen: React.FC = () => {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
     if (days < 30) {
-      return date.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-      });
+      return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
     }
-    return date.toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   };
 
   const filterNotifications = () => {
@@ -166,37 +140,22 @@ const NotificationScreen: React.FC = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        style={[
-          styles.notificationCard,
-          !item.read && styles.unreadCard
-        ]}
+        style={[styles.notificationCard, !item.read && styles.unreadCard]}
         onPress={() => handleNotificationPress(item)}
       >
-        {/* ICON */}
-        <View
-          style={[
-            styles.iconCircle,
-            {
-              backgroundColor: notificationIcon.bg,
-            },
-          ]}
-        >
+        <View style={[styles.iconCircle, { backgroundColor: notificationIcon.bg }]}>
           <Ionicons
             name={notificationIcon.icon}
-            size={40}
+            size={scale(20)}
             color={notificationIcon.color}
           />
         </View>
 
-        {/* CONTENT */}
         <View style={styles.cardContent}>
           <View style={styles.cardTopRow}>
             <Text
-              numberOfLines={2}
-              style={[
-                styles.notificationTitle,
-                !item.read && styles.unreadTitle,
-              ]}
+              numberOfLines={1}
+              style={[styles.notificationTitle, !item.read && styles.unreadTitle]}
             >
               {item.title}
             </Text>
@@ -205,10 +164,7 @@ const NotificationScreen: React.FC = () => {
             </Text>
           </View>
 
-          <Text
-            numberOfLines={2}
-            style={styles.notificationBody}
-          >
+          <Text numberOfLines={2} style={styles.notificationBody}>
             {item.body}
           </Text>
 
@@ -216,22 +172,15 @@ const NotificationScreen: React.FC = () => {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => {
-                if (!item.read) {
-                  markAsRead(item._id);
-                }
+                if (!item.read) markAsRead(item._id);
                 if (item.action) {
                   // Navigation handled by parent
                 }
               }}
-            >
-              <Text style={styles.actionText}>
-                {getActionText(item.type)} →
-              </Text>
-            </TouchableOpacity>
+            />
           )}
         </View>
 
-        {/* UNREAD DOT */}
         {!item.read && <View style={styles.unreadDot} />}
       </TouchableOpacity>
     );
@@ -258,7 +207,6 @@ const NotificationScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* TITLE SECTION */}
       <View style={styles.titleSection}>
         {unreadCount > 0 && (
           <TouchableOpacity
@@ -271,7 +219,6 @@ const NotificationScreen: React.FC = () => {
         )}
       </View>
 
-      {/* FILTER TABS */}
       <View style={styles.tabsWrapper}>
         <ScrollView
           horizontal
@@ -282,18 +229,12 @@ const NotificationScreen: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* NOTIFICATIONS LIST */}
       {loading && notifications.length === 0 ? (
-        // ✅ Removed inline ActivityIndicator — global AnimatedLogoLoader handles it
         <View style={styles.loading} />
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconContainer}>
-            <Ionicons
-              name="notifications-off-outline"
-              size={scale(50)}
-              color="#D1D5DB"
-            />
+            <Ionicons name="notifications-off-outline" size={scale(40)} color="#D1D5DB" />
           </View>
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptySubtitle}>
@@ -311,8 +252,8 @@ const NotificationScreen: React.FC = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={["#96252A"]}
-              tintColor="#96252A"
+              colors={["#9E0E26"]}
+              tintColor="#9E0E26"
             />
           }
         />
@@ -322,73 +263,39 @@ const NotificationScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
+  container: { flex: 1, backgroundColor: "#F8F9FA" },
 
-  /* ==========================================
-     TITLE SECTION
-  ========================================== */
   titleSection: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: scale(16),
-    paddingTop: scale(12),
-    paddingBottom: scale(8),
+    justifyContent: "flex-end",
+    paddingHorizontal: scale(14),
+    paddingTop: scale(8),
+    paddingBottom: scale(4),
     backgroundColor: "#F8F9FA",
   },
-
-  titleLeft: {
-    flex: 1,
-  },
-
-  title: {
-    fontSize: scale(20),
-    fontWeight: "700",
-    color: "#151515",
-    letterSpacing: -0.5,
-  },
-
-  subtitle: {
-    fontSize: scale(12),
-    color: "#6B7280",
-    fontWeight: "400",
-    marginTop: 2,
-  },
-
   markAllButton: {
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(4),
-    borderRadius: 16,
-    backgroundColor: "#96252A",
+    paddingHorizontal: scale(9),
+    paddingVertical: scale(3),
+    borderRadius: 14,
+    backgroundColor: "#9E0E26",
   },
-
   markAllText: {
     fontSize: scale(10),
     color: "#FFFFFF",
     fontWeight: "600",
   },
 
-  /* ==========================================
-     TABS
-  ========================================== */
   tabsWrapper: {
-    paddingHorizontal: scale(16),
-    paddingBottom: scale(10),
+    paddingHorizontal: scale(14),
+    paddingBottom: scale(8),
     backgroundColor: "#F8F9FA",
   },
-
-  tabsContent: {
-    paddingRight: scale(16),
-    gap: 6,
-  },
-
+  tabsContent: { paddingRight: scale(14), gap: 5 },
   tab: {
-    paddingHorizontal: scale(14),
-    paddingVertical: scale(6),
-    borderRadius: 16,
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(5),
+    borderRadius: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -396,23 +303,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-
-  activeTab: {
-    backgroundColor: "#96252A",
-    borderColor: "#96252A",
-  },
-
-  tabText: {
-    fontSize: scale(11),
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-
-  activeTabText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-
+  activeTab: { backgroundColor: "#9E0E26", borderColor: "#9E0E26" },
+  tabText: { fontSize: scale(11), color: "#6B7280", fontWeight: "500" },
+  activeTabText: { color: "#FFFFFF", fontWeight: "600" },
   tabIndicator: {
     position: "absolute",
     bottom: -2,
@@ -421,90 +314,61 @@ const styles = StyleSheet.create({
     width: 6,
     height: 2.5,
     borderRadius: 1.5,
-    backgroundColor: "#96252A",
+    backgroundColor: "#9E0E26",
   },
 
-  /* ==========================================
-     LIST
-  ========================================== */
   listContent: {
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(12),
     paddingTop: scale(4),
     paddingBottom: scale(20),
   },
 
-  /* ==========================================
-     NOTIFICATION CARD
-  ========================================== */
+  /* ✅ FIXED — shadow removed */
   notificationCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#F3F4F6",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderRadius: 12,
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(10),
+    marginBottom: 6,
   },
 
   unreadCard: {
     backgroundColor: "#FAF5F5",
     borderLeftWidth: 2.5,
-    borderLeftColor: "#96252A",
+    borderLeftColor: "#9E0E26",
   },
 
-  /* ==========================================
-     ICON
-  ========================================== */
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(10),
+    marginRight: scale(8),
+    marginTop: 1,
     flexShrink: 0,
   },
 
-  /* ==========================================
-     CARD CONTENT
-  ========================================== */
-  cardContent: {
-    flex: 1,
-    alignSelf: "stretch",
-    justifyContent: "center",
-    minWidth: 0,
-  },
-
+  cardContent: { flex: 1, minWidth: 0 },
   cardTopRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: 1,
   },
-
   notificationTitle: {
     flex: 1,
-    fontSize: scale(13),
-    lineHeight: 18,
+    fontSize: scale(12.5),
+    lineHeight: scale(16),
     color: "#111827",
     fontWeight: "600",
     marginRight: 6,
   },
-
-  unreadTitle: {
-    fontWeight: "700",
-    color: "#151515",
-  },
-
+  unreadTitle: { fontWeight: "700", color: "#151515" },
   notificationTime: {
     fontSize: scale(10),
     color: "#9CA3AF",
@@ -512,75 +376,59 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     marginTop: 1,
   },
-
   notificationBody: {
-    fontSize: scale(12),
-    lineHeight: 17,
+    fontSize: scale(11.5),
+    lineHeight: scale(15),
     color: "#6B7280",
     fontWeight: "400",
-    marginBottom: 3,
+    marginBottom: 2,
   },
-
   actionText: {
-    fontSize: scale(12),
-    color: "#96252A",
+    fontSize: scale(11.5),
+    color: "#9E0E26",
     fontWeight: "600",
+    marginTop: 1,
   },
 
-  /* ==========================================
-     UNREAD DOT
-  ========================================== */
   unreadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: "#96252A",
-    marginLeft: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#9E0E26",
+    marginLeft: 5,
+    marginTop: scale(6),
     flexShrink: 0,
   },
 
-  /* ==========================================
-     LOADING
-  ========================================== */
-  loading: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  /* ==========================================
-     EMPTY STATE
-  ========================================== */
   empty: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 40,
   },
-
   emptyIconContainer: {
-    width: scale(70),
-    height: scale(70),
-    borderRadius: scale(35),
+    width: scale(56),
+    height: scale(56),
+    borderRadius: scale(28),
     backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
-
   emptyTitle: {
-    fontSize: scale(16),
+    fontSize: scale(15),
     fontWeight: "600",
     color: "#151515",
-    marginTop: 8,
+    marginTop: 6,
   },
-
   emptySubtitle: {
     fontSize: scale(12),
     color: "#9CA3AF",
     textAlign: "center",
     marginTop: 4,
-    lineHeight: 18,
+    lineHeight: 17,
   },
 });
 
