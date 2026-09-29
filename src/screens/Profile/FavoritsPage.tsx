@@ -293,6 +293,15 @@ const FavoriteScreen = () => {
             </View>
           )}
 
+          {/* ✅ NEW — Remove (X) — top-left */}
+          <TouchableOpacity
+            style={styles.removeIcon}
+            onPress={() => handleRemoveFavorite(productId)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.shareIcon}
             onPress={() => handleShare(item)}
@@ -301,7 +310,7 @@ const FavoriteScreen = () => {
             <Ionicons name="share-social-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* ✅ Add / Similar pill — icon only (no text), soft pink bg */}
+          {/* Add / Similar pill — icon only */}
           <TouchableOpacity
             style={styles.addPill}
             activeOpacity={0.85}
@@ -526,19 +535,27 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // ✅ Add / Similar pill — ONLY bg color changed. Same shape, same padding, same icon.
- addPill: {
-  position: 'absolute',
-  bottom: -12,             // slightly tighter to the card edge
-  right: 8,
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: '#FFF0F3',   // soft pink, no border
-  borderRadius: 6,              // smaller radius
-  paddingHorizontal: 6,         // tighter horizontal padding
-  paddingVertical: 4,           // tighter vertical padding
-  zIndex: 2,
-},
+  // ✅ NEW — Remove (X) — top-left
+  removeIcon: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    padding: 4,
+  },
+
+  // Add / Similar pill
+  addPill: {
+    position: 'absolute',
+    bottom: -12,
+    right: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF0F3',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    zIndex: 2,
+  },
 
   // Info section
   info: {

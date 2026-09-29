@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { addToFavoritesList, removeFromFavoritesList } from "../../api/favoriteApi";
 import { addToCart } from "../../api/cartApi";
 import { RootStackParamList } from "../../models/types";
@@ -26,7 +26,6 @@ import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import eventBus from '../../services/eventBus';
-// ✅ FIXED — added snackbar
 import { snackbar } from '../../components/common/Snackbar';
 
 const { width } = Dimensions.get("window");
@@ -71,14 +70,6 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 /* ================= FILTER CONSTANTS ================= */
-const PRICE_RANGES = [
-  { id: 'all', label: 'All Prices', min: 0, max: Infinity },
-  { id: 'under1000', label: 'Under ₹1,000', min: 0, max: 1000 },
-  { id: '1000-2500', label: '₹1,000 - ₹2,500', min: 1000, max: 2500 },
-  { id: '2500-5000', label: '₹2,500 - ₹5,000', min: 2500, max: 5000 },
-  { id: 'above5000', label: 'Above ₹5,000', min: 5000, max: Infinity },
-];
-
 const RATING_OPTIONS = [
   { id: 'all', label: 'All Ratings', value: 0 },
   { id: '4plus', label: '4★ & Above', value: 4 },
@@ -94,19 +85,20 @@ const SORT_OPTIONS = [
   { id: 'rating', label: 'Customer Rating' },
 ];
 
-const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-
-const COLOR_OPTIONS = [
-  { id: 'all', label: 'All', color: null, multi: true },
-  { id: 'red', label: 'Red', color: '#B00020' },
-  { id: 'pink', label: 'Pink', color: '#F8BBD0' },
-  { id: 'green', label: 'Green', color: '#1B5E20' },
-  { id: 'blue', label: 'Blue', color: '#1565C0' },
-  { id: 'yellow', label: 'Yellow', color: '#FFD600' },
-];
-
 const MIN_PRICE = 0;
 const MAX_PRICE = 10000;
+
+/* ================= TYPES ================= */
+interface DynamicSize {
+  _id: string;
+  label: string;
+}
+
+interface DynamicColor {
+  _id: string;
+  name: string;
+  hexCode?: string;
+}
 
 export default function CategoryScreen() {
   const route = useRoute();
@@ -123,14 +115,20 @@ export default function CategoryScreen() {
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedRating, setSelectedRating] = useState('all');
   const [selectedSort, setSelectedSort] = useState('default');
 
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedColor, setSelectedColor] = useState<string>('all');
+  /* ✅ DYNAMIC FILTER STATE */
+  const [availableSizes, setAvailableSizes] = useState<DynamicSize[]>([]);
+  const [availableColors, setAvailableColors] = useState<DynamicColor[]>([]);
+  const [selectedSizeIds, setSelectedSizeIds] = useState<string[]>([]);
+  const [selectedColorIds, setSelectedColorIds] = useState<string[]>([]);
   const [priceStart, setPriceStart] = useState<number>(MIN_PRICE);
   const [priceEnd, setPriceEnd] = useState<number>(MAX_PRICE);
+  const [priceBounds, setPriceBounds] = useState<{ min: number; max: number }>({
+    min: MIN_PRICE,
+    max: MAX_PRICE,
+  });
 
   const [openSection, setOpenSection] = useState<{
     category: boolean;
@@ -156,6 +154,15 @@ export default function CategoryScreen() {
     loadFavorites();
   }, []);
 
+  // ✅ FIX: Reset selectedCategory when screen comes into focus (when navigating from dashboard)
+  useFocusEffect(
+    React.useCallback(() => {
+      // When screen is focused, ensure selectedCategory is cleared
+      // so the mainCategory from route params is used for filtering
+      setSelectedCategory("");
+    }, [mainCategory])
+  );
+
   const loadFavorites = async () => {
     try {
       const stored = await AsyncStorage.getItem('favorites');
@@ -165,7 +172,6 @@ export default function CategoryScreen() {
     }
   };
 
-  // ✅ FIXED — no more Alert; api layer shows the snackbar
   const toggleFavorite = async (id: string) => {
     try {
       const isAlreadyFav = favorites.includes(id);
@@ -184,11 +190,9 @@ export default function CategoryScreen() {
       eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      // ✅ api layer already shows the error snackbar
     }
   };
 
-  // ✅ FIXED — Alert.alert → snackbar
   const handleAddToCart = async (item: any) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -200,12 +204,10 @@ export default function CategoryScreen() {
       const colorValue = item.colors?.[0]?._id || item.colors?.[0]?.name || null;
       const sizeValue = item.sizes?.[0]?._id || item.sizes?.[0]?.label || null;
       await addToCart(item._id, 1, colorValue, sizeValue);
-      // ✅ no snackbar here — api layer already fired "Item added to cart"
       eventBus.emit('CART_UPDATED', {});
       eventBus.emit('ITEM_REMOVED', { id: 123 });
     } catch (error: any) {
       console.error('Add to cart error:', error);
-      // ✅ no snackbar here — api layer already fired the error
     } finally {
       LoadingService.hide();
     }
@@ -215,6 +217,7 @@ export default function CategoryScreen() {
     navigation.navigate('ProductDetails', { itemId: id });
   };
 
+  /* ================= FETCH CATEGORIES ================= */
   const fetchCategories = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -237,7 +240,18 @@ export default function CategoryScreen() {
     }
   };
 
-  const fetchProducts = async () => {
+  /* ============================================================
+     ✅ CORE FETCH — supports optional overrides
+     ============================================================ */
+  const fetchProductsWith = async ({
+    search,
+    category,
+    overridePriceRange,
+  }: {
+    search?: string;
+    category?: string;
+    overridePriceRange?: boolean;
+  } = {}) => {
     try {
       setLoading(true);
       LoadingService.show('Loading products...');
@@ -246,13 +260,34 @@ export default function CategoryScreen() {
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const params: any = {};
-      if (mainCategory === "Trending") params.isTrending = true;
-      else if (mainCategory === "New Arrival") params.isNewArrival = true;
-      else params.category = mainCategory;
+      
+      // ✅ FIX: Build category param properly
+      // If category is provided and not 'All'/empty, use it
+      // Otherwise use mainCategory
+      const effectiveCategory = category !== undefined ? category : selectedCategory;
+      
+      // Determine which category to send to API
+      let categoryToSend = '';
+      if (effectiveCategory && effectiveCategory !== 'All' && effectiveCategory !== '') {
+        categoryToSend = effectiveCategory;
+      } else if (mainCategory && mainCategory !== 'New Arrival' && mainCategory !== 'Trending' && mainCategory !== 'Premium') {
+        categoryToSend = mainCategory;
+      }
+      
+      // Set special filters for special categories
+      if (mainCategory === "Trending") {
+        params.isTrending = true;
+      } else if (mainCategory === "New Arrival") {
+        params.isNewArrival = true;
+      } else if (mainCategory === "Premium") {
+        params.isPremium = true;
+      } else if (categoryToSend) {
+        params.category = categoryToSend;
+      }
 
-      if (searchText && searchText.trim()) params.search = searchText.trim();
-      if (selectedCategory && selectedCategory !== 'All' && selectedCategory !== '') {
-        params.category = selectedCategory;
+      const effectiveSearch = search !== undefined ? search : searchText;
+      if (effectiveSearch && effectiveSearch.trim()) {
+        params.search = effectiveSearch.trim();
       }
 
       const queryString = Object.keys(params)
@@ -263,8 +298,12 @@ export default function CategoryScreen() {
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
+
       setAllProducts(data || []);
       setProducts(data || []);
+
+      /* ✅ Recompute dynamic sizes, colors, and price bounds */
+      extractDynamicFilters(data || [], overridePriceRange);
     } catch (err) {
       console.error(err);
       setAllProducts([]);
@@ -275,38 +314,122 @@ export default function CategoryScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-  }, [mainCategory]);
+  /* Default fetch — uses current state */
+  const fetchProducts = () => fetchProductsWith();
 
-  const handleSearchSubmit = () => fetchProducts();
-  const handleClearSearch = () => {
-    setSearchText("");
-    fetchProducts();
+  /* ============================================================
+     ✅ EXTRACT DYNAMIC FILTERS FROM PRODUCTS
+     ============================================================ */
+  const extractDynamicFilters = (items: any[], overridePriceRange = false) => {
+    const sizeMap = new Map<string, DynamicSize>();
+    const colorMap = new Map<string, DynamicColor>();
+    let minPrice = Infinity;
+    let maxPrice = 0;
+
+    items.forEach(item => {
+      if (Array.isArray(item.sizes)) {
+        item.sizes.forEach((s: any) => {
+          if (s) {
+            const id = typeof s === 'object' ? s._id : String(s);
+            const label = typeof s === 'object' ? s.label || s.name || '' : String(s);
+            if (id && label) {
+              sizeMap.set(String(id), { _id: String(id), label });
+            }
+          }
+        });
+      }
+
+      if (Array.isArray(item.colors)) {
+        item.colors.forEach((c: any) => {
+          if (c) {
+            const id = typeof c === 'object' ? c._id : String(c);
+            const name = typeof c === 'object' ? c.name || c.label || '' : String(c);
+            const hexCode = typeof c === 'object' ? c.hexCode : undefined;
+            if (id && name) {
+              colorMap.set(String(id), { _id: String(id), name, hexCode });
+            }
+          }
+        });
+      }
+
+      const price = Number(item.price || 0);
+      const disc = Number(item.discountPercent || 0);
+      const finalPrice = disc > 0 ? price - (price * disc) / 100 : price;
+      if (finalPrice > 0) {
+        if (finalPrice < minPrice) minPrice = finalPrice;
+        if (finalPrice > maxPrice) maxPrice = finalPrice;
+      }
+    });
+
+    const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '3XL'];
+    const sizesArr = Array.from(sizeMap.values()).sort((a, b) => {
+      const aIdx = sizeOrder.indexOf(a.label.toUpperCase());
+      const bIdx = sizeOrder.indexOf(b.label.toUpperCase());
+      if (aIdx === -1 && bIdx === -1) return a.label.localeCompare(b.label);
+      if (aIdx === -1) return 1;
+      if (bIdx === -1) return -1;
+      return aIdx - bIdx;
+    });
+
+    const colorsArr = Array.from(colorMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    setAvailableSizes(sizesArr);
+    setAvailableColors(colorsArr);
+
+    if (minPrice !== Infinity && maxPrice > 0) {
+      const roundedMin = Math.floor(minPrice / 100) * 100;
+      const roundedMax = Math.ceil(maxPrice / 100) * 100;
+      setPriceBounds({ min: roundedMin, max: roundedMax });
+      if (overridePriceRange || priceStart === MIN_PRICE) {
+        setPriceStart(roundedMin);
+        setPriceEnd(roundedMax);
+      }
+    }
   };
 
-  /* ================= LIVE FILTER COUNT ================= */
-  const filteredPreview = (() => {
+  useEffect(() => {
+    fetchCategories();
+    fetchProductsWith({ overridePriceRange: true });
+  }, [mainCategory]);
+
+  /* ============================================================
+     ✅ SEARCH
+     ============================================================ */
+  const handleSearchSubmit = () => {
+    fetchProductsWith({ search: searchText });
+  };
+
+  /* ✅ FIXED — clear search fully restores the base screen list */
+  const handleClearSearch = async () => {
+    setSearchText('');
+    setSelectedCategory('');
+    setSelectedRating('all');
+    setSelectedSort('default');
+    setSelectedSizeIds([]);
+    setSelectedColorIds([]);
+
+    await fetchProductsWith({
+      search: '',
+      category: '',
+      overridePriceRange: true,
+    });
+  };
+
+  /* ============================================================
+     ✅ LIVE FILTER COUNT — matches applyClientFilters logic
+     ============================================================ */
+  const filteredPreview = useMemo(() => {
     let filtered = [...allProducts];
 
-    if (priceStart > MIN_PRICE || priceEnd < MAX_PRICE) {
+    if (priceStart > priceBounds.min || priceEnd < priceBounds.max) {
       filtered = filtered.filter(p => {
         const price = Number(p.price || 0);
         const disc = Number(p.discountPercent || 0);
         const finalPrice = disc > 0 ? price - (price * disc) / 100 : price;
         return finalPrice >= priceStart && finalPrice <= priceEnd;
       });
-    } else {
-      const priceRange = PRICE_RANGES.find(p => p.id === selectedPriceRange);
-      if (priceRange && priceRange.id !== 'all') {
-        filtered = filtered.filter(p => {
-          const price = Number(p.price || 0);
-          const disc = Number(p.discountPercent || 0);
-          const finalPrice = disc > 0 ? price - (price * disc) / 100 : price;
-          return finalPrice >= priceRange.min && finalPrice <= priceRange.max;
-        });
-      }
     }
 
     const ratingOpt = RATING_OPTIONS.find(r => r.id === selectedRating);
@@ -314,26 +437,34 @@ export default function CategoryScreen() {
       filtered = filtered.filter(p => Number(p.rating || 0) >= ratingOpt.value);
     }
 
-    if (selectedSizes.length > 0) {
+    if (selectedSizeIds.length > 0) {
       filtered = filtered.filter(p => {
-        const sizes = (p.sizes || []).map((s: any) =>
-          String(s?.label || s?.name || s).toUpperCase()
+        const productSizeIds = (p.sizes || []).map((s: any) =>
+          String(typeof s === 'object' ? s._id : s)
         );
-        return selectedSizes.some(sz => sizes.includes(sz));
+        return selectedSizeIds.some(id => productSizeIds.includes(id));
       });
     }
 
-    if (selectedColor !== 'all') {
+    if (selectedColorIds.length > 0) {
       filtered = filtered.filter(p => {
-        const colors = (p.colors || []).map((c: any) =>
-          String(c?.name || c?.label || c).toLowerCase()
+        const productColorIds = (p.colors || []).map((c: any) =>
+          String(typeof c === 'object' ? c._id : c)
         );
-        return colors.includes(selectedColor.toLowerCase());
+        return selectedColorIds.some(id => productColorIds.includes(id));
       });
     }
 
     return filtered;
-  })();
+  }, [
+    allProducts,
+    priceStart,
+    priceEnd,
+    priceBounds,
+    selectedRating,
+    selectedSizeIds,
+    selectedColorIds,
+  ]);
 
   const filterCount = filteredPreview.length;
 
@@ -347,7 +478,10 @@ export default function CategoryScreen() {
         filtered.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
         break;
       case 'discount':
-        filtered.sort((a, b) => Number(b.discountPercent || 0) - Number(a.discountPercent || 0));
+        filtered.sort(
+          (a, b) =>
+            Number(b.discountPercent || 0) - Number(a.discountPercent || 0)
+        );
         break;
       case 'rating':
         filtered.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
@@ -361,19 +495,24 @@ export default function CategoryScreen() {
 
   const resetFilters = () => {
     setSelectedCategory('');
-    setSelectedPriceRange('all');
     setSelectedRating('all');
     setSelectedSort('default');
-    setSelectedSizes([]);
-    setSelectedColor('all');
-    setPriceStart(MIN_PRICE);
-    setPriceEnd(MAX_PRICE);
+    setSelectedSizeIds([]);
+    setSelectedColorIds([]);
+    setPriceStart(priceBounds.min);
+    setPriceEnd(priceBounds.max);
     setProducts(allProducts);
   };
 
-  const toggleSize = (size: string) => {
-    setSelectedSizes(prev =>
-      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+  const toggleSize = (id: string) => {
+    setSelectedSizeIds(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+
+  const toggleColor = (id: string) => {
+    setSelectedColorIds(prev =>
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
   };
 
@@ -451,7 +590,9 @@ export default function CategoryScreen() {
                 <>
                   <View style={styles.ratingDivider} />
                   <Text style={styles.ratingCount}>
-                    {ratingCount > 999 ? `${Math.floor(ratingCount / 1000)}k` : ratingCount}
+                    {ratingCount > 999
+                      ? `${Math.floor(ratingCount / 1000)}k`
+                      : ratingCount}
                   </Text>
                 </>
               )}
@@ -477,7 +618,9 @@ export default function CategoryScreen() {
         <View style={styles.productInfo}>
           <Text numberOfLines={2} style={styles.productTitle}>
             <Text style={styles.productTitleBold}>{boldPart}</Text>
-            {normalPart ? <Text style={styles.productTitleNormal}> {normalPart}</Text> : null}
+            {normalPart ? (
+              <Text style={styles.productTitleNormal}> {normalPart}</Text>
+            ) : null}
           </Text>
 
           {discountPercent >= 20 && (
@@ -504,14 +647,18 @@ export default function CategoryScreen() {
 
   const priceToX = (price: number) => {
     if (sliderWidth === 0) return 0;
-    return SLIDER_PADDING +
-      ((price - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * (sliderWidth - SLIDER_PADDING * 2);
+    const range = Math.max(1, priceBounds.max - priceBounds.min);
+    return (
+      SLIDER_PADDING +
+      ((price - priceBounds.min) / range) * (sliderWidth - SLIDER_PADDING * 2)
+    );
   };
 
   const xToPrice = (x: number) => {
+    const range = Math.max(1, priceBounds.max - priceBounds.min);
     const ratio = (x - SLIDER_PADDING) / (sliderWidth - SLIDER_PADDING * 2);
     const clamped = Math.max(0, Math.min(1, ratio));
-    return Math.round(MIN_PRICE + clamped * (MAX_PRICE - MIN_PRICE));
+    return Math.round(priceBounds.min + clamped * range);
   };
 
   const startPan = React.useRef(
@@ -527,8 +674,12 @@ export default function CategoryScreen() {
       onPanResponderMove: (_, g) => {
         const p = xToPrice(g.moveX);
         const active = (startPan as any)._activeThumb;
-        if (active === 'start') setPriceStart(Math.min(p, priceEnd - 100));
-        else setPriceEnd(Math.max(p, priceStart + 100));
+        const step = Math.max(
+          100,
+          Math.floor((priceBounds.max - priceBounds.min) / 50)
+        );
+        if (active === 'start') setPriceStart(Math.min(p, priceEnd - step));
+        else setPriceEnd(Math.max(p, priceStart + step));
       },
     })
   ).current;
@@ -558,7 +709,11 @@ export default function CategoryScreen() {
               onSubmitEditing={handleSearchSubmit}
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={handleClearSearch} hitSlop={8} style={{ marginRight: 6 }}>
+              <TouchableOpacity
+                onPress={handleClearSearch}
+                hitSlop={8}
+                style={{ marginRight: 6 }}
+              >
                 <MaterialIcons name="close" size={16} color="#888" />
               </TouchableOpacity>
             )}
@@ -592,37 +747,33 @@ export default function CategoryScreen() {
             <Ionicons name="search-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No Products Found</Text>
             <Text style={styles.emptySubtitle}>
-              {searchText ? `No results for "${searchText}"` : "Try selecting a different filter"}
+              {searchText
+                ? `No results for "${searchText}"`
+                : 'Try selecting a different filter'}
             </Text>
             <TouchableOpacity
               style={styles.clearFilterBtn}
-              onPress={() => {
-                resetFilters();
-                setSearchText("");
-                fetchProducts();
-              }}
+              onPress={handleClearSearch}
             >
               <Text style={styles.clearFilterBtnText}>Clear Filters</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* ✅ FILTER MODAL — now closes on tap outside */}
+        {/* ✅ FILTER MODAL */}
         <Modal
           visible={filterModalVisible}
           transparent
           animationType="slide"
           onRequestClose={() => setFilterModalVisible(false)}
         >
-          {/* ✅ FIXED — backdrop Pressable closes the modal on tap outside */}
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setFilterModalVisible(false)}
           >
-            {/* Stop propagation when tapping inside the sheet */}
             <Pressable
               style={[styles.modalSheet, { maxHeight: '88%' }]}
-              onPress={(e) => e.stopPropagation()}
+              onPress={e => e.stopPropagation()}
             >
               {/* Top drag handle */}
               <View style={styles.dragHandleWrap}>
@@ -632,7 +783,11 @@ export default function CategoryScreen() {
               {/* Header */}
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Filter</Text>
-                <TouchableOpacity style={styles.resetRow} onPress={resetFilters} activeOpacity={0.7}>
+                <TouchableOpacity
+                  style={styles.resetRow}
+                  onPress={resetFilters}
+                  activeOpacity={0.7}
+                >
                   <MaterialIcons name="refresh" size={16} color={BRAND_COLOR} />
                   <Text style={styles.resetText}>Reset All</Text>
                 </TouchableOpacity>
@@ -651,12 +806,20 @@ export default function CategoryScreen() {
                 >
                   <View style={styles.sectionLeft}>
                     <View style={styles.iconCircle}>
-                      <Ionicons name="shirt-outline" size={15} color={BRAND_COLOR} />
+                      <Ionicons
+                        name="shirt-outline"
+                        size={15}
+                        color={BRAND_COLOR}
+                      />
                     </View>
                     <Text style={styles.sectionTitle}>Category</Text>
                   </View>
                   <MaterialIcons
-                    name={openSection.category ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    name={
+                      openSection.category
+                        ? 'keyboard-arrow-up'
+                        : 'keyboard-arrow-down'
+                    }
                     size={20}
                     color="#111"
                   />
@@ -675,7 +838,12 @@ export default function CategoryScreen() {
                           onPress={() => setSelectedCategory(cat._id || '')}
                           activeOpacity={0.7}
                         >
-                          <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                          <Text
+                            style={[
+                              styles.chipText,
+                              isActive && styles.chipTextActive,
+                            ]}
+                          >
                             {cat.name}
                           </Text>
                         </TouchableOpacity>
@@ -699,7 +867,11 @@ export default function CategoryScreen() {
                     <Text style={styles.sectionTitle}>Price Range</Text>
                   </View>
                   <MaterialIcons
-                    name={openSection.price ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    name={
+                      openSection.price
+                        ? 'keyboard-arrow-up'
+                        : 'keyboard-arrow-down'
+                    }
                     size={20}
                     color="#111"
                   />
@@ -709,7 +881,9 @@ export default function CategoryScreen() {
                   <>
                     <View
                       style={styles.sliderWrap}
-                      onLayout={e => setSliderWidth(e.nativeEvent.layout.width)}
+                      onLayout={e =>
+                        setSliderWidth(e.nativeEvent.layout.width)
+                      }
                     >
                       <View style={styles.sliderTrack} />
                       <View
@@ -717,52 +891,43 @@ export default function CategoryScreen() {
                           styles.sliderActiveTrack,
                           {
                             left: priceToX(priceStart),
-                            width: Math.max(0, priceToX(priceEnd) - priceToX(priceStart)),
+                            width: Math.max(
+                              0,
+                              priceToX(priceEnd) - priceToX(priceStart)
+                            ),
                           },
                         ]}
                       />
                       <View
-                        style={[styles.sliderThumb, { left: priceToX(priceStart) - 9 }]}
+                        style={[
+                          styles.sliderThumb,
+                          { left: priceToX(priceStart) - 9 },
+                        ]}
                         {...startPan.panHandlers}
                       />
                       <View
-                        style={[styles.sliderThumb, { left: priceToX(priceEnd) - 9 }]}
+                        style={[
+                          styles.sliderThumb,
+                          { left: priceToX(priceEnd) - 9 },
+                        ]}
                         {...startPan.panHandlers}
                       />
                     </View>
 
                     <View style={styles.priceLabelsRow}>
-                      <Text style={styles.priceLabel}>₹ {priceStart.toLocaleString('en-IN')}</Text>
-                      <Text style={styles.priceLabel}>₹ {priceEnd.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.chipsWrap}>
-                      {PRICE_RANGES.filter(r => r.id !== 'all').map(range => {
-                        const isActive = selectedPriceRange === range.id;
-                        return (
-                          <TouchableOpacity
-                            key={range.id}
-                            style={[styles.chipSm, isActive && styles.chipSmActive]}
-                            onPress={() => {
-                              setSelectedPriceRange(range.id);
-                              setPriceStart(range.min);
-                              setPriceEnd(range.max === Infinity ? MAX_PRICE : range.max);
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={[styles.chipSmText, isActive && styles.chipSmTextActive]}>
-                              {range.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                      <Text style={styles.priceLabel}>
+                        ₹ {priceStart.toLocaleString('en-IN')}
+                      </Text>
+                      <Text style={styles.priceLabel}>
+                        ₹ {priceEnd.toLocaleString('en-IN')}
+                      </Text>
                     </View>
                   </>
                 )}
 
                 <View style={styles.divider} />
 
-                {/* ── SIZE ── */}
+                {/* ── SIZE (dynamic) ── */}
                 <TouchableOpacity
                   style={styles.sectionHeader}
                   onPress={() => toggleSection('size')}
@@ -770,12 +935,25 @@ export default function CategoryScreen() {
                 >
                   <View style={styles.sectionLeft}>
                     <View style={styles.iconCircle}>
-                      <MaterialIcons name="straighten" size={15} color={BRAND_COLOR} />
+                      <MaterialIcons
+                        name="straighten"
+                        size={15}
+                        color={BRAND_COLOR}
+                      />
                     </View>
-                    <Text style={styles.sectionTitle}>Size</Text>
+                    <Text style={styles.sectionTitle}>
+                      Size
+                      {availableSizes.length > 0
+                        ? ` (${availableSizes.length})`
+                        : ''}
+                    </Text>
                   </View>
                   <MaterialIcons
-                    name={openSection.size ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    name={
+                      openSection.size
+                        ? 'keyboard-arrow-up'
+                        : 'keyboard-arrow-down'
+                    }
                     size={20}
                     color="#111"
                   />
@@ -783,27 +961,39 @@ export default function CategoryScreen() {
 
                 {openSection.size && (
                   <View style={styles.sizeRow}>
-                    {SIZE_OPTIONS.map(size => {
-                      const isActive = selectedSizes.includes(size);
-                      return (
-                        <TouchableOpacity
-                          key={size}
-                          style={[styles.sizeChip, isActive && styles.sizeChipActive]}
-                          onPress={() => toggleSize(size)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.sizeChipText, isActive && styles.sizeChipTextActive]}>
-                            {size}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                    {availableSizes.length === 0 ? (
+                      <Text style={styles.noDataText}>No sizes available</Text>
+                    ) : (
+                      availableSizes.map(s => {
+                        const isActive = selectedSizeIds.includes(s._id);
+                        return (
+                          <TouchableOpacity
+                            key={s._id}
+                            style={[
+                              styles.sizeChip,
+                              isActive && styles.sizeChipActive,
+                            ]}
+                            onPress={() => toggleSize(s._id)}
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              style={[
+                                styles.sizeChipText,
+                                isActive && styles.sizeChipTextActive,
+                              ]}
+                            >
+                              {s.label.toUpperCase()}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
                   </View>
                 )}
 
                 <View style={styles.divider} />
 
-                {/* ── COLOR ── */}
+                {/* ── COLOR (dynamic) ── */}
                 <TouchableOpacity
                   style={styles.sectionHeader}
                   onPress={() => toggleSection('color')}
@@ -811,12 +1001,25 @@ export default function CategoryScreen() {
                 >
                   <View style={styles.sectionLeft}>
                     <View style={styles.iconCircle}>
-                      <Ionicons name="color-palette-outline" size={15} color={BRAND_COLOR} />
+                      <Ionicons
+                        name="color-palette-outline"
+                        size={15}
+                        color={BRAND_COLOR}
+                      />
                     </View>
-                    <Text style={styles.sectionTitle}>Color</Text>
+                    <Text style={styles.sectionTitle}>
+                      Color
+                      {availableColors.length > 0
+                        ? ` (${availableColors.length})`
+                        : ''}
+                    </Text>
                   </View>
                   <MaterialIcons
-                    name={openSection.color ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    name={
+                      openSection.color
+                        ? 'keyboard-arrow-up'
+                        : 'keyboard-arrow-down'
+                    }
                     size={20}
                     color="#111"
                   />
@@ -824,58 +1027,75 @@ export default function CategoryScreen() {
 
                 {openSection.color && (
                   <View style={styles.colorRow}>
-                    {COLOR_OPTIONS.map(c => {
-                      const isActive = selectedColor === c.id;
-                      return (
-                        <TouchableOpacity
-                          key={c.id}
-                          style={styles.colorItem}
-                          onPress={() => setSelectedColor(c.id)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={[styles.colorCircleOuter, isActive && styles.colorCircleOuterActive]}>
-                            {c.multi ? (
-                              <View style={styles.colorMulti}>
-                                <View style={[styles.colorMultiHalf, { backgroundColor: '#FF0000' }]} />
-                                <View style={[styles.colorMultiHalf, { backgroundColor: '#FFD600' }]} />
-                                <View style={[styles.colorMultiHalf, { backgroundColor: '#00AA00' }]} />
-                                <View style={[styles.colorMultiHalf, { backgroundColor: '#0066FF' }]} />
-                              </View>
-                            ) : (
+                    {availableColors.length === 0 ? (
+                      <Text style={styles.noDataText}>No colors available</Text>
+                    ) : (
+                      availableColors.map(c => {
+                        const isActive = selectedColorIds.includes(c._id);
+                        return (
+                          <TouchableOpacity
+                            key={c._id}
+                            style={styles.colorItem}
+                            onPress={() => toggleColor(c._id)}
+                            activeOpacity={0.7}
+                          >
+                            <View
+                              style={[
+                                styles.colorCircleOuter,
+                                isActive && styles.colorCircleOuterActive,
+                              ]}
+                            >
                               <View
                                 style={[
                                   styles.colorCircle,
-                                  { backgroundColor: c.color || '#fff' },
-                                  c.id === 'white' && { borderWidth: 1, borderColor: '#DDD' },
+                                  {
+                                    backgroundColor: c.hexCode || '#DDD',
+                                  },
                                 ]}
                               />
-                            )}
-                          </View>
-                          <Text style={[styles.colorLabel, isActive && styles.colorLabelActive]}>
-                            {c.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
+                            </View>
+                            <Text
+                              style={[
+                                styles.colorLabel,
+                                isActive && styles.colorLabelActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {c.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
                   </View>
                 )}
 
                 <View style={{ height: 4 }} />
               </ScrollView>
 
-              {/* Footer with safe area bottom inset — buttons NEVER hide behind nav bar */}
+              {/* Footer */}
               <View
                 style={[
                   styles.modalFooter,
                   { paddingBottom: Math.max(insets.bottom, 12) + 6 },
                 ]}
               >
-                <TouchableOpacity style={styles.clearAllBtn} onPress={resetFilters} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={styles.clearAllBtn}
+                  onPress={resetFilters}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.clearAllBtnText}>Clear All</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.applyBtn} onPress={applyClientFilters} activeOpacity={0.85}>
-                  <Text style={styles.applyBtnText}>Apply Filters ({filterCount})</Text>
+                <TouchableOpacity
+                  style={styles.applyBtn}
+                  onPress={applyClientFilters}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.applyBtnText}>
+                    Apply Filters ({filterCount})
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Pressable>
@@ -889,9 +1109,18 @@ export default function CategoryScreen() {
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
-  container: { flex: 1, backgroundColor: '#F8F8F8', paddingHorizontal: CARD_H_PADDING },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: CARD_H_PADDING,
+  },
   flatList: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
 
   /* Search */
   searchRow: {
@@ -913,7 +1142,12 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   searchLogo: { width: 20, height: 20, marginRight: 6 },
-  searchInput: { flex: 1, fontSize: 13, color: '#111', paddingVertical: 0 },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#111',
+    paddingVertical: 0,
+  },
   filterBtn: {
     width: 42,
     height: 42,
@@ -953,7 +1187,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     resizeMode: 'cover',
   },
-  oosOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.55)' },
+  oosOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
   oosBadge: {
     position: 'absolute',
     top: '46%',
@@ -963,7 +1200,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     alignItems: 'center',
   },
-  oosBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
+  oosBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
   favoriteIcon: { position: 'absolute', top: 6, right: 6, padding: 2 },
   ratingPill: {
     position: 'absolute',
@@ -978,7 +1220,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ratingPillText: { color: '#111', fontSize: 10, fontWeight: '700' },
-  ratingDivider: { width: 1, height: 9, backgroundColor: '#D0D0D0', marginHorizontal: 2 },
+  ratingDivider: {
+    width: 1,
+    height: 9,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 2,
+  },
   ratingCount: { color: '#666', fontSize: 10, fontWeight: '500' },
   addPill: {
     position: 'absolute',
@@ -992,8 +1239,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     zIndex: 2,
   },
-  productInfo: { paddingTop: 18, paddingHorizontal: 7, paddingBottom: 9 },
-  productTitle: { fontSize: 12, color: '#111', marginBottom: 5, lineHeight: 16 },
+  productInfo: {
+    paddingTop: 18,
+    paddingHorizontal: 7,
+    paddingBottom: 9,
+  },
+  productTitle: {
+    fontSize: 12,
+    color: '#111',
+    marginBottom: 5,
+    lineHeight: 16,
+  },
   productTitleBold: { fontWeight: '700', color: '#111' },
   productTitleNormal: { fontWeight: '400', color: '#333' },
   megaDropInline: {
@@ -1005,8 +1261,17 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   megaDropInlineText: { color: BRAND_COLOR, fontSize: 9, fontWeight: '700' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
-  strikePrice: { fontSize: 11, color: '#999', textDecorationLine: 'line-through' },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexWrap: 'wrap',
+  },
+  strikePrice: {
+    fontSize: 11,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
   finalPrice: { fontSize: 14, fontWeight: '800', color: '#111' },
   discountText: { fontSize: 11, color: '#9E0E26', fontWeight: '700' },
 
@@ -1018,8 +1283,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     marginTop: -40,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#151515', marginTop: 12 },
-  emptySubtitle: { fontSize: 12, color: '#94A3B8', textAlign: 'center', marginTop: 6 },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#151515',
+    marginTop: 12,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 6,
+  },
   clearFilterBtn: {
     marginTop: 16,
     backgroundColor: '#9E0E26',
@@ -1042,7 +1317,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dragHandleWrap: { alignItems: 'center', paddingTop: 8, paddingBottom: 2 },
-  dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#D9D9D9' },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D9D9D9',
+  },
 
   modalHeader: {
     flexDirection: 'row',
@@ -1079,8 +1359,20 @@ const styles = StyleSheet.create({
 
   divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 2 },
 
+  noDataText: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
+    paddingVertical: 6,
+  },
+
   /* Category chips */
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
+  },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -1097,23 +1389,13 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 9.5, color: '#333', fontWeight: '600' },
   chipTextActive: { color: BRAND_COLOR, fontWeight: '800' },
 
-  /* Small price chips */
-  chipSm: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-  },
-  chipSmActive: {
-    backgroundColor: '#FCE9ED',
-    borderWidth: 1.2,
-    borderColor: BRAND_COLOR,
-  },
-  chipSmText: { fontSize: 11.5, color: '#333', fontWeight: '600' },
-  chipSmTextActive: { color: BRAND_COLOR, fontWeight: '800' },
-
   /* Slider */
-  sliderWrap: { height: 34, marginTop: 4, justifyContent: 'center', position: 'relative' },
+  sliderWrap: {
+    height: 34,
+    marginTop: 4,
+    justifyContent: 'center',
+    position: 'relative',
+  },
   sliderTrack: {
     position: 'absolute',
     left: 10,
@@ -1151,10 +1433,16 @@ const styles = StyleSheet.create({
   priceLabel: { fontSize: 9, color: '#555', fontWeight: '600' },
 
   /* Size */
-  sizeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  sizeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
+  },
   sizeChip: {
-    width: 30,
-    height: 30,
+    minWidth: 34,
+    height: 34,
+    paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
@@ -1172,11 +1460,11 @@ const styles = StyleSheet.create({
   colorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingVertical: 4,
-    rowGap: 10,
+    gap: 12,
   },
-  colorItem: { alignItems: 'center', width: 50 },
+  colorItem: { alignItems: 'center', width: 60 },
   colorCircleOuter: {
     width: 32,
     height: 32,
@@ -1187,17 +1475,20 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorCircleOuterActive: { borderColor: BRAND_COLOR },
-  colorCircle: { width: 26, height: 26, borderRadius: 13 },
-  colorMulti: {
+  colorCircle: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    borderWidth: 1,
+    borderColor: '#EEE',
   },
-  colorMultiHalf: { width: 13, height: 13 },
-  colorLabel: { fontSize: 10.5, color: '#333', marginTop: 3, fontWeight: '600' },
+  colorLabel: {
+    fontSize: 10,
+    color: '#333',
+    marginTop: 3,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   colorLabelActive: { color: BRAND_COLOR, fontWeight: '800' },
 
   /* Footer */

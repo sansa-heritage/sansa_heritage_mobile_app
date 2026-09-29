@@ -384,10 +384,14 @@ const CartScreen: React.FC = () => {
 
   /* ================= ADDRESS ================= */
 
+  // ✅ Snackbar confirmation on address selection
   const selectAddress = async (address: Address) => {
     setDeliveryAddress(address);
     await AsyncStorage.setItem('selectedAddress', JSON.stringify(address));
     setAddressModalVisible(false);
+
+    // ✅ NEW — snackbar confirmation
+    snackbar.success('Delivery address updated');
   };
 
   /* ================= SIZE CHANGE ================= */
@@ -928,19 +932,24 @@ const CartScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Price Details */}
+              {/* Price Details — saving banner inside */}
               <View style={styles.orderDetailsCard}>
                 <Text style={styles.sectionTitle}>Price Details</Text>
+
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Bag Total</Text>
-                  <Text style={styles.billValue}>₹{bagTotal.toFixed(0)}</Text>
+                  <Text style={styles.billValue}>
+                    ₹{bagTotal.toFixed(0)}
+                  </Text>
                 </View>
+
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Savings</Text>
                   <Text style={styles.savingsValue}>
                     -₹{savings.toFixed(0)}
                   </Text>
                 </View>
+
                 {couponApplied && (
                   <View style={styles.billRow}>
                     <Text style={styles.billLabel}>Coupon Discount</Text>
@@ -949,6 +958,7 @@ const CartScreen: React.FC = () => {
                     </Text>
                   </View>
                 )}
+
                 <View style={styles.billRow}>
                   <Text style={styles.billLabel}>Delivery Fee</Text>
                   <Text
@@ -960,32 +970,31 @@ const CartScreen: React.FC = () => {
                     {isFreeShipping ? 'FREE' : `₹${deliveryFee}`}
                   </Text>
                 </View>
+
                 <View style={styles.divider} />
+
                 <View style={styles.billRow}>
                   <Text style={styles.totalLabel}>Amount Payable</Text>
                   <Text style={styles.totalValue}>
                     ₹{amountPayable.toFixed(0)}
                   </Text>
                 </View>
-              </View>
 
-              {/* You're saving pill */}
-              {totalYouSaved > 0 && (
-                <View style={styles.savedCard}>
-                  <View style={styles.savedPill}>
+                {totalYouSaved > 0 && (
+                  <View style={styles.savedBannerInline}>
                     <View style={styles.savedIconCircle}>
-                      <Ionicons name="pricetag" size={14} color="#fff" />
+                      <Ionicons name="pricetag" size={12} color="#fff" />
                     </View>
-                    <Text style={styles.savedText}>
+                    <Text style={styles.savedBannerText}>
                       You're saving{' '}
-                      <Text style={styles.savedAmount}>
+                      <Text style={styles.savedBannerAmount}>
                         ₹{totalYouSaved.toFixed(0)}
                       </Text>{' '}
                       on this order
                     </Text>
                   </View>
-                </View>
-              )}
+                )}
+              </View>
 
               {/* Policy */}
               <View style={styles.policyCard}>
@@ -1548,7 +1557,31 @@ const styles = StyleSheet.create({
     color: '#9E0E26',
   },
 
-  /* "You saved" pill */
+  savedBannerInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#A5D6A7',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 12,
+  },
+  savedBannerText: {
+    fontSize: 12,
+    color: '#1B5E20',
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 8,
+  },
+  savedBannerAmount: {
+    fontWeight: '800',
+    color: '#1B5E20',
+    textDecorationLine: 'underline',
+  },
+
+  /* Kept for backwards-compat — unused now */
   savedCard: {
     marginHorizontal: 16,
     marginBottom: 10,
@@ -1570,7 +1603,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 0,
   },
   savedText: {
     fontSize: 12,

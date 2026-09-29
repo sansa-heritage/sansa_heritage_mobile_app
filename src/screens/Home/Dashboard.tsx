@@ -20,8 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Slider from '@react-native-community/slider';
 import { StyleSheet } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useNavigation } from '@react-navigation/native';
-// ✅ FIXED — added removeFromFavoritesList + snackbar
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   addToFavoritesList,
   removeFromFavoritesList,
@@ -34,7 +33,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
-// ✅ FIXED — NotificationBadge component (already built)
 import NotificationBadge from '../../components/NotificationBadge';
 
 const { width } = Dimensions.get('window');
@@ -43,7 +41,7 @@ const BASE_URL =
   config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
 // ============================================
-// TITLE SPLITTER — bold first N words, rest normal
+// TITLE SPLITTER
 // ============================================
 const splitTitle = (fullName: string, boldWords = 2) => {
   const words = (fullName || '').trim().split(/\s+/);
@@ -57,7 +55,7 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 // ============================================
-// TOP TABS — AJIO style
+// TOP TABS — original design
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -332,7 +330,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD — bold-prefix title
+// PRODUCT CARD
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -388,11 +386,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
@@ -493,11 +491,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
@@ -662,6 +660,13 @@ export default function Dashboard() {
     loadFavorites();
   }, []);
 
+  // ✅ FIX: Clear selected category chip when returning to Dashboard
+  useFocusEffect(
+    React.useCallback(() => {
+      setSelectedCategory('');
+    }, [])
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -697,7 +702,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ FIXED — now calls the correct API on add vs remove
   const toggleFavorite = async (id: string) => {
     try {
       const isAlreadyFav = favorites.includes(id);
@@ -717,7 +721,6 @@ export default function Dashboard() {
       eventBus.emit('FAVORITE_UPDATED', {});
       eventBus.emit('ITEM_REMOVED', { id: 123 });
     } catch (err) {
-      // ✅ api layer already shows the error snackbar
       console.error('Error toggling favorite:', err);
     }
   };
@@ -782,8 +785,9 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -811,8 +815,9 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -824,16 +829,36 @@ export default function Dashboard() {
     }
   };
 
-  const fetchPremium = async () => {
+  // ✅ FIXED — supports search + category + price filters
+  const fetchPremium = async ({
+    searchText = '',
+    selectedCategory = '',
+    priceRange = [0, 10000],
+  }: {
+    searchText?: string;
+    selectedCategory?: string;
+    priceRange?: [number, number];
+  } = {}) => {
     try {
       const params: any = { isPremium: true };
+      if (searchText && searchText.trim()) params.search = searchText.trim();
+      if (
+        selectedCategory &&
+        selectedCategory !== 'All' &&
+        selectedCategory !== ''
+      ) {
+        params.category = selectedCategory;
+      }
+      if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
+      if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
 
       const queryString = Object.keys(params)
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -852,9 +877,21 @@ export default function Dashboard() {
       setLoading(true);
       await Promise.all([fetchBanners(), fetchCategories()]);
       await Promise.all([
-        fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange }),
-        fetchTrending({ searchText: '', selectedCategory: '', priceRange }),
-        fetchPremium(),
+        fetchNewArrivals({
+          searchText: '',
+          selectedCategory: '',
+          priceRange: [0, 10000],
+        }),
+        fetchTrending({
+          searchText: '',
+          selectedCategory: '',
+          priceRange: [0, 10000],
+        }),
+        fetchPremium({
+          searchText: '',
+          selectedCategory: '',
+          priceRange: [0, 10000],
+        }),
       ]);
       setLoading(false);
       LoadingService.hide();
@@ -862,6 +899,7 @@ export default function Dashboard() {
     loadData();
   }, []);
 
+  // ✅ FIXED — category / price changes reload premium too
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
@@ -878,6 +916,11 @@ export default function Dashboard() {
             selectedCategory,
             priceRange,
           }),
+          fetchPremium({
+            searchText: debouncedSearchText,
+            selectedCategory,
+            priceRange,
+          }),
         ]);
         LoadingService.hide();
         setLoading(false);
@@ -890,6 +933,7 @@ export default function Dashboard() {
     navigation.navigate('ProductDetails', { itemId: id });
   };
 
+  // ✅ FIXED — filters apply to premium too
   const applyFilter = async () => {
     setModalVisible(false);
     LoadingService.show();
@@ -905,19 +949,48 @@ export default function Dashboard() {
         selectedCategory,
         priceRange,
       }),
+      fetchPremium({
+        searchText: debouncedSearchText,
+        selectedCategory,
+        priceRange,
+      }),
     ]);
     LoadingService.hide();
     setLoading(false);
   };
 
-  const clearFilters = () => {
+  // ✅ FIXED — resets AND reloads both tabs
+  const clearFilters = async () => {
     setSearchText('');
     setDebouncedSearchText('');
     setSelectedCategory('');
     setPriceRange([0, 10000]);
     setModalVisible(false);
+
+    LoadingService.show();
+    setLoading(true);
+    await Promise.all([
+      fetchNewArrivals({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+      fetchTrending({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+      fetchPremium({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+    ]);
+    LoadingService.hide();
+    setLoading(false);
   };
 
+  // ✅ FIXED — searches BOTH home + premium lists
   const handleSearch = async () => {
     const query = searchText.trim();
     setDebouncedSearchText(query);
@@ -927,20 +1000,44 @@ export default function Dashboard() {
     await Promise.all([
       fetchNewArrivals({ searchText: query, selectedCategory, priceRange }),
       fetchTrending({ searchText: query, selectedCategory, priceRange }),
+      fetchPremium({ searchText: query, selectedCategory, priceRange }),
     ]);
     LoadingService.hide();
     setLoading(false);
   };
 
-  const clearSearch = () => {
+  // ✅ FIXED — reset search AND restore full list (both tabs)
+  const clearSearch = async () => {
     setSearchText('');
     setDebouncedSearchText('');
-    fetchNewArrivals({ searchText: '', selectedCategory, priceRange });
-    fetchTrending({ searchText: '', selectedCategory, priceRange });
+    setSelectedCategory('');
+    setPriceRange([0, 10000]);
+
+    LoadingService.show();
+    setLoading(true);
+    await Promise.all([
+      fetchNewArrivals({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+      fetchTrending({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+      fetchPremium({
+        searchText: '',
+        selectedCategory: '',
+        priceRange: [0, 10000],
+      }),
+    ]);
+    LoadingService.hide();
+    setLoading(false);
   };
 
+  // ✅ FIXED — no longer sets selectedCategory state, so the chip won't stay highlighted
   const navigateToCategory = (item: any) => {
-    setSelectedCategory(item._id);
     navigation.navigate('CategoryScreen', {
       mainCategory: item.name,
       displayTitle: item.name,
@@ -1119,7 +1216,6 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Wishlist with count badge — unchanged */}
         <TouchableOpacity
           style={styles.topIconBtn}
           onPress={() => navigation.navigate('FavoritesPage')}
@@ -1135,7 +1231,6 @@ export default function Dashboard() {
           </View>
         </TouchableOpacity>
 
-        {/* ✅ FIXED — uses NotificationBadge which pulls unread count from context */}
         <NotificationBadge size={26} color="#111" style={styles.topIconBtn} />
       </View>
 
@@ -1185,7 +1280,7 @@ export default function Dashboard() {
                   style={[
                     styles.categoryFilterButton,
                     selectedCategory === cat._id &&
-                    styles.categoryFilterButtonActive,
+                      styles.categoryFilterButtonActive,
                   ]}
                   onPress={() => {
                     setSelectedCategory(cat._id);
@@ -1197,7 +1292,7 @@ export default function Dashboard() {
                     style={[
                       styles.categoryFilterText,
                       selectedCategory === cat._id &&
-                      styles.categoryFilterTextActive,
+                        styles.categoryFilterTextActive,
                     ]}
                   >
                     {cat.name}
@@ -1263,7 +1358,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  // TOP TABS
+  // ✅ TOP TABS — original design preserved
   topTabsSafe: {
     backgroundColor: '#FFFF',
   },
