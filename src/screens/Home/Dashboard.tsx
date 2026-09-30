@@ -55,7 +55,7 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 // ============================================
-// TOP TABS — original design
+// TOP TABS
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -829,7 +829,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ FIXED — supports search + category + price filters
   const fetchPremium = async ({
     searchText = '',
     selectedCategory = '',
@@ -899,7 +898,6 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  // ✅ FIXED — category / price changes reload premium too
   useEffect(() => {
     if (!loading) {
       const loadData = async () => {
@@ -933,7 +931,6 @@ export default function Dashboard() {
     navigation.navigate('ProductDetails', { itemId: id });
   };
 
-  // ✅ FIXED — filters apply to premium too
   const applyFilter = async () => {
     setModalVisible(false);
     LoadingService.show();
@@ -959,7 +956,6 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // ✅ FIXED — resets AND reloads both tabs
   const clearFilters = async () => {
     setSearchText('');
     setDebouncedSearchText('');
@@ -990,7 +986,6 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // ✅ FIXED — searches BOTH home + premium lists
   const handleSearch = async () => {
     const query = searchText.trim();
     setDebouncedSearchText(query);
@@ -1006,7 +1001,6 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // ✅ FIXED — reset search AND restore full list (both tabs)
   const clearSearch = async () => {
     setSearchText('');
     setDebouncedSearchText('');
@@ -1036,17 +1030,22 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // ✅ FIXED — no longer sets selectedCategory state, so the chip won't stay highlighted
+  // ✅ FIXED — pass BOTH the category _id AND the display name
+  // The CategoryScreen will use categoryId for API filtering and categoryName for the header title
   const navigateToCategory = (item: any) => {
     navigation.navigate('CategoryScreen', {
-      mainCategory: item.name,
-      displayTitle: item.name,
+      mainCategory: item._id,        // ✅ Use _id for API filtering
+      displayTitle: item.name,       // ✅ Use name for the header title
     });
   };
 
   const handleBannerPress = (banner: any) => {
     if (banner.linkType === 'collection' && banner.link) {
-      navigation.navigate('CategoryScreen', { mainCategory: banner.link });
+      // banner.link may already be a category _id or name — pass as both
+      navigation.navigate('CategoryScreen', {
+        mainCategory: banner.link,
+        displayTitle: banner.link,
+      });
     } else if (banner.linkType === 'product' && banner.linkId) {
       navigation.navigate('ProductDetails', { itemId: banner.linkId });
     }
@@ -1326,7 +1325,7 @@ export default function Dashboard() {
               maximumValue={10000}
               value={priceRange[1]}
               onValueChange={value =>
-                setPriceRange([priceRange[0], Math.round(value)])
+                setPriceRange([value, priceRange[1]])
               }
             />
 
@@ -1344,29 +1343,12 @@ export default function Dashboard() {
 // STYLES
 // ============================================
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  mainScrollContent: { paddingHorizontal: 15 },
+  columnWrapper: { justifyContent: 'space-between', marginBottom: 15 },
 
-  mainScrollContent: {
-    paddingHorizontal: 15,
-  },
-
-  columnWrapper: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-
-  // ✅ TOP TABS — original design preserved
-  topTabsSafe: {
-    backgroundColor: '#FFFF',
-  },
-  topTabsBar: {
-    backgroundColor: '#FFFF',
-    paddingTop: 0,
-    paddingBottom: 0,
-  },
+  topTabsSafe: { backgroundColor: '#FFFF' },
+  topTabsBar: { backgroundColor: '#FFFF', paddingTop: 0, paddingBottom: 0 },
   topTabsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -1408,23 +1390,10 @@ const styles = StyleSheet.create({
     borderColor: '#F2D5DC',
     borderBottomWidth: 0,
   },
-  topTabInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topTabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#9E0E26',
-    letterSpacing: 0.3,
-  },
-  topTabTextActive: {
-    fontWeight: '700',
-    color: '#9E0E26',
-  },
+  topTabInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  topTabText: { fontSize: 15, fontWeight: '600', color: '#9E0E26', letterSpacing: 0.3 },
+  topTabTextActive: { fontWeight: '700', color: '#9E0E26' },
 
-  // SEARCH BAR ROW
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1444,20 +1413,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  searchLogo: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#111',
-    paddingVertical: 0,
-  },
-  topIconBtn: {
-    padding: 2,
-  },
+  searchLogo: { width: 24, height: 24, marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: '#111', paddingVertical: 0 },
+  topIconBtn: { padding: 2 },
   badge: {
     position: 'absolute',
     top: -2,
@@ -1471,13 +1429,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: 4,
   },
-  badgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
+  badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
-  // Category
   categoryWrapper: { marginVertical: 8 },
   categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
@@ -1493,15 +1446,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryItemActive: { backgroundColor: '#9E0E26', borderColor: '#9E0E26' },
-  categoryName: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
+  categoryName: { fontSize: 10, fontWeight: '500', color: '#FFFFFF', textAlign: 'center' },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  // FEATURE BADGES
   featuresContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1538,24 +1485,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginHorizontal: 0,
   },
-  featureTextWrapper: {
-    flexShrink: 1,
-    justifyContent: 'center',
-  },
-  featureTitle: {
-    fontSize: 9,
-    color: '#9E0E26',
-    fontWeight: '700',
-    lineHeight: 11,
-  },
-  featureSubtext: {
-    fontSize: 6,
-    color: '#888',
-    fontWeight: '400',
-    lineHeight: 9,
-  },
+  featureTextWrapper: { flexShrink: 1, justifyContent: 'center' },
+  featureTitle: { fontSize: 9, color: '#9E0E26', fontWeight: '700', lineHeight: 11 },
+  featureSubtext: { fontSize: 6, color: '#888', fontWeight: '400', lineHeight: 9 },
 
-  // PRODUCT CARD
   productCard: {
     width: '48%',
     backgroundColor: '#fff',
@@ -1565,21 +1498,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  megaDropRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
+  megaDropRow: { flexDirection: 'row', marginBottom: 6 },
   megaDropBadge: {
     backgroundColor: '#E9445A',
     borderRadius: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  megaDropText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  megaDropText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   imageWrapper: { position: 'relative' },
   productImage: {
     width: '100%',
@@ -1587,12 +1513,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#F5F5F5',
   },
-  favoriteBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    padding: 2,
-  },
+  favoriteBtn: { position: 'absolute', top: 8, right: 8, padding: 2 },
   ratingPill: {
     position: 'absolute',
     bottom: 8,
@@ -1605,36 +1526,12 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     gap: 3,
   },
-  ratingPillText: {
-    color: '#111',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  ratingDivider: {
-    width: 1,
-    height: 10,
-    backgroundColor: '#D0D0D0',
-    marginHorizontal: 2,
-  },
-  productInfo: {
-    paddingTop: 8,
-    paddingHorizontal: 2,
-    paddingBottom: 10,
-  },
-  productTitle: {
-    fontSize: 13,
-    color: '#111',
-    marginBottom: 6,
-  },
-  productTitleBold: {
-    fontWeight: '700',
-    color: '#111',
-  },
-  productTitleNormal: {
-    fontWeight: '400',
-    color: '#333',
-  },
-
+  ratingPillText: { color: '#111', fontSize: 11, fontWeight: '700' },
+  ratingDivider: { width: 1, height: 10, backgroundColor: '#D0D0D0', marginHorizontal: 2 },
+  productInfo: { paddingTop: 8, paddingHorizontal: 2, paddingBottom: 10 },
+  productTitle: { fontSize: 13, color: '#111', marginBottom: 6 },
+  productTitleBold: { fontWeight: '700', color: '#111' },
+  productTitleNormal: { fontWeight: '400', color: '#333' },
   megaDropInline: {
     alignSelf: 'flex-start',
     backgroundColor: '#FCEBED',
@@ -1643,34 +1540,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     marginBottom: 6,
   },
-  megaDropInlineText: {
-    color: '#E9445A',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  strikePrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
-  },
-  finalPrice: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#111',
-  },
-  discountText: {
-    fontSize: 13,
-    color: '#9E0E26',
-    fontWeight: '700',
-  },
+  megaDropInlineText: { color: '#E9445A', fontSize: 10, fontWeight: '700' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  strikePrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through' },
+  finalPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
+  discountText: { fontSize: 13, color: '#9E0E26', fontWeight: '700' },
 
-  // Premium styles
   premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
   premiumHeader: {
     flexDirection: 'row',
@@ -1689,19 +1564,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  premiumTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    letterSpacing: 0.3,
-  },
+  premiumTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', letterSpacing: 0.3 },
   premiumSeeAll: { flexDirection: 'row', alignItems: 'center' },
-  premiumSeeAllText: {
-    fontSize: 13,
-    color: '#9E0E26',
-    fontWeight: '600',
-    marginRight: 2,
-  },
+  premiumSeeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600', marginRight: 2 },
   premiumTag: {
     position: 'absolute',
     top: 8,
@@ -1712,14 +1577,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     zIndex: 2,
   },
-  premiumTagText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
+  premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
-  // Sections
   newArrivalSection: { marginTop: 8 },
   newArrivalHeader: {
     flexDirection: 'row',
@@ -1729,14 +1588,8 @@ const styles = StyleSheet.create({
   },
   newArrivalTitle: { fontSize: 12, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
-  noRecordsText: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 20,
-  },
+  noRecordsText: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 20 },
 
-  // Modal
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1757,17 +1610,8 @@ const styles = StyleSheet.create({
   },
   clearText: { fontSize: 16, color: '#151515' },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginVertical: 10,
-  },
-  priceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
+  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', marginVertical: 10 },
+  priceHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   priceText: { fontSize: 16, fontWeight: '600' },
   sliderTitle: { fontSize: 14, marginTop: 10, marginBottom: 5, color: '#555' },
   categoryFilter: {
@@ -1800,7 +1644,6 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  // Banner
   bannerWrapper: {
     marginVertical: 8,
     borderRadius: 12,
@@ -1823,11 +1666,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: 6,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)' },
   activeDot: { backgroundColor: '#9E0E26', width: 20 },
 });
