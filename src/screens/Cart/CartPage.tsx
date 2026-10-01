@@ -71,11 +71,16 @@ const CartScreen: React.FC = () => {
   const [sizeModalVisible, setSizeModalVisible] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
-
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [showCouponInput, setShowCouponInput] = useState(false);
+  // ✅ Store full applied coupon info to send to backend
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountType: 'percentage' | 'fixed';
+    discountValue: number;
+  } | null>(null);
 
   const FREE_SHIPPING_THRESHOLD = 999;
 
@@ -590,19 +595,38 @@ const CartScreen: React.FC = () => {
       return;
     }
 
-    if (couponCode.toUpperCase() === 'SAVE10') {
-      const total = bagTotal - savings;
-      setCouponDiscount(total * 0.1);
-      setCouponApplied(true);
-      snackbar.success('Coupon applied successfully!');
-    } else if (couponCode.toUpperCase() === 'SAVE20') {
-      const total = bagTotal - savings;
-      setCouponDiscount(total * 0.2);
-      setCouponApplied(true);
-      snackbar.success('Coupon applied successfully!');
-    } else {
+    const code = couponCode.trim().toUpperCase();
+    const total = bagTotal - savings;
+
+    const COUPONS: Record<
+      string,
+      { discountType: 'percentage' | 'fixed'; discountValue: number }
+    > = {
+      SAVE10: { discountType: 'percentage', discountValue: 10 },
+      SAVE20: { discountType: 'percentage', discountValue: 20 },
+      FLAT50: { discountType: 'fixed', discountValue: 50 },
+      WELCOME100: { discountType: 'fixed', discountValue: 100 },
+    };
+
+    const found = COUPONS[code];
+    if (!found) {
       snackbar.error('Please enter a valid coupon code', 'Invalid Coupon');
+      return;
     }
+
+    const discount =
+      found.discountType === 'percentage'
+        ? (total * found.discountValue) / 100
+        : found.discountValue;
+
+    setCouponDiscount(discount);
+    setCouponApplied(true);
+    setAppliedCoupon({
+      code,
+      discountType: found.discountType,
+      discountValue: found.discountValue,
+    });
+    snackbar.success('Coupon applied successfully!');
   };
 
   const handleRemoveCoupon = () => {
@@ -610,6 +634,7 @@ const CartScreen: React.FC = () => {
     setCouponDiscount(0);
     setCouponCode('');
     setShowCouponInput(false);
+    setAppliedCoupon(null);
   };
 
   /* ================= PRICE CALCULATIONS ================= */
@@ -625,7 +650,7 @@ const CartScreen: React.FC = () => {
       (Number(i.price || 0) *
         Number(i.discount || 0) *
         Number(i.quantity || 0)) /
-        100,
+      100,
     0,
   );
 
@@ -703,7 +728,7 @@ const CartScreen: React.FC = () => {
             <Image
               source={getImageSource(item.imageUrl)}
               style={styles.image}
-              onError={() => {}}
+              onError={() => { }}
             />
           </View>
 
@@ -1052,6 +1077,7 @@ const CartScreen: React.FC = () => {
                 isFreeShipping,
                 subtotal: subtotalAfterDiscount,
                 couponApplied,
+                appliedCoupon,
               })
             }
           >
@@ -1094,7 +1120,7 @@ const CartScreen: React.FC = () => {
             <View style={styles.qtyModal}>
               <Text style={styles.modalTitle}>Select Size</Text>
               {activeItemIndex >= 0 &&
-              cartItems[activeItemIndex]?.availableSizes?.length ? (
+                cartItems[activeItemIndex]?.availableSizes?.length ? (
                 cartItems[activeItemIndex].availableSizes!.map((s: SizeInfo) => {
                   const label = getSizeLabel(s);
                   const isCurrent =
@@ -1117,8 +1143,8 @@ const CartScreen: React.FC = () => {
                           color: isOut
                             ? '#C0C0C0'
                             : isCurrent
-                            ? '#96252A'
-                            : '#111',
+                              ? '#96252A'
+                              : '#111',
                           fontWeight: isCurrent ? '700' : '500',
                         }}
                       >

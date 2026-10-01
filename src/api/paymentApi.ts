@@ -1,7 +1,6 @@
 import config from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 export const createRazorpayOrder = async (amount: number) => {
   try {
     const token = await AsyncStorage.getItem('authToken');
@@ -46,13 +45,29 @@ export const createRazorpayOrder = async (amount: number) => {
   }
 };
 
-export const verifyRazorpayPayment = async (paymentData: {
+/* ============================================================
+   verifyRazorpayPayment — now accepts coupon + discountAmount
+   ============================================================ */
+
+interface CouponPayload {
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+}
+
+interface VerifyPaymentPayload {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
   shippingAddress: any;
   totalPrice: number;
-}) => {
+  coupon?: CouponPayload | null;      // ✅ optional
+  discountAmount?: number;            // ✅ optional
+}
+
+export const verifyRazorpayPayment = async (
+  paymentData: VerifyPaymentPayload,
+) => {
   try {
     const token = await AsyncStorage.getItem('authToken');
 
@@ -68,7 +83,7 @@ export const verifyRazorpayPayment = async (paymentData: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(paymentData),
+      body: JSON.stringify(paymentData),   // ✅ coupon + discountAmount automatically included
     });
 
     console.log('📡 Verification response status:', response.status);

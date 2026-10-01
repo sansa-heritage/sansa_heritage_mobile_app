@@ -90,6 +90,7 @@ const OrderConfirmationScreen: React.FC = () => {
     deliveryFee = 50,
     isFreeShipping = false,
     couponApplied = false,
+    appliedCoupon = null, // ✅ received from CartScreen
   } = route.params || {};
 
   const amountPayable: number = Number(billingDetails);
@@ -108,7 +109,7 @@ const OrderConfirmationScreen: React.FC = () => {
           try {
             const parsed = JSON.parse(storedCart);
             if (Array.isArray(parsed)) setCartItems(parsed);
-          } catch {}
+          } catch { }
         }
 
         const token = await AsyncStorage.getItem('authToken');
@@ -122,7 +123,7 @@ const OrderConfirmationScreen: React.FC = () => {
               const json = await res.json();
               setAddresses(json.addresses || []);
             }
-          } catch {}
+          } catch { }
         }
 
         const storedAddr = await AsyncStorage.getItem('selectedAddress');
@@ -142,7 +143,7 @@ const OrderConfirmationScreen: React.FC = () => {
     setAddress(addr);
     try {
       await AsyncStorage.setItem('selectedAddress', JSON.stringify(addr));
-    } catch {}
+    } catch { }
     setAddressModalVisible(false);
   };
 
@@ -189,6 +190,9 @@ const OrderConfirmationScreen: React.FC = () => {
       address,
       orderId: `ORD${Date.now()}`,
       productName: 'Sansa Heritage Order',
+      // ✅ forward coupon to PaymentPage
+      coupon: appliedCoupon,
+      discountAmount: couponApplied ? Number(couponDiscount) : 0,
     });
   };
 

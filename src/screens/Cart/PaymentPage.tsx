@@ -36,6 +36,8 @@ const PaymentPage: React.FC = () => {
     amount = 0,
     address,
     productName = 'Sansa Heritage Order',
+    coupon = null,         // ✅ received from CheckoutPage
+    discountAmount = 0,    // ✅ received from CheckoutPage
   } = route.params || {};
 
   const finalAmount = Math.round(amount);
@@ -55,7 +57,7 @@ const PaymentPage: React.FC = () => {
   const createOrderOnBackend = async (): Promise<string | null> => {
     try {
       console.log('📦 Creating order for amount (rupees):', finalAmount);
-      
+
       const result = await createRazorpayOrder(finalAmount);
       console.log('Order response:', result);
 
@@ -102,7 +104,7 @@ const PaymentPage: React.FC = () => {
           : 'No address',
       },
       theme: { color: '#F67952' },
-      modal: { 
+      modal: {
         backdropclose: false,
         confirm_close: true,
       },
@@ -134,11 +136,11 @@ const PaymentPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Payment error details:', JSON.stringify(error, null, 2));
-      
+
       // Comprehensive error parsing
       let errorCode = '';
       let errorDescription = '';
-      
+
       // Handle different error formats
       if (typeof error === 'object') {
         // Check nested error object
@@ -162,7 +164,7 @@ const PaymentPage: React.FC = () => {
           }
         }
       }
-      
+
       // If error is a string
       if (typeof error === 'string') {
         try {
@@ -176,7 +178,7 @@ const PaymentPage: React.FC = () => {
 
       // Check if it's a cancellation
       const errorString = JSON.stringify(error).toLowerCase();
-      const isCancellation = 
+      const isCancellation =
         errorString.includes('cancel') ||
         errorString.includes('exit') ||
         errorString.includes('user_cancelled') ||
@@ -195,14 +197,14 @@ const PaymentPage: React.FC = () => {
           'Payment Cancelled',
           'You have cancelled the payment process.',
           [
-            { 
-              text: 'Go Back', 
+            {
+              text: 'Go Back',
               onPress: () => navigation.goBack(),
               style: 'cancel'
             },
-            { 
-              text: 'Retry', 
-              onPress: () => handlePayment() 
+            {
+              text: 'Retry',
+              onPress: () => handlePayment()
             }
           ]
         );
@@ -273,6 +275,7 @@ const PaymentPage: React.FC = () => {
       };
 
       console.log('🔐 Verifying payment with ID:', data.paymentId);
+      console.log('🎟️ Coupon:', coupon, 'Discount:', discountAmount);
 
       const result = await verifyRazorpayPayment({
         razorpay_order_id: data.orderId,
@@ -280,6 +283,9 @@ const PaymentPage: React.FC = () => {
         razorpay_signature: data.signature,
         shippingAddress: formattedAddress,
         totalPrice: finalAmount,
+        // ✅ send coupon data to backend
+        coupon: coupon,
+        discountAmount: Number(discountAmount) || 0,
       });
 
       console.log('Verification response:', result);
