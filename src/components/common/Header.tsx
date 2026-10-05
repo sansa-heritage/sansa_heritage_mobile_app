@@ -166,7 +166,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   /* ========== ORDER DETAILS — Only "Help" button ========== */
   if (isOrderDetails) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <StatusBar
           barStyle="dark-content"
           backgroundColor="#FFFFFF"

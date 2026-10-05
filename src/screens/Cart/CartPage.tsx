@@ -8,10 +8,13 @@ import {
   FlatList,
   Modal,
   Alert,
-  SafeAreaView,
   Dimensions,
   TextInput,
 } from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -60,6 +63,7 @@ interface CartItem {
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const insets = useSafeAreaInsets(); // ✅ device safe area
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -650,7 +654,7 @@ const CartScreen: React.FC = () => {
       (Number(i.price || 0) *
         Number(i.discount || 0) *
         Number(i.quantity || 0)) /
-      100,
+        100,
     0,
   );
 
@@ -669,7 +673,10 @@ const CartScreen: React.FC = () => {
   const amountPayable =
     subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
 
-  const totalYouSaved = savings + couponDiscount;
+  // ✅ Tiered savings logic
+  const hasCouponSavings = couponApplied && couponDiscount > 0;
+  const hasMrpSavings = savings > 0;
+  const totalYouSaved = hasCouponSavings ? savings + couponDiscount : 0;
 
   /* ================= LOADER ================= */
 
@@ -728,7 +735,7 @@ const CartScreen: React.FC = () => {
             <Image
               source={getImageSource(item.imageUrl)}
               style={styles.image}
-              onError={() => { }}
+              onError={() => {}}
             />
           </View>
 
@@ -809,7 +816,7 @@ const CartScreen: React.FC = () => {
   /* ================= UI ================= */
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <View style={styles.container}>
         <FlatList
           data={cartItems}
@@ -923,37 +930,60 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Free shipping progress bar */}
-              {cartItems.length > 0 && !isFreeShipping && (
-                <View style={styles.freeShippingCard}>
+              {/* Free shipping bar — locked or unlocked */}
+              {cartItems.length > 0 && (
+                <View
+                  style={[
+                    styles.freeShippingCard,
+                    isFreeShipping && styles.freeShippingCardUnlocked,
+                  ]}
+                >
                   <View style={styles.shippingRow}>
                     <Ionicons
-                      name="bicycle-outline"
+                      name={
+                        isFreeShipping ? 'checkmark-circle' : 'bicycle-outline'
+                      }
                       size={16}
                       color="#4CAF50"
                     />
                     <Text style={styles.shippingText}>
-                      Add{' '}
-                      <Text style={styles.shippingAmount}>
-                        ₹{remainingForFreeShipping.toFixed(0)}
-                      </Text>{' '}
-                      more to get FREE Shipping!
+                      {isFreeShipping ? (
+                        <>
+                          <Text style={styles.shippingUnlockedText}>
+                            Free Shipping Unlocked!
+                          </Text>{' '}
+                          🎉
+                        </>
+                      ) : (
+                        <>
+                          Add{' '}
+                          <Text style={styles.shippingAmount}>
+                            ₹{remainingForFreeShipping.toFixed(0)}
+                          </Text>{' '}
+                          more to get FREE Shipping!
+                        </>
+                      )}
                     </Text>
                   </View>
-                  <View style={styles.progressBarContainer}>
-                    <View
-                      style={[
-                        styles.progressBar,
-                        { width: `${progressPercentage}%` },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.progressLabels}>
-                    <Text style={styles.progressLabel}>₹0</Text>
-                    <Text style={styles.progressLabel}>
-                      ₹{FREE_SHIPPING_THRESHOLD}
-                    </Text>
-                  </View>
+
+                  {!isFreeShipping && (
+                    <>
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[
+                            styles.progressBar,
+                            { width: `${progressPercentage}%` },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.progressLabels}>
+                        <Text style={styles.progressLabel}>₹0</Text>
+                        <Text style={styles.progressLabel}>
+                          ₹{FREE_SHIPPING_THRESHOLD}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                 </View>
               )}
 
@@ -1005,17 +1035,29 @@ const CartScreen: React.FC = () => {
                   </Text>
                 </View>
 
-                {totalYouSaved > 0 && (
+                {hasCouponSavings && (
                   <View style={styles.savedBannerInline}>
                     <View style={styles.savedIconCircle}>
                       <Ionicons name="pricetag" size={12} color="#fff" />
                     </View>
                     <Text style={styles.savedBannerText}>
-                      You're saving{' '}
-                      <Text style={styles.savedBannerAmount}>
-                        ₹{totalYouSaved.toFixed(0)}
-                      </Text>{' '}
-                      on this order
+                      {hasMrpSavings ? (
+                        <>
+                          You saved{' '}
+                          <Text style={styles.savedBannerAmount}>
+                            ₹{totalYouSaved.toFixed(0)}
+                          </Text>{' '}
+                          (₹{savings.toFixed(0)} MRP + ₹
+                          {couponDiscount.toFixed(0)} coupon)
+                        </>
+                      ) : (
+                        <>
+                          Coupon saved you{' '}
+                          <Text style={styles.savedBannerAmount}>
+                            ₹{couponDiscount.toFixed(0)}
+                          </Text>
+                        </>
+                      )}
                     </Text>
                   </View>
                 )}
@@ -1060,7 +1102,12 @@ const CartScreen: React.FC = () => {
         />
 
         {/* FOOTER */}
-        <View style={styles.footer}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, 12) },
+          ]}
+        >
           <View>
             <Text style={styles.subTotal}>₹ {amountPayable.toFixed(0)}</Text>
             <Text style={styles.subLabel}>Total amount</Text>
@@ -1120,7 +1167,7 @@ const CartScreen: React.FC = () => {
             <View style={styles.qtyModal}>
               <Text style={styles.modalTitle}>Select Size</Text>
               {activeItemIndex >= 0 &&
-                cartItems[activeItemIndex]?.availableSizes?.length ? (
+              cartItems[activeItemIndex]?.availableSizes?.length ? (
                 cartItems[activeItemIndex].availableSizes!.map((s: SizeInfo) => {
                   const label = getSizeLabel(s);
                   const isCurrent =
@@ -1143,8 +1190,8 @@ const CartScreen: React.FC = () => {
                           color: isOut
                             ? '#C0C0C0'
                             : isCurrent
-                              ? '#96252A'
-                              : '#111',
+                            ? '#96252A'
+                            : '#111',
                           fontWeight: isCurrent ? '700' : '500',
                         }}
                       >
@@ -1493,6 +1540,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8F5E9',
   },
+  freeShippingCardUnlocked: {
+    backgroundColor: '#F1F8E9',
+    borderColor: '#C5E1A5',
+  },
+  shippingUnlockedText: {
+    color: '#2E7D32',
+    fontWeight: '700',
+  },
   shippingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1645,17 +1700,24 @@ const styles = StyleSheet.create({
 
   footer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 0,
     left: 0,
     right: 0,
-    padding: 12,
-    paddingBottom: 14,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    // paddingBottom set dynamically via insets
     backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
     borderColor: '#eee',
+    // ✅ subtle shadow so it separates from content
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 6,
   },
   subTotal: {
     fontSize: 15,
