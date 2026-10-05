@@ -210,7 +210,7 @@ const OrderConfirmationScreen: React.FC = () => {
   const dyn = {
     scrollContent: {
       // ✅ Zero top padding — safe-area handles the notch
-      paddingTop: 0,
+      paddingTop: s(8),
       paddingHorizontal: s(12),
       paddingBottom: s(100) + insets.bottom + s(16),
     },
@@ -349,7 +349,7 @@ const OrderConfirmationScreen: React.FC = () => {
 
   /* ============ RENDER ============ */
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={[ 'left', 'right']}>
       <ScrollView
         contentContainerStyle={dyn.scrollContent}
         showsVerticalScrollIndicator={false}
