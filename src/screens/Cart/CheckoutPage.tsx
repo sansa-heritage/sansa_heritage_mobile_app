@@ -8,7 +8,6 @@ import {
   Image,
   Alert,
   BackHandler,
-  ActivityIndicator,
   Modal,
   useWindowDimensions,
 } from 'react-native';
@@ -90,7 +89,7 @@ const OrderConfirmationScreen: React.FC = () => {
     deliveryFee = 50,
     isFreeShipping = false,
     couponApplied = false,
-    appliedCoupon = null, // ✅ received from CartScreen
+    appliedCoupon = null,
   } = route.params || {};
 
   const amountPayable: number = Number(billingDetails);
@@ -102,6 +101,7 @@ const OrderConfirmationScreen: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        // ✅ Show the global logo loader (AnimatedLogoLoader at App root)
         LoadingService.show();
 
         const storedCart = await AsyncStorage.getItem('cartSnapshot');
@@ -131,6 +131,7 @@ const OrderConfirmationScreen: React.FC = () => {
       } catch (e) {
         console.log('Load error', e);
       } finally {
+        // ✅ Hide the global logo loader
         LoadingService.hide();
         setLoading(false);
       }
@@ -190,26 +191,21 @@ const OrderConfirmationScreen: React.FC = () => {
       address,
       orderId: `ORD${Date.now()}`,
       productName: 'Sansa Heritage Order',
-      // ✅ forward coupon to PaymentPage
       coupon: appliedCoupon,
       discountAmount: couponApplied ? Number(couponDiscount) : 0,
     });
   };
 
+  // ✅ Empty placeholder while loading — global AnimatedLogoLoader shows on top
+  //    No plain spinner here, and no blank white flash — the neutral background
+  //    prevents a black frame while the logo loader is visible.
   if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#9E0E26" />
-        </View>
-      </SafeAreaView>
-    );
+    return <View style={{ flex: 1, backgroundColor: '#F5F5F5' }} />;
   }
 
   /* ============ DYNAMIC STYLES ============ */
   const dyn = {
     scrollContent: {
-      // ✅ Zero top padding — safe-area handles the notch
       paddingTop: s(8),
       paddingHorizontal: s(12),
       paddingBottom: s(100) + insets.bottom + s(16),
@@ -349,7 +345,7 @@ const OrderConfirmationScreen: React.FC = () => {
 
   /* ============ RENDER ============ */
   return (
-    <SafeAreaView style={styles.safeArea} edges={[ 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <ScrollView
         contentContainerStyle={dyn.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -439,7 +435,7 @@ const OrderConfirmationScreen: React.FC = () => {
             )}
           </View>
 
-          {/* ITEMS PREVIEW */}
+          {/* ITEMS PREVIEW — shows ALL items */}
           {cartItems.length > 0 && (
             <View style={[styles.card, dyn.card]}>
               <View style={[styles.cardHeaderRow, dyn.cardHeaderRow]}>
@@ -455,7 +451,7 @@ const OrderConfirmationScreen: React.FC = () => {
                 </View>
               </View>
 
-              {cartItems.slice(0, 3).map((item, idx) => {
+              {cartItems.map((item, idx) => {
                 const imgSrc = resolveImage(item.imageUrl);
                 const { boldPart, normalPart } = splitTitle(
                   item.name || '',
@@ -505,15 +501,6 @@ const OrderConfirmationScreen: React.FC = () => {
                   </View>
                 );
               })}
-
-              {cartItems.length > 3 && (
-                <Text
-                  style={[styles.moreItemsText, dyn.moreItemsText]}
-                >
-                  + {cartItems.length - 3} more item
-                  {cartItems.length - 3 > 1 ? 's' : ''}
-                </Text>
-              )}
             </View>
           )}
 
@@ -816,7 +803,6 @@ export default OrderConfirmationScreen;
 /* ============ STATIC STYLES ============ */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F5F5F5' },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   card: {
     backgroundColor: '#fff',

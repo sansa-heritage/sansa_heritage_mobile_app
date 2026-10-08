@@ -393,13 +393,10 @@ const CartScreen: React.FC = () => {
 
   /* ================= ADDRESS ================= */
 
-  // ✅ Snackbar confirmation on address selection
   const selectAddress = async (address: Address) => {
     setDeliveryAddress(address);
     await AsyncStorage.setItem('selectedAddress', JSON.stringify(address));
     setAddressModalVisible(false);
-
-    // ✅ NEW — snackbar confirmation
     snackbar.success('Delivery address updated');
   };
 
@@ -930,7 +927,7 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Free shipping bar — locked or unlocked */}
+              {/* Free shipping bar */}
               {cartItems.length > 0 && (
                 <View
                   style={[
@@ -987,7 +984,7 @@ const CartScreen: React.FC = () => {
                 </View>
               )}
 
-              {/* Price Details — saving banner inside */}
+              {/* Price Details */}
               <View style={styles.orderDetailsCard}>
                 <Text style={styles.sectionTitle}>Price Details</Text>
 
@@ -1114,7 +1111,26 @@ const CartScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.checkoutBtn}
-            onPress={() =>
+            onPress={async () => {
+              // ✅ Save cart snapshot for Checkout page
+              try {
+                const snapshot = cartItems.map((it) => ({
+                  productId: it.productId,
+                  name: it.name,
+                  price: it.price,
+                  quantity: it.quantity,
+                  imageUrl: it.imageUrl,
+                  discount: it.discount,
+                }));
+                await AsyncStorage.setItem(
+                  'cartSnapshot',
+                  JSON.stringify(snapshot),
+                );
+                console.log('✅ Cart snapshot saved:', snapshot.length, 'items');
+              } catch (e) {
+                console.log('Snapshot save error:', e);
+              }
+
               navigation.navigate('CheckoutPage' as any, {
                 billingDetails: amountPayable,
                 bagTotal,
@@ -1125,8 +1141,8 @@ const CartScreen: React.FC = () => {
                 subtotal: subtotalAfterDiscount,
                 couponApplied,
                 appliedCoupon,
-              })
-            }
+              });
+            }}
           >
             <Text style={styles.checkoutText}>PLACE ORDER</Text>
           </TouchableOpacity>
@@ -1300,7 +1316,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  /* ── ITEM LIST ── */
   itemWrapper: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
@@ -1441,7 +1456,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 14,
   },
 
-  /* ── Coupon ── */
   couponHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1662,7 +1676,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  /* Kept for backwards-compat — unused now */
   savedCard: {
     marginHorizontal: 16,
     marginBottom: 10,
@@ -1705,14 +1718,12 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 12,
     paddingTop: 12,
-    // paddingBottom set dynamically via insets
     backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
     borderColor: '#eee',
-    // ✅ subtle shadow so it separates from content
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,

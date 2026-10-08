@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Dimensions,
-  Alert,
   StatusBar,
   Share,
 } from 'react-native';
@@ -23,6 +22,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { addToCart } from '../../api/cartApi';
 import LoadingService from '../../services/LoadingService';
+import { snackbar } from '../../components/common/Snackbar';
 
 const { width } = Dimensions.get('window');
 
@@ -92,10 +92,15 @@ const FavoriteScreen = () => {
         return newMap;
       });
 
+      // ✅ Snackbar feedback
+      snackbar.success('Removed from wishlist');
+
       eventBus.emit('ITEM_REMOVED', { id: 123 });
       eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       console.log('❌ Error removing favorite:', err);
+      // ✅ Snackbar error
+      snackbar.error('Failed to remove from wishlist');
     }
   };
 
@@ -126,10 +131,14 @@ const FavoriteScreen = () => {
     try {
       LoadingService.show('Adding to cart...');
       await addToCart(productId, 1, colorValue, sizeValue);
-      Alert.alert('Success', 'Item added to cart successfully!');
+
+      // ✅ Only snackbar — no Alert modal
+      snackbar.success('Item added to cart successfully!');
+
       eventBus.emit('CART_UPDATED', {});
     } catch (error) {
-      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+      // ✅ Only snackbar — no Alert modal
+      snackbar.error('Failed to add item to cart. Please try again.');
     } finally {
       LoadingService.hide();
     }
@@ -293,7 +302,7 @@ const FavoriteScreen = () => {
             </View>
           )}
 
-          {/* ✅ NEW — Remove (X) — top-left */}
+          {/* ✅ Remove (X) — top-left */}
           <TouchableOpacity
             style={styles.removeIcon}
             onPress={() => handleRemoveFavorite(productId)}
@@ -535,7 +544,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // ✅ NEW — Remove (X) — top-left
+  // ✅ Remove (X) — top-left
   removeIcon: {
     position: 'absolute',
     top: 6,
