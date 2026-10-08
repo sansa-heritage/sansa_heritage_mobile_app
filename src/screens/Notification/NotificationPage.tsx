@@ -109,17 +109,15 @@ const NotificationScreen: React.FC = () => {
   const filterNotifications = () => {
     if (selectedTab === "All") return notifications;
     return notifications.filter((notification) => {
-      if (selectedTab === "Orders") return notification.type === "order";
-      if (selectedTab === "Offers") return notification.type === "promotion";
-      if (selectedTab === "Updates") {
-        return notification.type === "system" || notification.type === "general";
-      }
+      // ✅ Cast to string for safe comparison against extra values
+      //    that aren't in the base Notification type union yet.
+      const t = notification.type as string;
+
+      if (selectedTab === "Orders") return t === "order";
+      if (selectedTab === "Offers") return t === "promotion";
+      if (selectedTab === "Updates") return t === "system" || t === "general";
       if (selectedTab === "Reminders") {
-        return (
-          notification.type === "reminder" ||
-          notification.type === "cart" ||
-          notification.type === "wishlist"
-        );
+        return t === "reminder" || t === "cart" || t === "wishlist";
       }
       return true;
     });
@@ -207,8 +205,9 @@ const NotificationScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.titleSection}>
-        {unreadCount > 0 && (
+      {/* ✅ Mark all read button — right aligned, no page title (fixed header exists) */}
+      {unreadCount > 0 && (
+        <View style={styles.markAllRow}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={markAllAsRead}
@@ -216,8 +215,8 @@ const NotificationScreen: React.FC = () => {
           >
             <Text style={styles.markAllText}>Mark all read</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
 
       <View style={styles.tabsWrapper}>
         <ScrollView
@@ -265,18 +264,19 @@ const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
 
-  titleSection: {
+  /* ✅ Mark-all row — no page title, right aligned */
+  markAllRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "flex-end",
+    alignItems: "center",
     paddingHorizontal: scale(14),
-    paddingTop: scale(8),
+    paddingTop: scale(6),
     paddingBottom: scale(4),
     backgroundColor: "#F8F9FA",
   },
   markAllButton: {
-    paddingHorizontal: scale(9),
-    paddingVertical: scale(3),
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(5),
     borderRadius: 14,
     backgroundColor: "#9E0E26",
   },
@@ -288,6 +288,7 @@ const styles = StyleSheet.create({
 
   tabsWrapper: {
     paddingHorizontal: scale(14),
+    paddingTop: scale(4),
     paddingBottom: scale(8),
     backgroundColor: "#F8F9FA",
   },
@@ -323,7 +324,6 @@ const styles = StyleSheet.create({
     paddingBottom: scale(20),
   },
 
-  /* ✅ FIXED — shadow removed */
   notificationCard: {
     flexDirection: "row",
     alignItems: "flex-start",
