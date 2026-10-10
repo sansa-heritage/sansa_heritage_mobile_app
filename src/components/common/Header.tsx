@@ -82,17 +82,21 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const isOrderDetails = currentRoute === "OrderDetails";
 
   // ✅ Hide notification bell on these pages
-  //    ✅ NEW — NotificationScreen also hides the bell (can't navigate to itself)
   const hideNotification =
     currentRoute === "CategoryScreen" ||
     currentRoute === "ProductDetails" ||
     currentRoute === "CartPage" ||
     currentRoute === "NotificationScreen";
 
-  // ✅ Hide ALL icons on AccountPage AND HelpCenter
-  //    ✅ NEW — HelpCenter is a focused flow, no wishlist/cart/bell
+  // ✅ Hide ALL icons (wishlist, cart, bell) on focused flows:
+  //    AccountPage, HelpCenter, and the static info pages
   const hideAllIcons =
-    currentRoute === "AccountPage" || currentRoute === "HelpCenter";
+    currentRoute === "AccountPage" ||
+    currentRoute === "HelpCenter" ||
+    currentRoute === "PrivacyPolicy" ||
+    currentRoute === "AboutUs" ||
+    currentRoute === "TermsScreen" ||
+    currentRoute === "ReturnRefundScreen";
 
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
@@ -239,7 +243,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
         </View>
 
         <View style={styles.rightSection}>
-          {/* ✅ Wishlist — hidden on Wishlist, Orders, AccountPage, HelpCenter */}
+          {/* ✅ Wishlist — hidden on Wishlist, Orders, AccountPage, HelpCenter, and info pages */}
           {!isWishlist && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -258,7 +262,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Cart — hidden on Cart, Orders, AccountPage, HelpCenter */}
+          {/* ✅ Cart — hidden on Cart, Orders, AccountPage, HelpCenter, and info pages */}
           {!isCart && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -277,7 +281,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart, NotificationScreen, AccountPage, HelpCenter */}
+          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart, NotificationScreen, AccountPage, HelpCenter, and info pages */}
           {!hideNotification && !hideAllIcons && (
             <NotificationBadge
               size={24}
