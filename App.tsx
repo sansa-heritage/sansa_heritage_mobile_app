@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import config from "./src/config/config";
+console.log("🔧 ENV:", config.env, "| API:", config.baseURL);
 import Header from "./src/components/common/Header";
 import CartPage from "./src/screens/Cart/CartPage";
 import CategoryScreen from "./src/screens/Home/CategoryScreen";
