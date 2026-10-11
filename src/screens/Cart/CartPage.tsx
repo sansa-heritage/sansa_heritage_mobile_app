@@ -63,7 +63,7 @@ interface CartItem {
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const insets = useSafeAreaInsets(); // ✅ device safe area
+  const insets = useSafeAreaInsets();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -79,7 +79,6 @@ const CartScreen: React.FC = () => {
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [showCouponInput, setShowCouponInput] = useState(false);
-  // ✅ Store full applied coupon info to send to backend
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discountType: 'percentage' | 'fixed';
@@ -670,7 +669,6 @@ const CartScreen: React.FC = () => {
   const amountPayable =
     subtotalAfterDiscount - couponDiscount + finalDeliveryFee;
 
-  // ✅ Tiered savings logic
   const hasCouponSavings = couponApplied && couponDiscount > 0;
   const hasMrpSavings = savings > 0;
   const totalYouSaved = hasCouponSavings ? savings + couponDiscount : 0;
@@ -927,63 +925,6 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* Free shipping bar */}
-              {cartItems.length > 0 && (
-                <View
-                  style={[
-                    styles.freeShippingCard,
-                    isFreeShipping && styles.freeShippingCardUnlocked,
-                  ]}
-                >
-                  <View style={styles.shippingRow}>
-                    <Ionicons
-                      name={
-                        isFreeShipping ? 'checkmark-circle' : 'bicycle-outline'
-                      }
-                      size={16}
-                      color="#4CAF50"
-                    />
-                    <Text style={styles.shippingText}>
-                      {isFreeShipping ? (
-                        <>
-                          <Text style={styles.shippingUnlockedText}>
-                            Free Shipping Unlocked!
-                          </Text>{' '}
-                          🎉
-                        </>
-                      ) : (
-                        <>
-                          Add{' '}
-                          <Text style={styles.shippingAmount}>
-                            ₹{remainingForFreeShipping.toFixed(0)}
-                          </Text>{' '}
-                          more to get FREE Shipping!
-                        </>
-                      )}
-                    </Text>
-                  </View>
-
-                  {!isFreeShipping && (
-                    <>
-                      <View style={styles.progressBarContainer}>
-                        <View
-                          style={[
-                            styles.progressBar,
-                            { width: `${progressPercentage}%` },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.progressLabels}>
-                        <Text style={styles.progressLabel}>₹0</Text>
-                        <Text style={styles.progressLabel}>
-                          ₹{FREE_SHIPPING_THRESHOLD}
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </View>
-              )}
-
               {/* Price Details */}
               <View style={styles.orderDetailsCard}>
                 <Text style={styles.sectionTitle}>Price Details</Text>
@@ -1060,6 +1001,63 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
+              {/* ✅ Free shipping card — moved BELOW Price Details */}
+              {cartItems.length > 0 && (
+                <View
+                  style={[
+                    styles.freeShippingCard,
+                    isFreeShipping && styles.freeShippingCardUnlocked,
+                  ]}
+                >
+                  <View style={styles.shippingRow}>
+                    <Ionicons
+                      name={
+                        isFreeShipping ? 'checkmark-circle' : 'bicycle-outline'
+                      }
+                      size={16}
+                      color="#4CAF50"
+                    />
+                    <Text style={styles.shippingText}>
+                      {isFreeShipping ? (
+                        <>
+                          <Text style={styles.shippingUnlockedText}>
+                            Free Shipping Unlocked!
+                          </Text>{' '}
+                          🎉
+                        </>
+                      ) : (
+                        <>
+                          Add{' '}
+                          <Text style={styles.shippingAmount}>
+                            ₹{remainingForFreeShipping.toFixed(0)}
+                          </Text>{' '}
+                          more to get FREE Shipping!
+                        </>
+                      )}
+                    </Text>
+                  </View>
+
+                  {!isFreeShipping && (
+                    <>
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[
+                            styles.progressBar,
+                            { width: `${progressPercentage}%` },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.progressLabels}>
+                        <Text style={styles.progressLabel}>₹0</Text>
+                        <Text style={styles.progressLabel}>
+                          ₹{FREE_SHIPPING_THRESHOLD}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
+
               {/* Policy */}
               <View style={styles.policyCard}>
                 <View style={styles.policyHeader}>
@@ -1112,7 +1110,6 @@ const CartScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.checkoutBtn}
             onPress={async () => {
-              // ✅ Save cart snapshot for Checkout page
               try {
                 const snapshot = cartItems.map((it) => ({
                   productId: it.productId,
@@ -1273,6 +1270,7 @@ const CartScreen: React.FC = () => {
 export default CartScreen;
 
 /* ================= STYLES ================= */
+/* ✅ Styles unchanged — same object as before, kept verbatim */
 
 const styles = StyleSheet.create({
   safeArea: {

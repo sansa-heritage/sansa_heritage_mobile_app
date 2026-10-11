@@ -55,7 +55,7 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 // ============================================
-// TOP TABS
+// TOP TABS (kept for future re-enable — currently unused)
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -1030,18 +1030,15 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  // ✅ FIXED — pass BOTH the category _id AND the display name
-  // The CategoryScreen will use categoryId for API filtering and categoryName for the header title
   const navigateToCategory = (item: any) => {
     navigation.navigate('CategoryScreen', {
-      mainCategory: item._id,        // ✅ Use _id for API filtering
-      displayTitle: item.name,       // ✅ Use name for the header title
+      mainCategory: item._id,
+      displayTitle: item.name,
     });
   };
 
   const handleBannerPress = (banner: any) => {
     if (banner.linkType === 'collection' && banner.link) {
-      // banner.link may already be a category _id or name — pass as both
       navigation.navigate('CategoryScreen', {
         mainCategory: banner.link,
         displayTitle: banner.link,
@@ -1181,9 +1178,11 @@ export default function Dashboard() {
         translucent={false}
       />
 
-      <SafeAreaView edges={['top']} style={styles.topTabsSafe}>
+      {/* ✅ TABS HIDDEN — SafeAreaView kept to preserve top inset (status bar area) */}
+      <SafeAreaView edges={['top']} style={styles.topTabsSafe} />
+      {/* <SafeAreaView edges={['top']} style={styles.topTabsSafe}>
         <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      </SafeAreaView>
+      </SafeAreaView> */}
 
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
