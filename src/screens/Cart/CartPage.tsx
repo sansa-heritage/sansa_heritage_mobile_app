@@ -149,7 +149,7 @@ const CartScreen: React.FC = () => {
   };
 
   const getImageSource = (imageUrl: string) => {
-    if (!imageUrl) return require('../../../assets/images/logo.png');
+    if (!imageUrl) return require('../../../assets/images/SANSA-final-logo1.png');
     if (imageUrl.startsWith('data:image')) return { uri: imageUrl };
     if (imageUrl.startsWith('http')) return { uri: imageUrl };
     const baseURL =

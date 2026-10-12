@@ -21,7 +21,7 @@ import BasicExample from "./src/screens/Onboarding";
 import SplashScreen from "./src/screens/Splash/SplashScreen";
 import SettingsPage from "./src/screens/Profile/SettingsPage";
 import SignUp from "./src/screens/Auth/SignUp";
-import WalletsPage from "./src/screens/Profile/WalletsPage";
+// import WalletsPage from "./src/screens/Profile/WalletsPage";
 import OTPLogin from "./src/screens/Auth/ForgotPassword";
 import CustomBottomTabs from "./src/navigation/BottomTabs";
 import { navigationRef, getCurrentRoute } from "./src/services/NavigationService";
@@ -181,7 +181,7 @@ const App = () => {
                   <Stack.Screen name="Profile">
                     {(props) => <Profile {...props} onLogout={logout} />}
                   </Stack.Screen>
-                  <Stack.Screen name="WalletsPage" component={WalletsPage} />
+                  {/* <Stack.Screen name="WalletsPage" component={WalletsPage} /> */}
                   <Stack.Screen name="OrdersPage" component={OrdersPage} />
                   <Stack.Screen name="SettingsPage" component={SettingsPage} />
                   <Stack.Screen name="FavoritesPage" component={FavoriteScreen} />

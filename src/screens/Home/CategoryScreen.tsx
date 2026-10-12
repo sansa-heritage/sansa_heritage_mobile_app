@@ -65,7 +65,7 @@ const getImageSource = (item: any) => {
       return { uri: `${BASE_URL.replace(/\/$/, "")}${item.image}` };
     return { uri: `${BASE_URL.replace(/\/$/, "")}/${item.image}` };
   }
-  return require("../../../assets/images/logo.png");
+  return require("../../../assets/images/SANSA-final-logo1.png");
 };
 
 /* ================= TITLE SPLITTER ================= */
