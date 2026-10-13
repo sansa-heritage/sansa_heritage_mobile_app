@@ -650,7 +650,7 @@ const CartScreen: React.FC = () => {
       (Number(i.price || 0) *
         Number(i.discount || 0) *
         Number(i.quantity || 0)) /
-        100,
+      100,
     0,
   );
 
@@ -730,7 +730,7 @@ const CartScreen: React.FC = () => {
             <Image
               source={getImageSource(item.imageUrl)}
               style={styles.image}
-              onError={() => {}}
+              onError={() => { }}
             />
           </View>
 
@@ -843,6 +843,63 @@ const CartScreen: React.FC = () => {
           }
           ListFooterComponent={
             <>
+              {/* ✅ Free shipping card — moved back ABOVE Apply Coupon */}
+              {cartItems.length > 0 && (
+                <View
+                  style={[
+                    styles.freeShippingCard,
+                    isFreeShipping && styles.freeShippingCardUnlocked,
+                  ]}
+                >
+                  <View style={styles.shippingRow}>
+                    <Ionicons
+                      name={
+                        isFreeShipping ? 'checkmark-circle' : 'bicycle-outline'
+                      }
+                      size={16}
+                      color="#4CAF50"
+                    />
+                    <Text style={styles.shippingText}>
+                      {isFreeShipping ? (
+                        <>
+                          <Text style={styles.shippingUnlockedText}>
+                            Free Shipping Unlocked!
+                          </Text>{' '}
+                          🎉
+                        </>
+                      ) : (
+                        <>
+                          Add{' '}
+                          <Text style={styles.shippingAmount}>
+                            ₹{remainingForFreeShipping.toFixed(0)}
+                          </Text>{' '}
+                          more to get FREE Shipping!
+                        </>
+                      )}
+                    </Text>
+                  </View>
+
+                  {!isFreeShipping && (
+                    <>
+                      <View style={styles.progressBarContainer}>
+                        <View
+                          style={[
+                            styles.progressBar,
+                            { width: `${progressPercentage}%` },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.progressLabels}>
+                        <Text style={styles.progressLabel}>₹0</Text>
+                        <Text style={styles.progressLabel}>
+                          ₹{FREE_SHIPPING_THRESHOLD}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
+
               {/* Coupon */}
               <View style={styles.sectionCard}>
                 <TouchableOpacity
@@ -1001,63 +1058,6 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* ✅ Free shipping card — moved BELOW Price Details */}
-              {cartItems.length > 0 && (
-                <View
-                  style={[
-                    styles.freeShippingCard,
-                    isFreeShipping && styles.freeShippingCardUnlocked,
-                  ]}
-                >
-                  <View style={styles.shippingRow}>
-                    <Ionicons
-                      name={
-                        isFreeShipping ? 'checkmark-circle' : 'bicycle-outline'
-                      }
-                      size={16}
-                      color="#4CAF50"
-                    />
-                    <Text style={styles.shippingText}>
-                      {isFreeShipping ? (
-                        <>
-                          <Text style={styles.shippingUnlockedText}>
-                            Free Shipping Unlocked!
-                          </Text>{' '}
-                          🎉
-                        </>
-                      ) : (
-                        <>
-                          Add{' '}
-                          <Text style={styles.shippingAmount}>
-                            ₹{remainingForFreeShipping.toFixed(0)}
-                          </Text>{' '}
-                          more to get FREE Shipping!
-                        </>
-                      )}
-                    </Text>
-                  </View>
-
-                  {!isFreeShipping && (
-                    <>
-                      <View style={styles.progressBarContainer}>
-                        <View
-                          style={[
-                            styles.progressBar,
-                            { width: `${progressPercentage}%` },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.progressLabels}>
-                        <Text style={styles.progressLabel}>₹0</Text>
-                        <Text style={styles.progressLabel}>
-                          ₹{FREE_SHIPPING_THRESHOLD}
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </View>
-              )}
-
               {/* Policy */}
               <View style={styles.policyCard}>
                 <View style={styles.policyHeader}>
@@ -1180,7 +1180,7 @@ const CartScreen: React.FC = () => {
             <View style={styles.qtyModal}>
               <Text style={styles.modalTitle}>Select Size</Text>
               {activeItemIndex >= 0 &&
-              cartItems[activeItemIndex]?.availableSizes?.length ? (
+                cartItems[activeItemIndex]?.availableSizes?.length ? (
                 cartItems[activeItemIndex].availableSizes!.map((s: SizeInfo) => {
                   const label = getSizeLabel(s);
                   const isCurrent =
@@ -1203,8 +1203,8 @@ const CartScreen: React.FC = () => {
                           color: isOut
                             ? '#C0C0C0'
                             : isCurrent
-                            ? '#96252A'
-                            : '#111',
+                              ? '#96252A'
+                              : '#111',
                           fontWeight: isCurrent ? '700' : '500',
                         }}
                       >
@@ -1270,7 +1270,6 @@ const CartScreen: React.FC = () => {
 export default CartScreen;
 
 /* ================= STYLES ================= */
-/* ✅ Styles unchanged — same object as before, kept verbatim */
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -1543,10 +1542,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  /* ✅ Thinner free shipping card */
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 10,        // 👈 ADDED: space above the card
     marginBottom: 10,
     marginHorizontal: 16,
     borderWidth: 1,
@@ -1563,7 +1565,7 @@ const styles = StyleSheet.create({
   shippingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   shippingText: {
     fontSize: 11,
@@ -1576,16 +1578,16 @@ const styles = StyleSheet.create({
     color: '#9E0E26',
   },
   progressBarContainer: {
-    height: 5,
+    height: 4,
     backgroundColor: '#E0E0E0',
-    borderRadius: 2.5,
+    borderRadius: 2,
     overflow: 'hidden',
-    marginVertical: 4,
+    marginVertical: 3,
   },
   progressBar: {
     height: '100%',
     backgroundColor: '#9E0E26',
-    borderRadius: 2.5,
+    borderRadius: 2,
   },
   progressLabels: {
     flexDirection: 'row',

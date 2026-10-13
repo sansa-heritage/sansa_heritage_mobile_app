@@ -19,7 +19,6 @@ import { RootStackParamList } from '../../models/types';
 import LoadingService from '../../services/LoadingService';
 import config from '../../config/config';
 import eventBus from '../../services/eventBus';
-// ✅ FIXED — added snackbar
 import { snackbar } from '../../components/common/Snackbar';
 
 const { width } = Dimensions.get('window');
@@ -91,7 +90,6 @@ const MyOrdersScreen: React.FC = () => {
       console.log("My Orders Data---", ordersData);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
-      // ✅ FIXED — Alert.alert → snackbar
       snackbar.error(error.message || 'Failed to fetch orders');
       eventBus.emit('ORDERS_UPDATED', { count: 0 });
     } finally {
@@ -235,26 +233,31 @@ const MyOrdersScreen: React.FC = () => {
 
   if (loading && orders.length === 0) return <View style={styles.loadingContainer} />;
 
+  // ✅ Hide search when there are no orders at all (regardless of filter)
+  const showSearch = orders.length > 0;
+
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
       <View style={styles.container}>
-        <View style={styles.searchSection}>
-          <Ionicons name="search-outline" size={18} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search orders..."
-            placeholderTextColor="#999"
-            value={searchText}
-            onChangeText={handleSearch}
-            returnKeyType="search"
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <Ionicons name="close-circle" size={18} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
+        {showSearch && (
+          <View style={styles.searchSection}>
+            <Ionicons name="search-outline" size={18} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search orders..."
+              placeholderTextColor="#999"
+              value={searchText}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <Ionicons name="close-circle" size={18} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {filteredOrders.length > 0 ? (
           <FlatList

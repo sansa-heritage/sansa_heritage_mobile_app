@@ -202,6 +202,7 @@ const NotificationScreen: React.FC = () => {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  const hasNotifications = notifications.length > 0;
 
   return (
     <View style={styles.container}>
@@ -218,15 +219,18 @@ const NotificationScreen: React.FC = () => {
         </View>
       )}
 
-      <View style={styles.tabsWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsContent}
-        >
-          {tabs.map(renderTab)}
-        </ScrollView>
-      </View>
+      {/* ✅ Tabs — hidden until at least one notification exists */}
+      {hasNotifications && (
+        <View style={styles.tabsWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabsContent}
+          >
+            {tabs.map(renderTab)}
+          </ScrollView>
+        </View>
+      )}
 
       {loading && notifications.length === 0 ? (
         <View style={styles.loading} />
