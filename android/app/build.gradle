@@ -5,8 +5,8 @@ apply plugin: 'com.google.gms.google-services'
 
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
-// ✅ ADDED — react-native-config dotenv integration
-apply from: file("../../node_modules/react-native-config/android/dotenv.gradle")
+// ❌ REMOVED — react-native-config dotenv integration
+// apply from: file("../../node_modules/react-native-config/android/dotenv.gradle")
 
 
 /**
@@ -41,8 +41,8 @@ android {
         versionCode 1
         versionName "1.0.0"
 
-        // ✅ ADDED — required by react-native-config
-        resValue "string", "build_config_package", "com.sansaheritage"
+        // ❌ REMOVED — only needed by react-native-config
+        // resValue "string", "build_config_package", "com.sansaheritage"
     }
     signingConfigs {
         debug {

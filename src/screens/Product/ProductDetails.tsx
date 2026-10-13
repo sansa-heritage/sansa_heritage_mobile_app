@@ -27,14 +27,13 @@ import { addToFavoritesList } from "../../api/favoriteApi";
 import { getAddresses } from "../../api/profileApi";
 import { Address } from "../../models/address";
 import eventBus from "../../services/eventBus";
-// ✅ FIXED — replaced Toast with snackbar
 import { snackbar } from "../../components/common/Snackbar";
 import LoadingService from "../../services/LoadingService";
 
 const { width, height } = Dimensions.get("window");
 
 interface ProductDetails {
-  _id: number;
+  _id: number | string;
   image?: string;
   images?: string[];
   name: string;
@@ -53,6 +52,8 @@ interface ProductDetails {
   waist?: number;
   length?: number;
   stock?: number;
+  colorImages?: { color: any; images: string[] }[];
+  video?: string;
 }
 
 type RouteProps = RouteProp<RootStackParamList, "ProductDetails">;
@@ -148,7 +149,6 @@ const ProductPage = () => {
     }
   };
 
-  // ✅ FIXED — Alert.alert → snackbar.warning
   const showSizeGuide = () => {
     if (!productDetails?.sizes || productDetails.sizes.length === 0) {
       snackbar.warning('No size information available.', 'Size Guide');
@@ -174,7 +174,6 @@ const ProductPage = () => {
     setSizeGuideVisible(true);
   };
 
-  // ✅ FIXED — Toast.show → snackbar.success
   const selectAddress = async (address: Address) => {
     setSelectedAddress(address);
     await AsyncStorage.setItem("selectedAddress", JSON.stringify(address));
@@ -202,7 +201,8 @@ const ProductPage = () => {
         const data = await res.json();
         setProductDetails(data);
 
-        if (data.colors?.length > 0) setSelectedColor(data.colors[0]);
+        // ✅ Do NOT auto-select first color → default gallery shows first
+        // Only auto-select size
         if (data.sizes?.length > 0) setSelectedSize(data.sizes[0]);
 
         const addr = await getAddresses();
@@ -248,16 +248,35 @@ const ProductPage = () => {
     return unsubscribe;
   }, [navigation]);
 
+  // ✅ Reset carousel to first slide whenever color changes
+  useEffect(() => {
+    setActiveIndex(0);
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [selectedColor]);
+
   if (loading || !productDetails) {
     return <View style={styles.loader} />;
   }
 
-  const productImages =
-    productDetails.images?.length > 0
-      ? productDetails.images
-      : productDetails.image
-        ? [productDetails.image]
-        : [];
+  // ✅ Color-aware image list — default gallery when no color selected
+  const productImages = (() => {
+    if (selectedColor && Array.isArray(productDetails.colorImages)) {
+      const selectedId =
+        typeof selectedColor === 'object' ? selectedColor._id : selectedColor;
+
+      const match = productDetails.colorImages.find((ci: any) => {
+        const ciColorId =
+          ci?.color && typeof ci.color === 'object' ? ci.color._id : ci?.color;
+        return ciColorId === selectedId;
+      });
+
+      if (match?.images?.length) return match.images;
+    }
+
+    if (productDetails.images?.length > 0) return productDetails.images;
+    if (productDetails.image) return [productDetails.image];
+    return [];
+  })();
 
   const finalPrice =
     productDetails.price - (productDetails.price * productDetails.discountPercent) / 100;
@@ -266,7 +285,6 @@ const ProductPage = () => {
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
 
-  // ✅ FIXED — all Alert.alert → snackbar
   const handleAddToCart = async () => {
     const validation = validateSelections();
     if (!validation.valid) {
@@ -300,7 +318,6 @@ const ProductPage = () => {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      // ✅ FIXED — snackbar success
       snackbar.success('Product added to cart successfully!');
       eventBus.emit("ITEM_REMOVED", { id: 123 });
       if (selectedAddress) {
@@ -309,14 +326,12 @@ const ProductPage = () => {
       navigation.navigate('CartPage');
     } catch (err: any) {
       console.error('Add to cart error:', err);
-      // ✅ FIXED — snackbar error
       snackbar.error(err.message || 'Failed to add product to cart.');
     } finally {
       LoadingService.hide();
     }
   };
 
-  // ✅ FIXED — all Alert.alert → snackbar
   const handleBuyNow = () => {
     const validation = validateSelections();
     if (!validation.valid) {
@@ -370,11 +385,28 @@ const ProductPage = () => {
     return String(color);
   };
 
+  // ✅ Validate hex so bad values (#FFFFFFHHHH) don't silently fail
   const getColorHex = (color: any): string => {
     if (!color) return '#ccc';
-    if (typeof color === 'object')
-      return color.hexCode || color.hex || color.colorCode || '#ccc';
-    return '#ccc';
+    let hex = '#ccc';
+    if (typeof color === 'object') {
+      hex = color.hexCode || color.hex || color.colorCode || '#ccc';
+    } else if (typeof color === 'string' && /^#/.test(color)) {
+      hex = color;
+    }
+    const isValid = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(hex);
+    return isValid ? hex : '#ccc';
+  };
+
+  // ✅ Choose black or white checkmark based on swatch brightness
+  const getContrastColor = (hex: string): string => {
+    const clean = hex.replace('#', '');
+    if (clean.length !== 6) return '#fff';
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6 ? '#111' : '#fff';
   };
 
   return (
@@ -485,19 +517,40 @@ const ProductPage = () => {
                 const isSelected = selectedColor?._id === c?._id;
                 const colorHex = getColorHex(c);
                 const colorName = getColorName(c);
+                const checkColor = getContrastColor(colorHex);
 
                 return (
                   <TouchableOpacity
                     key={c?._id || c}
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: colorHex },
-                      isSelected && styles.colorActive,
-                    ]}
-                    onPress={() => setSelectedColor(c)}
+                    style={styles.colorItem}
+                    onPress={() =>
+                      setSelectedColor((prev: any) =>
+                        prev?._id === c?._id ? null : c,
+                      )
+                    }
                     accessibilityLabel={`Select ${colorName}`}
+                    activeOpacity={0.8}
                   >
-                    {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                    <View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: colorHex },
+                        isSelected && styles.colorActive,
+                      ]}
+                    >
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={18} color={checkColor} />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.colorLabelText,
+                        isSelected && styles.colorLabelActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {colorName}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -530,7 +583,6 @@ const ProductPage = () => {
                     ]}
                     onPress={() => {
                       if (isOutOfStock) {
-                        // ✅ FIXED — Alert → snackbar
                         snackbar.warning('This size is currently out of stock.', 'Out of Stock');
                       } else {
                         setSelectedSize(s);
@@ -979,17 +1031,47 @@ const styles = StyleSheet.create({
   sizeGuideBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   sizeGuideText: { color: "#9E0E26", fontSize: 12, fontWeight: "500" },
 
-  colorRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginTop: 8 },
-  colorDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: "#ddd",
-    justifyContent: "center",
+  /* ✅ Updated color swatch styles */
+  colorRow: {
+    flexDirection: "row",
+    gap: 12,
+    flexWrap: "wrap",
+    marginTop: 10,
     alignItems: "center",
   },
-  colorActive: { borderColor: "#9E0E26", borderWidth: 3 },
+  colorItem: {
+    alignItems: "center",
+    gap: 4,
+    maxWidth: 76,
+  },
+  colorDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#D0D0D0",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 1.5,
+  },
+  colorActive: {
+    borderColor: "#9E0E26",
+    borderWidth: 2.5,
+  },
+  colorLabelText: {
+    fontSize: 10,
+    color: "#666",
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  colorLabelActive: {
+    color: "#9E0E26",
+    fontWeight: "700",
+  },
 
   sizeGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 8 },
   sizeBox: {
