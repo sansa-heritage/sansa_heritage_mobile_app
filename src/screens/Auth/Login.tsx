@@ -23,16 +23,23 @@ import { registerWithGoogle } from '../../api/authApi';
 import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
-import { snackbar } from '../../components/common/Snackbar';   // ✅ ADD THIS
+import { snackbar } from '../../components/common/Snackbar';
 
-// ✅ Configure Google Sign-In with account picker support
+// ✅ Configure Google Sign-In with client IDs from .env
 GoogleSignin.configure({
-  webClientId: '782904869146-0min0dn439lt2uprmv9q5qsnkfmdt3dv.apps.googleusercontent.com',
-  iosClientId: '662462542419-f7bpa8ios3ji30b1svrljk7spc1oa72d.apps.googleusercontent.com',
+  webClientId: config.googleWebClientId,
+  iosClientId: config.googleIosClientId,
   offlineAccess: false,
   hostedDomain: '',
   forceCodeForRefreshToken: false,
 });
+
+// ✅ Dev-only warning if the env didn't load
+if (__DEV__ && !config.googleWebClientId) {
+  console.warn(
+    '[LoginPage] GOOGLE_WEB_CLIENT_ID is missing from .env — Google Sign-In will fail. Rebuild after editing .env.',
+  );
+}
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -97,7 +104,6 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
         await authService.login(token, username, email);
 
-        // ✅ Success message
         snackbar.success('Logged in successfully', `Welcome, ${username || 'User'}!`);
 
         onLoginSuccess();
@@ -166,7 +172,6 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       setError('');
 
-      // ✅ Success message
       snackbar.success('Logged in successfully', `Welcome, ${username || 'User'}!`);
 
       onLoginSuccess();
