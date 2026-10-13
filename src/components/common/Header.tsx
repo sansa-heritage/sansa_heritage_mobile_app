@@ -82,21 +82,30 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const isOrderDetails = currentRoute === "OrderDetails";
 
   // ✅ Hide notification bell on these pages
+  //    ✅ Wishlist page also hides the bell
   const hideNotification =
     currentRoute === "CategoryScreen" ||
     currentRoute === "ProductDetails" ||
     currentRoute === "CartPage" ||
-    currentRoute === "NotificationScreen";
+    currentRoute === "NotificationScreen" ||
+    currentRoute === "FavoritesPage" ||
+    currentRoute === "FavoriteScreen";
 
   // ✅ Hide ALL icons (wishlist, cart, bell) on focused flows:
-  //    AccountPage, HelpCenter, and the static info pages
+  //    AccountPage, HelpCenter, static info pages,
+  //    CheckoutPage, SettingsPage, FAQScreen, AddressScreen, AddressPage
   const hideAllIcons =
     currentRoute === "AccountPage" ||
     currentRoute === "HelpCenter" ||
     currentRoute === "PrivacyPolicy" ||
     currentRoute === "AboutUs" ||
     currentRoute === "TermsScreen" ||
-    currentRoute === "ReturnRefundScreen";
+    currentRoute === "ReturnRefundScreen" ||
+    currentRoute === "CheckoutPage" ||
+    currentRoute === "SettingsPage" ||
+    currentRoute === "FAQScreen" ||
+    currentRoute === "AddressScreen" ||
+    currentRoute === "AddressPage";
 
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
@@ -243,7 +252,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
         </View>
 
         <View style={styles.rightSection}>
-          {/* ✅ Wishlist — hidden on Wishlist, Orders, AccountPage, HelpCenter, and info pages */}
+          {/* ✅ Wishlist — hidden on Wishlist, Orders, and all focused flows */}
           {!isWishlist && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -262,7 +271,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Cart — hidden on Cart, Orders, AccountPage, HelpCenter, and info pages */}
+          {/* ✅ Cart — hidden on Cart, Orders, and all focused flows */}
           {!isCart && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -281,7 +290,8 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart, NotificationScreen, AccountPage, HelpCenter, and info pages */}
+          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart,
+              NotificationScreen, Wishlist, and all focused flows */}
           {!hideNotification && !hideAllIcons && (
             <NotificationBadge
               size={24}

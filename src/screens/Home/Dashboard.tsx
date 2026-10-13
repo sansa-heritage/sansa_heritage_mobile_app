@@ -660,7 +660,6 @@ export default function Dashboard() {
     loadFavorites();
   }, []);
 
-  // ✅ FIX: Clear selected category chip when returning to Dashboard
   useFocusEffect(
     React.useCallback(() => {
       setSelectedCategory('');
@@ -1178,11 +1177,7 @@ export default function Dashboard() {
         translucent={false}
       />
 
-      {/* ✅ TABS HIDDEN — SafeAreaView kept to preserve top inset (status bar area) */}
       <SafeAreaView edges={['top']} style={styles.topTabsSafe} />
-      {/* <SafeAreaView edges={['top']} style={styles.topTabsSafe}>
-        <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      </SafeAreaView> */}
 
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
@@ -1339,12 +1334,12 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES
+// STYLES  — only the section spacing values were tightened
 // ============================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   mainScrollContent: { paddingHorizontal: 15 },
-  columnWrapper: { justifyContent: 'space-between', marginBottom: 15 },
+  columnWrapper: { justifyContent: 'space-between', marginBottom: 8 },
 
   topTabsSafe: { backgroundColor: '#FFFF' },
   topTabsBar: { backgroundColor: '#FFFF', paddingTop: 0, paddingBottom: 0 },
@@ -1397,7 +1392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 8,
     backgroundColor: '#FFFFFF',
     gap: 10,
   },
@@ -1430,7 +1425,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
-  categoryWrapper: { marginVertical: 8 },
+  categoryWrapper: { marginVertical: 4 },
   categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
@@ -1455,7 +1450,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 0,
-    marginVertical: 4,
+    marginVertical: 2,
     marginHorizontal: 0,
     minHeight: 44,
     borderWidth: 1,
@@ -1492,7 +1487,7 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#fff',
     borderRadius: 8,
-    marginBottom: 18,
+    marginBottom: 10,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#F0F0F0',
@@ -1545,13 +1540,13 @@ const styles = StyleSheet.create({
   finalPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
   discountText: { fontSize: 13, color: '#9E0E26', fontWeight: '700' },
 
-  premiumSectionWrapper: { marginTop: 8, marginBottom: 10 },
+  premiumSectionWrapper: { marginTop: 4, marginBottom: 6 },
   premiumHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 0,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   premiumHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
   premiumHeaderIcon: {
@@ -1578,14 +1573,14 @@ const styles = StyleSheet.create({
   },
   premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
-  newArrivalSection: { marginTop: 8 },
+  newArrivalSection: { marginTop: 4 },
   newArrivalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  newArrivalTitle: { fontSize: 12, fontWeight: 'bold' },
+  newArrivalTitle: { fontSize: 13, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
   noRecordsText: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 20 },
 
@@ -1644,7 +1639,7 @@ const styles = StyleSheet.create({
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
   bannerWrapper: {
-    marginVertical: 8,
+    marginVertical: 6,
     borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
