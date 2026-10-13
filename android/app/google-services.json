@@ -14,19 +14,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "782904869146-4vjlov3v1t4k5atfhcu5gqad3vhg0hki.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.sansaheritage",
-            "certificate_hash": "59da8dcfdf31df8ef290e6429a72aca649c5a5c1"
-          }
-        },
-        {
           "client_id": "782904869146-d1car7nj4t2bqktbq77ogtmhedhrn8k4.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.sansaheritage",
             "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "782904869146-gfitdci6t3s4eprcmfduks1klccu3nu5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sansaheritage",
+            "certificate_hash": "ee8aaeb20f4fde94a2a9db087464988e0f0e06a1"
           }
         },
         {
