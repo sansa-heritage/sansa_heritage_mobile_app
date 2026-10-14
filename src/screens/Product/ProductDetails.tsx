@@ -308,6 +308,11 @@ const ProductPage = () => {
   const finalPrice =
     productDetails.price - (productDetails.price * productDetails.discountPercent) / 100;
 
+  // ✅ Only show discount UI when a positive discount actually exists
+  const hasDiscount =
+    Number(productDetails.discountPercent) > 0 &&
+    finalPrice < Number(productDetails.price);
+
   const nameParts = (productDetails.name || '').split(' ');
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
@@ -544,18 +549,26 @@ const ProductPage = () => {
             </View>
           )}
 
+          {/* ✅ Discount UI only when there's a real discount */}
           <View style={styles.priceRow}>
             <Text style={styles.finalPrice}>₹{finalPrice.toFixed(0)}</Text>
-            <Text style={styles.mrp}>₹{productDetails.price}</Text>
-            <View style={styles.offBadge}>
-              <Text style={styles.offText}>{productDetails.discountPercent}% OFF</Text>
-            </View>
+
+            {hasDiscount && (
+              <>
+                <Text style={styles.mrp}>₹{productDetails.price}</Text>
+                <View style={styles.offBadge}>
+                  <Text style={styles.offText}>
+                    {Math.round(Number(productDetails.discountPercent))}% OFF
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           <Text style={styles.tax}>Inclusive of all taxes</Text>
         </View>
 
-        {/* COLOR — horizontal scrollable */}
+        {/* COLOR — horizontal scrollable, dots only (no labels) */}
         {requiresColor() && (
           <View style={styles.card}>
             <Text style={styles.section}>Color</Text>
@@ -598,15 +611,6 @@ const ProductPage = () => {
                         />
                       )}
                     </View>
-                    <Text
-                      style={[
-                        styles.colorLabelText,
-                        isSelected && styles.colorLabelActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {colorName}
-                    </Text>
                   </TouchableOpacity>
                 );
               }}
@@ -988,7 +992,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     position: "relative",
     width: width,
-    // ✅ no fixed height — the inner FlatList sizes itself per image
   },
   image: {
     width: width,
@@ -1092,23 +1095,22 @@ const styles = StyleSheet.create({
   sizeGuideBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   sizeGuideText: { color: "#9E0E26", fontSize: 12, fontWeight: "500" },
 
-  /* ✅ Horizontal scrollable color row */
   colorRowList: {
     marginTop: 10,
   },
   colorRowContent: {
-    gap: 8,
+    gap: 14,
     paddingRight: 0,
-    alignItems: 'center',
+    alignItems: "center",
   },
   colorItem: {
     alignItems: "center",
-    gap: 2,
+    justifyContent: "center",
   },
   colorDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: "#D0D0D0",
     justifyContent: "center",
@@ -1122,16 +1124,6 @@ const styles = StyleSheet.create({
   colorActive: {
     borderColor: "#9E0E26",
     borderWidth: 2.5,
-  },
-  colorLabelText: {
-    fontSize: 10,
-    color: "#666",
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  colorLabelActive: {
-    color: "#9E0E26",
-    fontWeight: "700",
   },
 
   sizeGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 8 },

@@ -149,7 +149,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER  ✅ FIXED — fits to container, no overlap
+// BANNER SLIDER
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -167,8 +167,6 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  // ✅ Lock the banner to a single aspect ratio so it never overflows its box
-  //    Change this one constant if you want a different shape.
   const BANNER_RATIO = 9 / 16; // 16:9 widescreen
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
@@ -1433,8 +1431,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
-  /* 1️⃣ Category slider — extra space above & below */
-  categoryWrapper: { marginTop: 6, marginBottom: 12 },
+  categoryWrapper: { marginTop: 10, marginBottom: 10 },
   categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
@@ -1452,7 +1449,6 @@ const styles = StyleSheet.create({
   categoryName: { fontSize: 10, fontWeight: '500', color: '#FFFFFF', textAlign: 'center' },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
-  /* 2️⃣ Feature badges — bigger gap below */
   featuresContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1460,8 +1456,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 0,
-    marginTop: 0,
-    marginBottom: 16,
+    marginTop: 10,
+    marginBottom: 10,
     marginHorizontal: 0,
     minHeight: 44,
     borderWidth: 1,
@@ -1551,7 +1547,7 @@ const styles = StyleSheet.create({
   finalPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
   discountText: { fontSize: 13, color: '#9E0E26', fontWeight: '700' },
 
-  premiumSectionWrapper: { marginTop: 4, marginBottom: 6 },
+  premiumSectionWrapper: { marginTop: 12, marginBottom: 12 },
   premiumHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1584,8 +1580,8 @@ const styles = StyleSheet.create({
   },
   premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
-  /* 3️⃣ Section headers — bigger gap above */
-  newArrivalSection: { marginTop: 18, marginBottom: 4 },
+  /* ✅ Reduced top gap — marginTop 10 → 4 */
+  newArrivalSection: { marginTop: 4, marginBottom: 10 },
   newArrivalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1650,10 +1646,9 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* 4️⃣ Banner wrapper — gap below */
   bannerWrapper: {
-    marginTop: 6,
-    marginBottom: 14,
+    marginTop: 12,
+    marginBottom: 12,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
