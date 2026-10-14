@@ -439,6 +439,19 @@ export default function CategoryScreen() {
   const filteredPreview = useMemo(() => {
     let filtered = [...allProducts];
 
+    // ✅ Category — client-side, applied only when user taps Apply
+    if (
+      selectedCategory &&
+      selectedCategory !== "" &&
+      selectedCategory !== "All"
+    ) {
+      filtered = filtered.filter((p) => {
+        const catId =
+          typeof p.category === "object" ? p.category?._id : p.category;
+        return String(catId) === String(selectedCategory);
+      });
+    }
+
     if (priceStart > priceBounds.min || priceEnd < priceBounds.max) {
       filtered = filtered.filter((p) => {
         const price = Number(p.price || 0);
@@ -476,6 +489,7 @@ export default function CategoryScreen() {
     return filtered;
   }, [
     allProducts,
+    selectedCategory,
     priceStart,
     priceEnd,
     priceBounds,
@@ -906,8 +920,9 @@ export default function CategoryScreen() {
                           key={cat._id || "all"}
                           style={[styles.chip, isActive && styles.chipActive]}
                           onPress={() => {
+                            // ✅ Only remember the selection.
+                            // The actual filter runs when user taps "Apply Filters".
                             setSelectedCategory(cat._id || "");
-                            fetchProductsWith({ category: cat._id || "" });
                           }}
                           activeOpacity={0.7}
                         >

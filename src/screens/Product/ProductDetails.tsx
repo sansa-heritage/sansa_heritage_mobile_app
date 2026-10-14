@@ -79,6 +79,9 @@ const ProductPage = () => {
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
+  // ✅ Track the natural aspect ratio (width / height) of the visible image
+  const [imageAspect, setImageAspect] = useState<number>(4 / 5); // default portrait 4:5
+
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [sizeGuideVisible, setSizeGuideVisible] = useState(false);
   const [sizeGuideData, setSizeGuideData] = useState<any[]>([]);
@@ -254,13 +257,9 @@ const ProductPage = () => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [selectedColor]);
 
-  if (loading || !productDetails) {
-    return <View style={styles.loader} />;
-  }
-
   // ✅ Color-aware image list — default gallery when no color selected
   const productImages = (() => {
-    if (selectedColor && Array.isArray(productDetails.colorImages)) {
+    if (selectedColor && Array.isArray(productDetails?.colorImages)) {
       const selectedId =
         typeof selectedColor === 'object' ? selectedColor._id : selectedColor;
 
@@ -273,10 +272,38 @@ const ProductPage = () => {
       if (match?.images?.length) return match.images;
     }
 
-    if (productDetails.images?.length > 0) return productDetails.images;
-    if (productDetails.image) return [productDetails.image];
+    if (productDetails?.images && productDetails.images.length > 0)
+      return productDetails.images;
+    if (productDetails?.image) return [productDetails.image];
     return [];
   })();
+
+  // ✅ Fetch the real dimensions of the visible image so we can size the container
+  const fetchImageAspect = (uri?: string) => {
+    if (!uri) return;
+    Image.getSize(
+      uri,
+      (w, h) => {
+        if (w > 0 && h > 0) setImageAspect(w / h);
+      },
+      () => {
+        // keep previous aspect on error
+      },
+    );
+  };
+
+  // ✅ Update aspect whenever the visible image changes
+  useEffect(() => {
+    if (productImages.length > 0) {
+      const uri = productImages[activeIndex] || productImages[0];
+      fetchImageAspect(uri);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex, selectedColor, productDetails]);
+
+  if (loading || !productDetails) {
+    return <View style={styles.loader} />;
+  }
 
   const finalPrice =
     productDetails.price - (productDetails.price * productDetails.discountPercent) / 100;
@@ -284,6 +311,12 @@ const ProductPage = () => {
   const nameParts = (productDetails.name || '').split(' ');
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
+
+  // ✅ Compute the container height from the natural aspect ratio
+  //    Cap at 70% of screen height so very tall images don't dominate
+  const MAX_IMAGE_HEIGHT = height * 0.7;
+  const naturalHeight = width / imageAspect;
+  const imageHeight = Math.min(naturalHeight, MAX_IMAGE_HEIGHT);
 
   const handleAddToCart = async () => {
     const validation = validateSelections();
@@ -418,7 +451,7 @@ const ProductPage = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* FULL-WIDTH IMAGE SLIDER */}
+        {/* FULL-WIDTH IMAGE SLIDER — sized to natural image ratio */}
         <View style={styles.imageWrapper}>
           <FlatList
             ref={flatListRef}
@@ -438,8 +471,22 @@ const ProductPage = () => {
                   setZoomImage(item);
                   setZoomVisible(true);
                 }}
+                style={{
+                  width: width,
+                  height: imageHeight,
+                  backgroundColor: '#fff',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
               >
-                <Image source={{ uri: item }} style={styles.image} />
+                <Image
+                  source={{ uri: item }}
+                  style={{
+                    width: width,
+                    height: imageHeight,
+                    resizeMode: 'contain',
+                  }}
+                />
               </TouchableOpacity>
             )}
             getItemLayout={(data, index) => ({
@@ -450,7 +497,7 @@ const ProductPage = () => {
           />
 
           {productImages.length > 1 && (
-            <View style={styles.dotContainer}>
+            <View style={[styles.dotContainer, { bottom: 12 }]}>
               {productImages.map((_, i) => (
                 <View key={i} style={[styles.dot, activeIndex === i && styles.activeDot]} />
               ))}
@@ -508,12 +555,18 @@ const ProductPage = () => {
           <Text style={styles.tax}>Inclusive of all taxes</Text>
         </View>
 
-        {/* COLOR */}
+        {/* COLOR — horizontal scrollable */}
         {requiresColor() && (
           <View style={styles.card}>
             <Text style={styles.section}>Color</Text>
-            <View style={styles.colorRow}>
-              {productDetails.colors.map((c: any) => {
+            <FlatList
+              data={productDetails.colors}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(c: any, i: number) => c?._id || `color-${i}`}
+              contentContainerStyle={styles.colorRowContent}
+              style={styles.colorRowList}
+              renderItem={({ item: c }: { item: any }) => {
                 const isSelected = selectedColor?._id === c?._id;
                 const colorHex = getColorHex(c);
                 const colorName = getColorName(c);
@@ -521,7 +574,6 @@ const ProductPage = () => {
 
                 return (
                   <TouchableOpacity
-                    key={c?._id || c}
                     style={styles.colorItem}
                     onPress={() =>
                       setSelectedColor((prev: any) =>
@@ -539,7 +591,11 @@ const ProductPage = () => {
                       ]}
                     >
                       {isSelected && (
-                        <Ionicons name="checkmark" size={18} color={checkColor} />
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={checkColor}
+                        />
                       )}
                     </View>
                     <Text
@@ -553,8 +609,8 @@ const ProductPage = () => {
                     </Text>
                   </TouchableOpacity>
                 );
-              })}
-            </View>
+              }}
+            />
           </View>
         )}
 
@@ -928,7 +984,12 @@ const styles = StyleSheet.create({
   },
 
   /* IMAGE */
-  imageWrapper: { backgroundColor: "#fff", position: "relative", width: width },
+  imageWrapper: {
+    backgroundColor: "#fff",
+    position: "relative",
+    width: width,
+    // ✅ no fixed height — the inner FlatList sizes itself per image
+  },
   image: {
     width: width,
     height: Math.min(width * 1.15, height * 0.55),
@@ -952,7 +1013,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   activeDot: {
     backgroundColor: "#9E0E26",
@@ -1031,23 +1092,23 @@ const styles = StyleSheet.create({
   sizeGuideBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   sizeGuideText: { color: "#9E0E26", fontSize: 12, fontWeight: "500" },
 
-  /* ✅ Updated color swatch styles */
-  colorRow: {
-    flexDirection: "row",
-    gap: 12,
-    flexWrap: "wrap",
+  /* ✅ Horizontal scrollable color row */
+  colorRowList: {
     marginTop: 10,
-    alignItems: "center",
+  },
+  colorRowContent: {
+    gap: 8,
+    paddingRight: 0,
+    alignItems: 'center',
   },
   colorItem: {
     alignItems: "center",
-    gap: 4,
-    maxWidth: 76,
+    gap: 2,
   },
   colorDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#D0D0D0",
     justifyContent: "center",

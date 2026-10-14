@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 1,
+    paddingVertical: 7,
     backgroundColor: "#FFFFFF",
   },
   leftRow: {

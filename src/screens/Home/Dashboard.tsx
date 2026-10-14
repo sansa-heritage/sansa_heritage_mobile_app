@@ -149,7 +149,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER
+// BANNER SLIDER  ✅ FIXED — fits to container, no overlap
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -166,6 +166,11 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
+
+  // ✅ Lock the banner to a single aspect ratio so it never overflows its box
+  //    Change this one constant if you want a different shape.
+  const BANNER_RATIO = 9 / 16; // 16:9 widescreen
+  const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
 
@@ -199,13 +204,16 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.bannerItem}
+            style={[
+              styles.bannerItem,
+              { width: bannerWidth, height: bannerHeight },
+            ]}
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
             <Image
               source={{ uri: item.image || item.uri }}
-              style={styles.bannerImage}
+              style={{ width: bannerWidth, height: bannerHeight }}
               resizeMode="cover"
             />
           </TouchableOpacity>
@@ -1334,12 +1342,12 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES  — only the section spacing values were tightened
+// STYLES
 // ============================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   mainScrollContent: { paddingHorizontal: 15 },
-  columnWrapper: { justifyContent: 'space-between', marginBottom: 8 },
+  columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
   topTabsSafe: { backgroundColor: '#FFFF' },
   topTabsBar: { backgroundColor: '#FFFF', paddingTop: 0, paddingBottom: 0 },
@@ -1425,7 +1433,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
-  categoryWrapper: { marginVertical: 4 },
+  /* 1️⃣ Category slider — extra space above & below */
+  categoryWrapper: { marginTop: 6, marginBottom: 12 },
   categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
@@ -1443,6 +1452,7 @@ const styles = StyleSheet.create({
   categoryName: { fontSize: 10, fontWeight: '500', color: '#FFFFFF', textAlign: 'center' },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
+  /* 2️⃣ Feature badges — bigger gap below */
   featuresContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1450,7 +1460,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 0,
-    marginVertical: 2,
+    marginTop: 0,
+    marginBottom: 16,
     marginHorizontal: 0,
     minHeight: 44,
     borderWidth: 1,
@@ -1487,7 +1498,7 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#fff',
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#F0F0F0',
@@ -1573,12 +1584,13 @@ const styles = StyleSheet.create({
   },
   premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
-  newArrivalSection: { marginTop: 4 },
+  /* 3️⃣ Section headers — bigger gap above */
+  newArrivalSection: { marginTop: 18, marginBottom: 4 },
   newArrivalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 5,
   },
   newArrivalTitle: { fontSize: 13, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
@@ -1638,21 +1650,25 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
+  /* 4️⃣ Banner wrapper — gap below */
   bannerWrapper: {
-    marginVertical: 6,
+    marginTop: 6,
+    marginBottom: 14,
     borderRadius: 12,
     overflow: 'hidden',
-    position: 'relative',
     backgroundColor: '#f5f5f5',
   },
   bannerItem: {
-    width: width - 30,
-    height: 200,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
   },
-  bannerImage: { width: '100%', height: '100%', borderRadius: 12 },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
   dotsContainer: {
     position: 'absolute',
     bottom: 10,
