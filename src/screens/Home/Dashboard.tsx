@@ -150,7 +150,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — untouched
+// BANNER SLIDER — taller + rounded corners + contain fit
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -168,7 +168,8 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  const BANNER_RATIO = 9 / 16; // 16:9 widescreen
+  // ✅ Slightly taller than 16:9 — increase for even more height
+  const BANNER_RATIO = 9 / 16;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -210,10 +211,11 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
+            {/* ✅ contain = full banner visible inside the locked box */}
             <Image
               source={{ uri: item.image || item.uri }}
               style={{ width: bannerWidth, height: bannerHeight }}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </TouchableOpacity>
         )}
@@ -378,7 +380,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
       )}
 
       <View style={styles.imageWrapper}>
-        {/* ✅ contain = full product visible, no crop */}
         <Image
           source={getImageSource(item)}
           style={styles.productImage}
@@ -486,7 +487,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
       )}
 
       <View style={styles.imageWrapper}>
-        {/* ✅ contain = full product visible, no crop */}
         <Image
           source={getImageSource(item)}
           style={styles.productImage}
@@ -1356,7 +1356,10 @@ export default function Dashboard() {
 // ============================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  mainScrollContent: { paddingHorizontal: 15 },
+  mainScrollContent: {
+    paddingHorizontal: 15,
+    paddingTop: 0,
+  },
   columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
   topTabsSafe: { backgroundColor: '#FFFF' },
@@ -1419,7 +1422,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
     backgroundColor: '#FFFFFF',
     gap: 10,
   },
@@ -1452,7 +1456,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
 
-  categoryWrapper: { marginTop: 10, marginBottom: 10 },
+  categoryWrapper: { marginTop: 6, marginBottom: 10 },
   categoryList: { paddingHorizontal: 0, gap: 3 },
   categoryItem: {
     backgroundColor: '#1a1a1a',
@@ -1547,8 +1551,6 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     aspectRatio: 1,
-    // ✅ Square box — the image scales inside without crop.
-    //    resizeMode="contain" is passed as a prop on <Image>.
     backgroundColor: '#FFFFFF',
   },
   favoriteBtn: { position: 'absolute', top: 8, right: 8, padding: 2 },
@@ -1725,23 +1727,22 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
+  /* ✅ Rounded banner corners + tightened spacing */
   bannerWrapper: {
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 0,
+    marginBottom: 4,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FFFFFF',
   },
   bannerItem: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
+    // ✅ No borderRadius / overflow here — the wrapper clips everything
+    backgroundColor: '#FFFFFF',
   },
   bannerImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   dotsContainer: {
     position: 'absolute',
