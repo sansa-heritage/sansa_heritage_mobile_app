@@ -375,7 +375,9 @@ export default function CategoryScreen() {
 
       const price = Number(item.price || 0);
       const disc = Number(item.discountPercent || 0);
-      const finalPrice = disc > 0 ? price - (price * disc) / 100 : price;
+      // ✅ Guard: exclude 100% discounts from price bounds
+      const hasDisc = disc > 0 && disc < 100;
+      const finalPrice = hasDisc ? price - (price * disc) / 100 : price;
       if (finalPrice > 0) {
         if (finalPrice < minPrice) minPrice = finalPrice;
         if (finalPrice > maxPrice) maxPrice = finalPrice;
@@ -456,7 +458,9 @@ export default function CategoryScreen() {
       filtered = filtered.filter((p) => {
         const price = Number(p.price || 0);
         const disc = Number(p.discountPercent || 0);
-        const finalPrice = disc > 0 ? price - (price * disc) / 100 : price;
+        // ✅ Guard: exclude 100% discounts from the filter preview
+        const hasDisc = disc > 0 && disc < 100;
+        const finalPrice = hasDisc ? price - (price * disc) / 100 : price;
         return finalPrice >= priceStart && finalPrice <= priceEnd;
       });
     }
@@ -651,10 +655,11 @@ export default function CategoryScreen() {
     const isFav = favorites.includes(item._id);
     const originalPrice = Number(item.price || 0);
     const discountPercent = Number(item.discountPercent || 0);
-    const discountedPrice =
-      discountPercent > 0
-        ? originalPrice - (originalPrice * discountPercent) / 100
-        : originalPrice;
+    // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
+    const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
+    const discountedPrice = hasRealDiscount
+      ? originalPrice - (originalPrice * discountPercent) / 100
+      : originalPrice;
     const rating = Number(item.rating || 0);
     const ratingCount = Number(item.reviewCount || item.reviews || 0);
     const outOfStock = item.stock === 0;
@@ -666,7 +671,7 @@ export default function CategoryScreen() {
         onPress={() => redirectToProductDetails(item._id)}
         activeOpacity={0.85}
       >
-        {discountPercent >= 20 && (
+        {hasRealDiscount && discountPercent >= 20 && (
           <View style={styles.megaDropRow}>
             <View style={styles.megaDropBadge}>
               <Text style={styles.megaDropText}>Mega Price Drop</Text>
@@ -749,16 +754,20 @@ export default function CategoryScreen() {
             ) : null}
           </Text>
 
-          {discountPercent >= 20 && (
+          {hasRealDiscount && discountPercent >= 20 && (
             <View style={styles.megaDropInline}>
               <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
             </View>
           )}
 
           <View style={styles.priceRow}>
-            <Text style={styles.strikePrice}>₹{originalPrice}</Text>
-            <Text style={styles.finalPrice}>₹{discountedPrice.toFixed(0)}</Text>
-            {discountPercent > 0 && (
+            {hasRealDiscount && (
+              <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+            )}
+            <Text style={styles.finalPrice}>
+              ₹{discountedPrice.toFixed(0)}
+            </Text>
+            {hasRealDiscount && (
               <Text style={styles.discountText}>{discountPercent}% OFF</Text>
             )}
           </View>
@@ -1276,7 +1285,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: CARD_IMG_HEIGHT,
     backgroundColor: "#F5F5F5",
-    resizeMode: "cover",
+    resizeMode: "contain",
   },
   oosOverlay: {
     ...StyleSheet.absoluteFillObject,

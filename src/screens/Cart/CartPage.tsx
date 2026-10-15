@@ -10,6 +10,9 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -71,6 +74,7 @@ const CartScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [newAddressModalVisible, setNewAddressModalVisible] = useState(false);
   const [qtyModalVisible, setQtyModalVisible] = useState(false);
   const [sizeModalVisible, setSizeModalVisible] = useState(false);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
@@ -84,6 +88,15 @@ const CartScreen: React.FC = () => {
     discountType: 'percentage' | 'fixed';
     discountValue: number;
   } | null>(null);
+
+  const [newAddress, setNewAddress] = useState({
+    fullName: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+  });
 
   const FREE_SHIPPING_THRESHOLD = 999;
 
@@ -397,6 +410,91 @@ const CartScreen: React.FC = () => {
     await AsyncStorage.setItem('selectedAddress', JSON.stringify(address));
     setAddressModalVisible(false);
     snackbar.success('Delivery address updated');
+  };
+
+  const handleSaveNewAddress = async () => {
+    const { fullName, phone, street, city, state, zipCode } = newAddress;
+
+    if (
+      !fullName.trim() ||
+      !phone.trim() ||
+      !street.trim() ||
+      !city.trim() ||
+      !state.trim() ||
+      !zipCode.trim()
+    ) {
+      snackbar.warning('Please fill in all fields');
+      return;
+    }
+
+    LoadingService.show();
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const baseURL =
+        config.baseURL ||
+        'https://ecappbe-sanasaheritages-projects.vercel.app/';
+
+      const payload = {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        street: street.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zipCode: zipCode.trim(),
+      };
+
+      let savedAddress: Address | null = null;
+
+      if (token) {
+        try {
+          const res = await fetch(`${baseURL}api/auth/addresses`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            savedAddress = json.address || json;
+            if (json.addresses) setAddresses(json.addresses);
+            else if (savedAddress)
+              setAddresses(prev => [...prev, savedAddress as Address]);
+          }
+        } catch (e) {
+          console.log('Server save failed, saving locally', e);
+        }
+      }
+
+      if (!savedAddress) {
+        savedAddress = payload as Address;
+        setAddresses(prev => [...prev, savedAddress as Address]);
+      }
+
+      setDeliveryAddress(savedAddress);
+      await AsyncStorage.setItem(
+        'selectedAddress',
+        JSON.stringify(savedAddress),
+      );
+
+      setNewAddressModalVisible(false);
+      setNewAddress({
+        fullName: '',
+        phone: '',
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+      });
+      snackbar.success('Address added successfully');
+    } catch (e: any) {
+      console.error('Save address error:', e);
+      snackbar.error('Failed to save address');
+    } finally {
+      LoadingService.hide();
+    }
   };
 
   /* ================= SIZE CHANGE ================= */
@@ -721,9 +819,14 @@ const CartScreen: React.FC = () => {
       sizeDisplay !== 'N/A' &&
       sizeDisplay !== 'undefined' &&
       sizeDisplay !== 'null';
-    const discountedPrice =
-      Number(item.price) -
-      (Number(item.price) * Number(item.discount || 0)) / 100;
+
+    const discountValue = Number(item.discount || 0);
+    const priceValue = Number(item.price || 0);
+    const hasRealDiscount = discountValue > 0 && discountValue < 100;
+    const discountedPrice = hasRealDiscount
+      ? priceValue - (priceValue * discountValue) / 100
+      : priceValue;
+
     const isLast = index === cartItems.length - 1;
     const colorText = toCamelCase(item.colorName);
     const { boldPart, normalPart } = splitTitle(item.name || 'Product', 2);
@@ -756,7 +859,6 @@ const CartScreen: React.FC = () => {
             </Text>
 
             <View style={styles.dropdownRow}>
-              {/* ✅ Hide the size dropdown when there's no real size */}
               {hasRealSize && (
                 <TouchableOpacity
                   style={styles.sizePill}
@@ -799,11 +901,11 @@ const CartScreen: React.FC = () => {
 
             <View style={styles.priceRow}>
               <Text style={styles.price}>₹{discountedPrice.toFixed(0)}</Text>
-              {Number(item.discount) > 0 && (
+              {hasRealDiscount && (
                 <>
-                  <Text style={styles.mrp}>₹{item.price}</Text>
+                  <Text style={styles.mrp}>₹{priceValue}</Text>
                   <Text style={styles.discountBadge}>
-                    {item.discount}% Off
+                    {discountValue}% Off
                   </Text>
                 </>
               )}
@@ -933,7 +1035,7 @@ const CartScreen: React.FC = () => {
                 )}
               </View>
 
-              {/* ✅ Free shipping card — now BELOW Apply Coupon */}
+              {/* Free shipping card */}
               {cartItems.length > 0 && (
                 <View
                   style={[
@@ -1153,36 +1255,248 @@ const CartScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ADDRESS MODAL */}
-        <Modal visible={addressModalVisible} transparent animationType="slide">
-          <View style={styles.qtyModalOverlay}>
-            <View style={styles.qtyModal}>
-              <Text style={styles.modalTitle}>Select Delivery Address</Text>
-              {addresses.map((addr, idx) => (
+        {/* ============ ADDRESS BOTTOM SHEET ============ */}
+        <Modal
+          visible={addressModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setAddressModalVisible(false)}
+        >
+          <View style={styles.bottomSheetOverlay}>
+            <TouchableOpacity
+              style={styles.bottomSheetBackdrop}
+              activeOpacity={1}
+              onPress={() => setAddressModalVisible(false)}
+            />
+            <View
+              style={[
+                styles.bottomSheet,
+                { paddingBottom: Math.max(insets.bottom, 16) },
+              ]}
+            >
+              <View style={styles.sheetHandle} />
+
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Select Delivery Address</Text>
                 <TouchableOpacity
-                  key={idx}
-                  style={styles.qtyOption}
-                  onPress={() => selectAddress(addr)}
+                  onPress={() => setAddressModalVisible(false)}
+                  hitSlop={8}
                 >
-                  <Text style={styles.optionText}>
-                    {addr.street}, {addr.city}
-                  </Text>
-                  <Text style={styles.addressSub}>
-                    {addr.state} - {addr.zipCode}
-                  </Text>
+                  <Ionicons name="close" size={22} color="#333" />
                 </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={[styles.qtyOption, styles.cancelButton]}
-                onPress={() => setAddressModalVisible(false)}
+              </View>
+
+              <ScrollView
+                style={styles.sheetScroll}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.cancelText}>Cancel</Text>
+                {addresses.length === 0 ? (
+                  <View style={styles.noAddressBox}>
+                    <Ionicons
+                      name="location-outline"
+                      size={40}
+                      color="#CCC"
+                    />
+                    <Text style={styles.noAddressText}>
+                      No addresses saved yet
+                    </Text>
+                  </View>
+                ) : (
+                  addresses.map((addr, idx) => {
+                    const isSelected =
+                      deliveryAddress?.street === addr.street &&
+                      deliveryAddress?.zipCode === addr.zipCode;
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[
+                          styles.addressCard,
+                          isSelected && styles.addressCardSelected,
+                        ]}
+                        activeOpacity={0.8}
+                        onPress={() => selectAddress(addr)}
+                      >
+                        <View style={styles.addressCardLeft}>
+                          <Ionicons
+                            name="location"
+                            size={16}
+                            color={isSelected ? '#9E0E26' : '#666'}
+                          />
+                        </View>
+                        <View style={styles.addressCardBody}>
+                          <Text style={styles.addressCardTitle}>
+                            {addr.fullName || 'Delivery Address'}
+                          </Text>
+                          <Text style={styles.addressCardLine}>
+                            {addr.street}, {addr.city}
+                          </Text>
+                          <Text style={styles.addressCardLine}>
+                            {addr.state} - {addr.zipCode}
+                          </Text>
+                          {addr.phone ? (
+                            <Text style={styles.addressCardPhone}>
+                              📞 {addr.phone}
+                            </Text>
+                          ) : null}
+                        </View>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color="#9E0E26"
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.addAddressBtn}
+                activeOpacity={0.85}
+                onPress={() => {
+                  setAddressModalVisible(false);
+                  setNewAddressModalVisible(true);
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                <Text style={styles.addAddressBtnText}>Add New Address</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        {/* SIZE MODAL */}
+        {/* ============ NEW ADDRESS MODAL ============ */}
+        <Modal
+          visible={newAddressModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setNewAddressModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            style={styles.bottomSheetOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <TouchableOpacity
+              style={styles.bottomSheetBackdrop}
+              activeOpacity={1}
+              onPress={() => setNewAddressModalVisible(false)}
+            />
+            <View
+              style={[
+                styles.bottomSheet,
+                { paddingBottom: Math.max(insets.bottom, 16) },
+              ]}
+            >
+              <View style={styles.sheetHandle} />
+
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Add New Address</Text>
+                <TouchableOpacity
+                  onPress={() => setNewAddressModalVisible(false)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={22} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.sheetScroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Enter full name"
+                  placeholderTextColor="#999"
+                  value={newAddress.fullName}
+                  onChangeText={(t) =>
+                    setNewAddress((p) => ({ ...p, fullName: t }))
+                  }
+                />
+
+                <Text style={styles.inputLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Enter phone number"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                  value={newAddress.phone}
+                  onChangeText={(t) =>
+                    setNewAddress((p) => ({ ...p, phone: t }))
+                  }
+                />
+
+                <Text style={styles.inputLabel}>Street Address</Text>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="House no, street, area"
+                  placeholderTextColor="#999"
+                  value={newAddress.street}
+                  onChangeText={(t) =>
+                    setNewAddress((p) => ({ ...p, street: t }))
+                  }
+                />
+
+                <View style={styles.inputRow}>
+                  <View style={{ flex: 1, marginRight: 6 }}>
+                    <Text style={styles.inputLabel}>City</Text>
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="City"
+                      placeholderTextColor="#999"
+                      value={newAddress.city}
+                      onChangeText={(t) =>
+                        setNewAddress((p) => ({ ...p, city: t }))
+                      }
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 6 }}>
+                    <Text style={styles.inputLabel}>State</Text>
+                    <TextInput
+                      style={styles.inputField}
+                      placeholder="State"
+                      placeholderTextColor="#999"
+                      value={newAddress.state}
+                      onChangeText={(t) =>
+                        setNewAddress((p) => ({ ...p, state: t }))
+                      }
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.inputLabel}>ZIP Code</Text>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Enter ZIP code"
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={newAddress.zipCode}
+                  onChangeText={(t) =>
+                    setNewAddress((p) => ({ ...p, zipCode: t }))
+                  }
+                />
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.addAddressBtn}
+                activeOpacity={0.85}
+                onPress={handleSaveNewAddress}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color="#fff"
+                />
+                <Text style={styles.addAddressBtnText}>Save Address</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* ============ SIZE MODAL ============ */}
         <Modal visible={sizeModalVisible} transparent animationType="slide">
           <View style={styles.qtyModalOverlay}>
             <View style={styles.qtyModal}>
@@ -1238,7 +1552,7 @@ const CartScreen: React.FC = () => {
           </View>
         </Modal>
 
-        {/* QTY MODAL */}
+        {/* ============ QTY MODAL ============ */}
         <Modal visible={qtyModalVisible} transparent animationType="slide">
           <View style={styles.qtyModalOverlay}>
             <View style={styles.qtyModal}>
@@ -1334,7 +1648,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 130,
     borderRadius: 8,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -1550,7 +1864,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  /* ✅ Thinner free shipping card */
   freeShippingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1893,5 +2206,142 @@ const styles = StyleSheet.create({
     color: '#E53935',
     fontWeight: '500',
     fontSize: 13,
+  },
+
+  /* ================= BOTTOM SHEET (Address) ================= */
+  bottomSheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'transparent',
+  },
+  bottomSheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingTop: 8,
+    // ✅ paddingBottom is set dynamically from insets.bottom
+    paddingHorizontal: 16,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#DDD',
+    marginBottom: 10,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  sheetTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111',
+  },
+  sheetScroll: {
+    marginTop: 8,
+    maxHeight: 400,
+    marginBottom: 4,
+  },
+
+  addressCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#EEE',
+    backgroundColor: '#FAFAFA',
+    marginBottom: 8,
+  },
+  addressCardSelected: {
+    borderColor: '#9E0E26',
+    backgroundColor: '#FDF2F4',
+  },
+  addressCardLeft: {
+    marginRight: 10,
+    marginTop: 2,
+  },
+  addressCardBody: {
+    flex: 1,
+  },
+  addressCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 2,
+  },
+  addressCardLine: {
+    fontSize: 11.5,
+    color: '#555',
+    lineHeight: 16,
+  },
+  addressCardPhone: {
+    fontSize: 11,
+    color: '#777',
+    marginTop: 3,
+  },
+
+  noAddressBox: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  noAddressText: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 8,
+  },
+
+  addAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#9E0E26',
+    paddingVertical: 13,
+    borderRadius: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  addAddressBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  inputLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#555',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  inputField: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#222',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginTop: 0,
   },
 });

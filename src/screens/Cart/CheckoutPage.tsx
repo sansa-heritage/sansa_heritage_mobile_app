@@ -10,6 +10,9 @@ import {
   BackHandler,
   Modal,
   useWindowDimensions,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -80,6 +83,17 @@ const OrderConfirmationScreen: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [addressModalVisible, setAddressModalVisible] = useState<boolean>(false);
+  const [newAddressModalVisible, setNewAddressModalVisible] =
+    useState<boolean>(false);
+
+  const [newAddress, setNewAddress] = useState({
+    fullName: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
+  });
 
   const {
     billingDetails = 0,
@@ -101,7 +115,6 @@ const OrderConfirmationScreen: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        // ✅ Show the global logo loader (AnimatedLogoLoader at App root)
         LoadingService.show();
 
         const storedCart = await AsyncStorage.getItem('cartSnapshot');
@@ -109,7 +122,7 @@ const OrderConfirmationScreen: React.FC = () => {
           try {
             const parsed = JSON.parse(storedCart);
             if (Array.isArray(parsed)) setCartItems(parsed);
-          } catch { }
+          } catch {}
         }
 
         const token = await AsyncStorage.getItem('authToken');
@@ -123,7 +136,7 @@ const OrderConfirmationScreen: React.FC = () => {
               const json = await res.json();
               setAddresses(json.addresses || []);
             }
-          } catch { }
+          } catch {}
         }
 
         const storedAddr = await AsyncStorage.getItem('selectedAddress');
@@ -131,7 +144,6 @@ const OrderConfirmationScreen: React.FC = () => {
       } catch (e) {
         console.log('Load error', e);
       } finally {
-        // ✅ Hide the global logo loader
         LoadingService.hide();
         setLoading(false);
       }
@@ -144,8 +156,94 @@ const OrderConfirmationScreen: React.FC = () => {
     setAddress(addr);
     try {
       await AsyncStorage.setItem('selectedAddress', JSON.stringify(addr));
-    } catch { }
+    } catch {}
     setAddressModalVisible(false);
+  };
+
+  /* ============ SAVE NEW ADDRESS ============ */
+  const handleSaveNewAddress = async () => {
+    const { fullName, phone, street, city, state, zipCode } = newAddress;
+
+    if (
+      !fullName.trim() ||
+      !phone.trim() ||
+      !street.trim() ||
+      !city.trim() ||
+      !state.trim() ||
+      !zipCode.trim()
+    ) {
+      Alert.alert('Missing fields', 'Please fill in all fields.');
+      return;
+    }
+
+    LoadingService.show();
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const baseURL = config.baseURL || '';
+
+      const payload = {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        street: street.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zipCode: zipCode.trim(),
+      };
+
+      let savedAddress: Address | null = null;
+
+      if (token) {
+        try {
+          const res = await fetch(`${baseURL}api/auth/addresses`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            savedAddress = json.address || json;
+            if (json.addresses) setAddresses(json.addresses);
+            else if (savedAddress)
+              setAddresses(prev => [...prev, savedAddress as Address]);
+          }
+        } catch (e) {
+          console.log('Server save failed, saving locally', e);
+        }
+      }
+
+      if (!savedAddress) {
+        savedAddress = {
+          ...(payload as any),
+          name: payload.fullName,
+        } as Address;
+        setAddresses(prev => [...prev, savedAddress as Address]);
+      }
+
+      setAddress(savedAddress);
+      await AsyncStorage.setItem(
+        'selectedAddress',
+        JSON.stringify(savedAddress),
+      );
+
+      setNewAddressModalVisible(false);
+      setNewAddress({
+        fullName: '',
+        phone: '',
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+      });
+      Alert.alert('Success', 'Address added successfully');
+    } catch (e: any) {
+      console.error('Save address error:', e);
+      Alert.alert('Error', 'Failed to save address');
+    } finally {
+      LoadingService.hide();
+    }
   };
 
   /* ============ BACK GUARD ============ */
@@ -166,7 +264,10 @@ const OrderConfirmationScreen: React.FC = () => {
         );
         return true;
       };
-      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      const sub = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress,
+      );
       return () => sub.remove();
     }, [navigation]),
   );
@@ -196,9 +297,6 @@ const OrderConfirmationScreen: React.FC = () => {
     });
   };
 
-  // ✅ Empty placeholder while loading — global AnimatedLogoLoader shows on top
-  //    No plain spinner here, and no blank white flash — the neutral background
-  //    prevents a black frame while the logo loader is visible.
   if (loading) {
     return <View style={{ flex: 1, backgroundColor: '#F5F5F5' }} />;
   }
@@ -290,57 +388,141 @@ const OrderConfirmationScreen: React.FC = () => {
     },
     payText: { fontSize: s(12) },
 
-    modalOverlay: {
+    /* ---- Bottom sheet (address picker) ---- */
+    bottomSheetOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: s(20),
+      justifyContent: 'flex-end',
+      backgroundColor: 'transparent',
     },
-    modalBox: {
-      width: '100%',
-      maxWidth: MAX_CONTENT_WIDTH,
+    bottomSheetBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+    bottomSheet: {
       backgroundColor: '#fff',
-      borderRadius: s(14),
-      overflow: 'hidden',
-      maxHeight: '80%',
-    },
-    modalHeader: {
-      paddingVertical: s(14),
+      borderTopLeftRadius: s(22),
+      borderTopRightRadius: s(22),
+      paddingTop: s(8),
+      paddingBottom: Math.max(insets.bottom, s(16)),
       paddingHorizontal: s(16),
-      borderBottomWidth: 1,
-      borderBottomColor: '#EEE',
+      maxHeight: '85%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -3 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 12,
     },
-    modalTitle: {
-      fontSize: s(15),
-      fontWeight: '700',
-      color: '#111',
-      textAlign: 'center',
+    sheetHandle: {
+      alignSelf: 'center',
+      width: s(40),
+      height: s(4),
+      borderRadius: s(2),
+      backgroundColor: '#DDD',
+      marginBottom: s(10),
     },
-    modalScroll: { maxHeight: 400 },
-    addressOption: {
-      paddingVertical: s(14),
-      paddingHorizontal: s(16),
+    sheetHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingBottom: s(12),
       borderBottomWidth: 1,
       borderBottomColor: '#F0F0F0',
     },
-    addressOptionActive: { backgroundColor: '#FFF7F8' },
-    addressOptionName: {
-      fontSize: s(13),
+    sheetTitle: {
+      fontSize: s(15),
       fontWeight: '700',
       color: '#111',
+    },
+    sheetScroll: {
+      marginTop: s(8),
+      maxHeight: 400,
       marginBottom: s(4),
     },
-    addressOptionText: { fontSize: s(12), color: '#555', lineHeight: s(16) },
-    addressOptionSub: { fontSize: s(11), color: '#888', marginTop: s(4) },
-    modalCancelBtn: { paddingVertical: s(14), alignItems: 'center' },
-    modalCancelText: {
-      fontSize: s(13),
-      color: '#E53935',
-      fontWeight: '600',
+
+    addressCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: s(12),
+      borderRadius: s(10),
+      borderWidth: 1,
+      borderColor: '#EEE',
+      backgroundColor: '#FAFAFA',
+      marginBottom: s(8),
     },
-    emptyAddress: { padding: s(20), alignItems: 'center' },
-    emptyAddressText: { fontSize: s(12), color: '#888', textAlign: 'center' },
+    addressCardSelected: {
+      borderColor: '#9E0E26',
+      backgroundColor: '#FDF2F4',
+    },
+    addressCardLeft: {
+      marginRight: s(10),
+      marginTop: s(2),
+    },
+    addressCardBody: { flex: 1 },
+    addressCardTitle: {
+      fontSize: s(13),
+      fontWeight: '700',
+      color: '#222',
+      marginBottom: s(2),
+    },
+    addressCardLine: {
+      fontSize: s(11.5),
+      color: '#555',
+      lineHeight: s(16),
+    },
+    addressCardPhone: {
+      fontSize: s(11),
+      color: '#777',
+      marginTop: s(3),
+    },
+
+    noAddressBox: {
+      alignItems: 'center',
+      paddingVertical: s(30),
+    },
+    noAddressText: {
+      fontSize: s(13),
+      color: '#999',
+      marginTop: s(8),
+    },
+
+    addAddressBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#9E0E26',
+      paddingVertical: s(13),
+      borderRadius: s(10),
+      marginTop: s(8),
+      gap: s(6),
+    },
+    addAddressBtnText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: s(13),
+    },
+
+    /* ---- Form fields ---- */
+    inputLabel: {
+      fontSize: s(11.5),
+      fontWeight: '600',
+      color: '#555',
+      marginTop: s(12),
+      marginBottom: s(4),
+    },
+    inputField: {
+      backgroundColor: '#F7F7F7',
+      borderRadius: s(8),
+      borderWidth: 1,
+      borderColor: '#E5E5E5',
+      paddingHorizontal: s(12),
+      paddingVertical: s(10),
+      fontSize: s(13),
+      color: '#222',
+    },
+    inputRow: {
+      flexDirection: 'row',
+      marginTop: 0,
+    },
   };
 
   /* ============ RENDER ============ */
@@ -385,7 +567,7 @@ const OrderConfirmationScreen: React.FC = () => {
             {address ? (
               <View style={[styles.addressBox, dyn.addressBox]}>
                 <Text style={[styles.addressName, dyn.addressName]}>
-                  {address.name || 'Customer'}
+                  {address.name || address.fullName || 'Customer'}
                 </Text>
                 <Text style={[styles.addressText, dyn.addressText]}>
                   {[address.street, address.area, address.city]
@@ -460,6 +642,14 @@ const OrderConfirmationScreen: React.FC = () => {
                 const price = Number(item.price) || 0;
                 const qty = Number(item.quantity) || 1;
 
+                // ✅ Discount guard (not shown here but kept for consistency)
+                const discountValue = Number(item.discount || 0);
+                const hasRealDiscount =
+                  discountValue > 0 && discountValue < 100;
+                const discountedPrice = hasRealDiscount
+                  ? price - (price * discountValue) / 100
+                  : price;
+
                 return (
                   <View
                     key={`${item.productId}-${idx}`}
@@ -469,6 +659,7 @@ const OrderConfirmationScreen: React.FC = () => {
                       <Image
                         source={imgSrc}
                         style={[styles.itemImage, dyn.itemImage]}
+                        resizeMode="contain"
                       />
                     ) : (
                       <View
@@ -495,7 +686,7 @@ const OrderConfirmationScreen: React.FC = () => {
                         ) : null}
                       </Text>
                       <Text style={[styles.itemMeta, dyn.itemMeta]}>
-                        Qty: {qty} · ₹{price * qty}
+                        Qty: {qty} · ₹{Math.round(discountedPrice * qty)}
                       </Text>
                     </View>
                   </View>
@@ -528,6 +719,7 @@ const OrderConfirmationScreen: React.FC = () => {
               </Text>
             </View>
 
+            {/* ✅ Only show Bag Savings when there's a real discount */}
             {Number(savings) > 0 && (
               <View style={[styles.billRow, dyn.billRow]}>
                 <Text style={[styles.billLabel, dyn.billLabel]}>
@@ -539,6 +731,7 @@ const OrderConfirmationScreen: React.FC = () => {
               </View>
             )}
 
+            {/* ✅ Only show Coupon Discount when it's real */}
             {couponApplied && Number(couponDiscount) > 0 && (
               <View style={[styles.billRow, dyn.billRow]}>
                 <Text style={[styles.billLabel, dyn.billLabel]}>
@@ -576,6 +769,7 @@ const OrderConfirmationScreen: React.FC = () => {
               </Text>
             </View>
 
+            {/* ✅ Only show savings banner when there's real savings */}
             {totalSavings > 0 && (
               <View style={[styles.savingsBanner, dyn.savingsBanner]}>
                 <Ionicons
@@ -694,41 +888,49 @@ const OrderConfirmationScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ADDRESS PICKER MODAL */}
+      {/* ============ ADDRESS BOTTOM SHEET ============ */}
       <Modal
         visible={addressModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setAddressModalVisible(false)}
       >
-        <View style={dyn.modalOverlay}>
-          <View style={dyn.modalBox}>
-            <View style={dyn.modalHeader}>
-              <Text style={dyn.modalTitle}>Select Delivery Address</Text>
+        <View style={dyn.bottomSheetOverlay}>
+          <TouchableOpacity
+            style={dyn.bottomSheetBackdrop}
+            activeOpacity={1}
+            onPress={() => setAddressModalVisible(false)}
+          />
+          <View style={dyn.bottomSheet}>
+            <View style={dyn.sheetHandle} />
+
+            <View style={dyn.sheetHeader}>
+              <Text style={dyn.sheetTitle}>Select Delivery Address</Text>
+              <TouchableOpacity
+                onPress={() => setAddressModalVisible(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={s(22)} color="#333" />
+              </TouchableOpacity>
             </View>
 
-            {addresses.length === 0 ? (
-              <View style={dyn.emptyAddress}>
-                <Ionicons
-                  name="location-outline"
-                  size={s(36)}
-                  color="#CCC"
-                />
-                <Text style={[dyn.emptyAddressText, { marginTop: s(8) }]}>
-                  No addresses saved yet.
-                </Text>
-                <Text
-                  style={[
-                    dyn.emptyAddressText,
-                    { marginTop: s(4), fontSize: s(11) },
-                  ]}
-                >
-                  Add one from your profile.
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={dyn.modalScroll}>
-                {addresses.map((addr, idx) => {
+            <ScrollView
+              style={dyn.sheetScroll}
+              showsVerticalScrollIndicator={false}
+            >
+              {addresses.length === 0 ? (
+                <View style={dyn.noAddressBox}>
+                  <Ionicons
+                    name="location-outline"
+                    size={s(40)}
+                    color="#CCC"
+                  />
+                  <Text style={dyn.noAddressText}>
+                    No addresses saved yet
+                  </Text>
+                </View>
+              ) : (
+                addresses.map((addr, idx) => {
                   const isSelected =
                     address &&
                     address.street === addr.street &&
@@ -739,60 +941,193 @@ const OrderConfirmationScreen: React.FC = () => {
                     <TouchableOpacity
                       key={addr._id || `${idx}`}
                       style={[
-                        dyn.addressOption,
-                        isSelected && dyn.addressOptionActive,
+                        dyn.addressCard,
+                        isSelected && dyn.addressCardSelected,
                       ]}
+                      activeOpacity={0.8}
                       onPress={() => selectAddress(addr)}
-                      activeOpacity={0.7}
                     >
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: s(4),
-                        }}
-                      >
-                        <Text style={dyn.addressOptionName}>
-                          {addr.name || 'Customer'}
-                        </Text>
-                        {isSelected && (
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={s(18)}
-                            color="#9E0E26"
-                          />
-                        )}
+                      <View style={dyn.addressCardLeft}>
+                        <Ionicons
+                          name="location"
+                          size={s(16)}
+                          color={isSelected ? '#9E0E26' : '#666'}
+                        />
                       </View>
-                      <Text style={dyn.addressOptionText}>
-                        {[addr.street, addr.area, addr.city]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </Text>
-                      <Text style={dyn.addressOptionSub}>
-                        {[addr.state, addr.zipCode, addr.country]
-                          .filter(Boolean)
-                          .join(' - ')}
-                      </Text>
-                      {addr.phone ? (
-                        <Text style={dyn.addressOptionSub}>
-                          📞 {addr.phone}
+                      <View style={dyn.addressCardBody}>
+                        <Text style={dyn.addressCardTitle}>
+                          {addr.name || addr.fullName || 'Delivery Address'}
                         </Text>
-                      ) : null}
+                        <Text style={dyn.addressCardLine}>
+                          {[addr.street, addr.area, addr.city]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </Text>
+                        <Text style={dyn.addressCardLine}>
+                          {[addr.state, addr.country, addr.zipCode]
+                            .filter(Boolean)
+                            .join(' - ')}
+                        </Text>
+                        {addr.phone ? (
+                          <Text style={dyn.addressCardPhone}>
+                            📞 {addr.phone}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={s(20)}
+                          color="#9E0E26"
+                        />
+                      )}
                     </TouchableOpacity>
                   );
-                })}
-              </ScrollView>
-            )}
+                })
+              )}
+            </ScrollView>
 
             <TouchableOpacity
-              style={dyn.modalCancelBtn}
-              onPress={() => setAddressModalVisible(false)}
+              style={dyn.addAddressBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                setAddressModalVisible(false);
+                setNewAddressModalVisible(true);
+              }}
             >
-              <Text style={dyn.modalCancelText}>Cancel</Text>
+              <Ionicons
+                name="add-circle-outline"
+                size={s(18)}
+                color="#fff"
+              />
+              <Text style={dyn.addAddressBtnText}>Add New Address</Text>
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* ============ NEW ADDRESS MODAL ============ */}
+      <Modal
+        visible={newAddressModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNewAddressModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={dyn.bottomSheetOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity
+            style={dyn.bottomSheetBackdrop}
+            activeOpacity={1}
+            onPress={() => setNewAddressModalVisible(false)}
+          />
+          <View style={dyn.bottomSheet}>
+            <View style={dyn.sheetHandle} />
+
+            <View style={dyn.sheetHeader}>
+              <Text style={dyn.sheetTitle}>Add New Address</Text>
+              <TouchableOpacity
+                onPress={() => setNewAddressModalVisible(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={s(22)} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={dyn.sheetScroll}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={dyn.inputLabel}>Full Name</Text>
+              <TextInput
+                style={dyn.inputField}
+                placeholder="Enter full name"
+                placeholderTextColor="#999"
+                value={newAddress.fullName}
+                onChangeText={t =>
+                  setNewAddress(p => ({ ...p, fullName: t }))
+                }
+              />
+
+              <Text style={dyn.inputLabel}>Phone Number</Text>
+              <TextInput
+                style={dyn.inputField}
+                placeholder="Enter phone number"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                value={newAddress.phone}
+                onChangeText={t =>
+                  setNewAddress(p => ({ ...p, phone: t }))
+                }
+              />
+
+              <Text style={dyn.inputLabel}>Street Address</Text>
+              <TextInput
+                style={dyn.inputField}
+                placeholder="House no, street, area"
+                placeholderTextColor="#999"
+                value={newAddress.street}
+                onChangeText={t =>
+                  setNewAddress(p => ({ ...p, street: t }))
+                }
+              />
+
+              <View style={dyn.inputRow}>
+                <View style={{ flex: 1, marginRight: s(6) }}>
+                  <Text style={dyn.inputLabel}>City</Text>
+                  <TextInput
+                    style={dyn.inputField}
+                    placeholder="City"
+                    placeholderTextColor="#999"
+                    value={newAddress.city}
+                    onChangeText={t =>
+                      setNewAddress(p => ({ ...p, city: t }))
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: s(6) }}>
+                  <Text style={dyn.inputLabel}>State</Text>
+                  <TextInput
+                    style={dyn.inputField}
+                    placeholder="State"
+                    placeholderTextColor="#999"
+                    value={newAddress.state}
+                    onChangeText={t =>
+                      setNewAddress(p => ({ ...p, state: t }))
+                    }
+                  />
+                </View>
+              </View>
+
+              <Text style={dyn.inputLabel}>ZIP Code</Text>
+              <TextInput
+                style={dyn.inputField}
+                placeholder="Enter ZIP code"
+                placeholderTextColor="#999"
+                keyboardType="number-pad"
+                value={newAddress.zipCode}
+                onChangeText={t =>
+                  setNewAddress(p => ({ ...p, zipCode: t }))
+                }
+              />
+            </ScrollView>
+
+            <TouchableOpacity
+              style={dyn.addAddressBtn}
+              activeOpacity={0.85}
+              onPress={handleSaveNewAddress}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={s(18)}
+                color="#fff"
+              />
+              <Text style={dyn.addAddressBtnText}>Save Address</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -833,7 +1168,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F5F5F5',
   },
-  itemImage: { resizeMode: 'cover' },
+  itemImage: { resizeMode: 'contain' },
   itemInfo: { flex: 1 },
   itemName: { color: '#111' },
   itemNameBold: { fontWeight: '700', color: '#111' },

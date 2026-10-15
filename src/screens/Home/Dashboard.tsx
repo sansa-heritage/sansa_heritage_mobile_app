@@ -34,6 +34,8 @@ import config from '../../config/config';
 import LoadingService from '../../services/LoadingService';
 import { getActiveBanners } from '../../api/bannerApi';
 import NotificationBadge from '../../components/NotificationBadge';
+import SansaLogo from '../../../assets/images/icon.svg';
+
 
 const { width } = Dimensions.get('window');
 
@@ -149,7 +151,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER
+// BANNER SLIDER — untouched
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -336,7 +338,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD
+// PRODUCT CARD — discount guard applied
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -353,10 +355,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const originalPrice = Number(item.price || 0);
   const discountPercent = Number(item.discountPercent || 0);
-  const discountedPrice =
-    discountPercent > 0
-      ? originalPrice - (originalPrice * discountPercent) / 100
-      : originalPrice;
+  // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
+  const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
+  const discountedPrice = hasRealDiscount
+    ? originalPrice - (originalPrice * discountPercent) / 100
+    : originalPrice;
 
   const rating = Number(item.rating || 0);
 
@@ -368,7 +371,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onPress={() => onPress(item)}
       activeOpacity={0.85}
     >
-      {discountPercent >= 20 && (
+      {hasRealDiscount && discountPercent >= 20 && (
         <View style={styles.megaDropRow}>
           <View style={styles.megaDropBadge}>
             <Text style={styles.megaDropText}>Mega Price Drop</Text>
@@ -392,11 +395,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -418,16 +421,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
           ) : null}
         </Text>
 
-        {discountPercent >= 20 && (
+        {hasRealDiscount && discountPercent >= 20 && (
           <View style={styles.megaDropInline}>
             <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
           </View>
         )}
 
         <View style={styles.priceRow}>
-          <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+          {hasRealDiscount && (
+            <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+          )}
           <Text style={styles.finalPrice}>₹{discountedPrice.toFixed(0)}</Text>
-          {discountPercent > 0 && (
+          {hasRealDiscount && (
             <Text style={styles.discountText}>{discountPercent}% OFF</Text>
           )}
         </View>
@@ -437,7 +442,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 // ============================================
-// PREMIUM PRODUCT CARD
+// PREMIUM PRODUCT CARD — discount guard applied
 // ============================================
 interface PremiumCardProps {
   item: any;
@@ -454,10 +459,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
 }) => {
   const originalPrice = Number(item.price || 0);
   const discountPercent = Number(item.discountPercent || 0);
-  const discountedPrice =
-    discountPercent > 0
-      ? originalPrice - (originalPrice * discountPercent) / 100
-      : originalPrice;
+  // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
+  const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
+  const discountedPrice = hasRealDiscount
+    ? originalPrice - (originalPrice * discountPercent) / 100
+    : originalPrice;
 
   const rating = Number(item.rating || 0);
 
@@ -469,7 +475,7 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
       onPress={() => onPress(item)}
       activeOpacity={0.85}
     >
-      {discountPercent >= 20 && (
+      {hasRealDiscount && discountPercent >= 20 && (
         <View style={styles.megaDropRow}>
           <View style={styles.megaDropBadge}>
             <Text style={styles.megaDropText}>Mega Price Drop</Text>
@@ -497,11 +503,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
@@ -523,16 +529,18 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
           ) : null}
         </Text>
 
-        {discountPercent >= 20 && (
+        {hasRealDiscount && discountPercent >= 20 && (
           <View style={styles.megaDropInline}>
             <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
           </View>
         )}
 
         <View style={styles.priceRow}>
-          <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+          {hasRealDiscount && (
+            <Text style={styles.strikePrice}>₹{originalPrice}</Text>
+          )}
           <Text style={styles.finalPrice}>₹{discountedPrice.toFixed(0)}</Text>
-          {discountPercent > 0 && (
+          {hasRealDiscount && (
             <Text style={styles.discountText}>{discountPercent}% OFF</Text>
           )}
         </View>
@@ -790,9 +798,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -820,9 +827,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -860,9 +866,8 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
+        }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1187,11 +1192,13 @@ export default function Dashboard() {
 
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
-          <Image
-            source={require('../../../assets/images/icon.png')}
+          {/* <Image
+            source={require('../../../assets/images/icon.svg')}
             style={styles.searchLogo}
             resizeMode="contain"
-          />
+          /> */}
+          <SansaLogo width={24} height={24} style={styles.searchLogo} />
+
           <TextInput
             style={styles.searchInput}
             placeholder="Search for Sarees..."
@@ -1279,7 +1286,7 @@ export default function Dashboard() {
                   style={[
                     styles.categoryFilterButton,
                     selectedCategory === cat._id &&
-                      styles.categoryFilterButtonActive,
+                    styles.categoryFilterButtonActive,
                   ]}
                   onPress={() => {
                     setSelectedCategory(cat._id);
@@ -1291,7 +1298,7 @@ export default function Dashboard() {
                     style={[
                       styles.categoryFilterText,
                       selectedCategory === cat._id &&
-                        styles.categoryFilterTextActive,
+                      styles.categoryFilterTextActive,
                     ]}
                   >
                     {cat.name}
@@ -1390,8 +1397,17 @@ const styles = StyleSheet.create({
     borderColor: '#F2D5DC',
     borderBottomWidth: 0,
   },
-  topTabInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  topTabText: { fontSize: 15, fontWeight: '600', color: '#9E0E26', letterSpacing: 0.3 },
+  topTabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#9E0E26',
+    letterSpacing: 0.3,
+  },
   topTabTextActive: { fontWeight: '700', color: '#9E0E26' },
 
   searchRow: {
@@ -1446,7 +1462,12 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryItemActive: { backgroundColor: '#9E0E26', borderColor: '#9E0E26' },
-  categoryName: { fontSize: 10, fontWeight: '500', color: '#FFFFFF', textAlign: 'center' },
+  categoryName: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
   featuresContainer: {
@@ -1487,8 +1508,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   featureTextWrapper: { flexShrink: 1, justifyContent: 'center' },
-  featureTitle: { fontSize: 9, color: '#9E0E26', fontWeight: '700', lineHeight: 11 },
-  featureSubtext: { fontSize: 6, color: '#888', fontWeight: '400', lineHeight: 9 },
+  featureTitle: {
+    fontSize: 9,
+    color: '#9E0E26',
+    fontWeight: '700',
+    lineHeight: 11,
+  },
+  featureSubtext: {
+    fontSize: 6,
+    color: '#888',
+    fontWeight: '400',
+    lineHeight: 9,
+  },
 
   productCard: {
     width: '48%',
@@ -1528,7 +1559,12 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   ratingPillText: { color: '#111', fontSize: 11, fontWeight: '700' },
-  ratingDivider: { width: 1, height: 10, backgroundColor: '#D0D0D0', marginHorizontal: 2 },
+  ratingDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: '#D0D0D0',
+    marginHorizontal: 2,
+  },
   productInfo: { paddingTop: 8, paddingHorizontal: 2, paddingBottom: 10 },
   productTitle: { fontSize: 13, color: '#111', marginBottom: 6 },
   productTitleBold: { fontWeight: '700', color: '#111' },
@@ -1542,8 +1578,17 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   megaDropInlineText: { color: '#E9445A', fontSize: 10, fontWeight: '700' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  strikePrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through' },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  strikePrice: {
+    fontSize: 12,
+    color: '#999',
+    textDecorationLine: 'line-through',
+  },
   finalPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
   discountText: { fontSize: 13, color: '#9E0E26', fontWeight: '700' },
 
@@ -1565,9 +1610,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  premiumTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', letterSpacing: 0.3 },
+  premiumTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    letterSpacing: 0.3,
+  },
   premiumSeeAll: { flexDirection: 'row', alignItems: 'center' },
-  premiumSeeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600', marginRight: 2 },
+  premiumSeeAllText: {
+    fontSize: 13,
+    color: '#9E0E26',
+    fontWeight: '600',
+    marginRight: 2,
+  },
   premiumTag: {
     position: 'absolute',
     top: 8,
@@ -1578,9 +1633,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     zIndex: 2,
   },
-  premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  premiumTagText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
 
-  /* ✅ Reduced top gap — marginTop 10 → 4 */
   newArrivalSection: { marginTop: 4, marginBottom: 10 },
   newArrivalHeader: {
     flexDirection: 'row',
@@ -1590,7 +1649,12 @@ const styles = StyleSheet.create({
   },
   newArrivalTitle: { fontSize: 13, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
-  noRecordsText: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 20 },
+  noRecordsText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 20,
+  },
 
   modalContainer: {
     flex: 1,
@@ -1612,8 +1676,17 @@ const styles = StyleSheet.create({
   },
   clearText: { fontSize: 16, color: '#151515' },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', marginVertical: 10 },
-  priceHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginVertical: 10,
+  },
+  priceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   priceText: { fontSize: 16, fontWeight: '600' },
   sliderTitle: { fontSize: 14, marginTop: 10, marginBottom: 5, color: '#555' },
   categoryFilter: {
@@ -1671,6 +1744,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: 6,
   },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)' },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
   activeDot: { backgroundColor: '#9E0E26', width: 20 },
 });

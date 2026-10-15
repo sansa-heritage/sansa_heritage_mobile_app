@@ -9,6 +9,10 @@ import {
   Dimensions,
 } from "react-native";
 
+// ✅ SVG imports (requires metro.config.js + declarations.d.ts setup)
+import SansaIcon from "../../../assets/images/icon.svg";
+import SansaTextLogo from "../../../assets/images/logo-text.svg";
+
 const { width } = Dimensions.get("window");
 
 interface SplashScreenProps {
@@ -257,11 +261,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           ]}
         />
 
-        <Image
-          source={require("../../../assets/images/icon.png")}
-          style={styles.icon}
-          resizeMode="contain"
-        />
+        {/* ✅ SVG icon — no width/height in style, controlled by props */}
+        <SansaIcon width="100%" height="100%" />
       </Animated.View>
 
       {/* ============ TEXT LOGO ============ */}
@@ -278,11 +279,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
           },
         ]}
       >
-        <Image
-          source={require("../../../assets/images/logo-text.png")}
-          style={styles.textLogo}
-          resizeMode="contain"
-        />
+        {/* ✅ SVG text logo — no width/height in style, controlled by props */}
+        <SansaTextLogo width="100%" height="100%" />
       </Animated.View>
     </Animated.View>
   );
@@ -317,6 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF0F3",
   },
 
+  // ✅ SVG components render at 100% of iconWrap — no fixed size needed
   icon: {
     width: "100%",
     height: "100%",
@@ -330,6 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  // ✅ SVG text logo fills the wrapper
   textLogo: {
     width: "100%",
     height: "100%",

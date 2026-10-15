@@ -19,6 +19,8 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { RootStackParamList } from '../../models/types';
 import { snackbar } from '../../components/common/Snackbar';
 import DeviceInfo from 'react-native-device-info';
+import SansaFinalLogo from '../../../assets/images/SANSA-final-logo.svg';
+
 
 const SignUpPage = () => {
   const [email, setEmail] = useState('');
@@ -107,9 +109,14 @@ const SignUpPage = () => {
 
   return (
     <View style={styles.container}>
-      <Image
+      {/* <Image
         style={styles.brandLogo}
         source={require('../../../assets/images/SANSA-final-logo.png')}
+      /> */}
+       <SansaFinalLogo
+        width={250}
+        height={100}
+        style={styles.brandLogo}
       />
 
       <View style={styles.card}>

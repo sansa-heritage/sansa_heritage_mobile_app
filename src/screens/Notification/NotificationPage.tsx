@@ -363,24 +363,22 @@ const NotificationScreen: React.FC = () => {
           </Text>
         </View>
       ) : (
-        /* ✅ Outer rounded shell around the whole list */
-        <View style={styles.listPanel}>
-          <FlatList
-            data={filteredNotifications}
-            renderItem={renderNotification}
-            keyExtractor={(item) => item._id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={["#9E0E26"]}
-                tintColor="#9E0E26"
-              />
-            }
-          />
-        </View>
+        /* ✅ FlatList sits directly on screen background — no outer card */
+        <FlatList
+          data={filteredNotifications}
+          renderItem={renderNotification}
+          keyExtractor={(item) => item._id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={["#9E0E26"]}
+              tintColor="#9E0E26"
+            />
+          }
+        />
       )}
     </View>
   );
@@ -427,34 +425,24 @@ const styles = StyleSheet.create({
   tabText: { fontSize: scale(12), color: "#374151", fontWeight: "500" },
   activeTabText: { color: "#FFFFFF", fontWeight: "700" },
 
-  /* ✅ Outer rounded shell that contains the whole stack */
-  listPanel: {
-    flex: 1,
-    marginHorizontal: scale(12),
-    marginBottom: scale(6),
-    backgroundColor: "#FDFDFD",
-    borderRadius: 22,
-    overflow: "hidden",
-  },
-
-  /* Inner padding of the FlatList */
+  /* Inner padding of the FlatList (no outer card anymore) */
   listContent: {
-    paddingHorizontal: scale(6),
+    paddingHorizontal: scale(12),
     paddingTop: scale(6),
     paddingBottom: scale(12),
   },
 
-  /* ✅ Each card is its own rounded rectangle with a 2px seam */
+  /* ✅ Each notification row is its own standalone card */
   notificationRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#FFFFFF",
     paddingVertical: scale(14),
     paddingHorizontal: scale(14),
-    marginBottom: 2,
-    borderRadius: 16,
+    marginBottom: scale(1),
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#F3F4F6",
+    borderColor: "#EEF0F3",
     position: "relative",
   },
 

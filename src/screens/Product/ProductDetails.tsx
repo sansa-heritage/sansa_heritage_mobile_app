@@ -1128,8 +1128,8 @@ const styles = StyleSheet.create({
 
   sizeGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 8 },
   sizeBox: {
-    minWidth: 44,
-    height: 40,
+    minWidth: 35,
+    height: 35,
     borderWidth: 1.2,
     borderRadius: 6,
     justifyContent: "center",
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
   },
   sizeActive: { backgroundColor: "#FFFFFF", borderColor: "#9E0E26", borderWidth: 1.8 },
   sizeOutOfStock: { backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" },
-  sizeText: { fontWeight: "600", color: "#333", fontSize: 12 },
+  sizeText: { fontWeight: "600", color: "#333", fontSize: 10 },
   sizeTextActive: { color: "#9E0E26", fontWeight: "700" },
   sizeTextOutOfStock: { color: "#D1D5DB" },
   outOfStockLabel: {

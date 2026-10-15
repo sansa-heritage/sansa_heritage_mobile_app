@@ -24,6 +24,8 @@ import { authService } from '../../services/AuthService';
 import { RootStackParamList } from '../../models/types';
 import DeviceInfo from 'react-native-device-info';
 import { snackbar } from '../../components/common/Snackbar';
+import SansaFinalLogo from '../../../assets/images/SANSA-final-logo.svg';
+
 
 // ✅ Configure Google Sign-In with client IDs from .env
 GoogleSignin.configure({
@@ -194,9 +196,14 @@ const LoginPage: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <View style={styles.container}>
-      <Image
+      {/* <Image
         style={styles.brandLogo}
         source={require('../../../assets/images/SANSA-final-logo.png')}
+      /> */}
+      <SansaFinalLogo
+        width={250}
+        height={100}
+        style={styles.brandLogo}
       />
 
       <View style={styles.card}>
