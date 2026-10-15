@@ -10,11 +10,12 @@ import {
   Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useNavigation } from "@react-navigation/native";
 import { useNotifications } from "../../context/NotificationContext";
 import { Notification } from "../../models/notification.model";
 import LoadingService from "../../services/LoadingService";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const scale = (size: number) => {
   const baseWidth = 375;
@@ -22,6 +23,8 @@ const scale = (size: number) => {
 };
 
 const NotificationScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+
   const {
     notifications,
     loading,
@@ -38,7 +41,7 @@ const NotificationScreen: React.FC = () => {
 
   useEffect(() => {
     const load = async () => {
-      LoadingService.show('Loading notifications...');
+      LoadingService.show("Loading notifications...");
       try {
         await fetchNotifications();
       } finally {
@@ -55,36 +58,74 @@ const NotificationScreen: React.FC = () => {
     setRefreshing(false);
   };
 
-  const handleNotificationPress = async (notification: Notification) => {
-    if (!notification.read) {
-      await markAsRead(notification._id);
-    }
-    if (notification.action) {
-      // Navigation handled by parent
-    }
-  };
-
-  const getActionText = (type: string) => {
+  const getTypeConfig = (
+    type: string,
+  ): { icon: string; color: string; bg: string; action: string } => {
     switch (type) {
-      case "order": return "View Order";
-      case "promotion": return "Shop Now";
-      case "payment": return "View Details";
-      case "cart": return "View Cart";
-      case "wishlist": return "View Wishlist";
-      default: return "View Details";
-    }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "order": return { icon: "cube-outline", color: "#9E0E26", bg: "#FCEBED" };
-      case "promotion": return { icon: "pricetag-outline", color: "#267B76", bg: "#E9F8F6" };
-      case "cart": return { icon: "cart-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "wishlist": return { icon: "heart-outline", color: "#3D7AA7", bg: "#EDF6FF" };
-      case "payment": return { icon: "wallet-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "reminder": return { icon: "time-outline", color: "#B57724", bg: "#FFF3E4" };
-      case "system": return { icon: "ribbon-outline", color: "#72559A", bg: "#F4EFFB" };
-      default: return { icon: "notifications-outline", color: "#9E0E26", bg: "#FCEBED" };
+      case "order":
+        return {
+          icon: "cube-outline",
+          color: "#9E0E26",
+          bg: "#FBE9EC",
+          action: "View Order",
+        };
+      case "promotion":
+        return {
+          icon: "pricetag-outline",
+          color: "#1F8A7A",
+          bg: "#E4F5F1",
+          action: "Shop Now",
+        };
+      case "payment":
+        return {
+          icon: "wallet-outline",
+          color: "#B57724",
+          bg: "#FDF2E0",
+          action: "View Details",
+        };
+      case "cart":
+        return {
+          icon: "cart-outline",
+          color: "#B57724",
+          bg: "#FDF2E0",
+          action: "View Cart",
+        };
+      case "wishlist":
+        return {
+          icon: "heart-outline",
+          color: "#3D7AA7",
+          bg: "#E4EFF9",
+          action: "View Wishlist",
+        };
+      case "reminder":
+        return {
+          icon: "time-outline",
+          color: "#B57724",
+          bg: "#FDF2E0",
+          action: "View Details",
+        };
+      case "system":
+      case "general":
+        return {
+          icon: "ribbon-outline",
+          color: "#72559A",
+          bg: "#EEE6F8",
+          action: "View Details",
+        };
+      case "birthday":
+        return {
+          icon: "gift-outline",
+          color: "#D64C5B",
+          bg: "#FBE4E7",
+          action: "Shop Now",
+        };
+      default:
+        return {
+          icon: "notifications-outline",
+          color: "#9E0E26",
+          bg: "#FBE9EC",
+          action: "View Details",
+        };
     }
   };
 
@@ -99,20 +140,25 @@ const NotificationScreen: React.FC = () => {
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return "Yesterday";
     if (days < 7) return `${days}d ago`;
     if (days < 30) {
-      return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      });
     }
-    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const filterNotifications = () => {
     if (selectedTab === "All") return notifications;
     return notifications.filter((notification) => {
-      // ✅ Cast to string for safe comparison against extra values
-      //    that aren't in the base Notification type union yet.
       const t = notification.type as string;
-
       if (selectedTab === "Orders") return t === "order";
       if (selectedTab === "Offers") return t === "promotion";
       if (selectedTab === "Updates") return t === "system" || t === "general";
@@ -128,32 +174,103 @@ const NotificationScreen: React.FC = () => {
   const shouldShowAction = (item: Notification) => {
     return (
       !!item.action ||
-      ["order", "promotion", "payment", "cart", "wishlist"].includes(item.type)
+      [
+        "order",
+        "promotion",
+        "payment",
+        "cart",
+        "wishlist",
+        "reminder",
+        "birthday",
+      ].includes(item.type as string)
     );
   };
 
+  const handleCTA = async (item: Notification) => {
+    if (!item.read) await markAsRead(item._id);
+
+    const data: any = (item as any).data || {};
+    const t = item.type as string;
+
+    const navAction = (item as any).action;
+    if (navAction && typeof navAction === "string") {
+      try {
+        const parsed = JSON.parse(navAction);
+        if (parsed?.screen) {
+          navigation.navigate(parsed.screen, parsed.params || {});
+          return;
+        }
+      } catch {
+        // not JSON; fall through to type-based routing
+      }
+    }
+
+    switch (t) {
+      case "order":
+        if (data.orderId) {
+          navigation.navigate("OrderDetails", { orderId: data.orderId });
+        } else {
+          navigation.navigate("OrdersPage");
+        }
+        break;
+
+      case "cart":
+        navigation.navigate("CartPage");
+        break;
+
+      case "wishlist":
+        navigation.navigate("FavoritesPage");
+        break;
+
+      case "promotion":
+      case "birthday":
+        if (data.productId) {
+          navigation.navigate("ProductDetails", { itemId: data.productId });
+        } else if (data.categoryId) {
+          navigation.navigate("CategoryScreen", {
+            mainCategory: data.categoryId,
+            displayTitle: data.categoryName || "Category",
+          });
+        } else {
+          navigation.navigate("Dashboard");
+        }
+        break;
+
+      case "payment":
+      case "reminder":
+      case "system":
+      case "general":
+      default:
+        if (data.orderId) {
+          navigation.navigate("OrderDetails", { orderId: data.orderId });
+        }
+        break;
+    }
+  };
+
   const renderNotification = ({ item }: { item: Notification }) => {
-    const notificationIcon = getNotificationIcon(item.type);
+    const cfg = getTypeConfig(item.type as string);
 
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        style={[styles.notificationCard, !item.read && styles.unreadCard]}
-        onPress={() => handleNotificationPress(item)}
+        style={styles.notificationRow}
+        onPress={async () => {
+          if (!item.read) await markAsRead(item._id);
+        }}
       >
-        <View style={[styles.iconCircle, { backgroundColor: notificationIcon.bg }]}>
-          <Ionicons
-            name={notificationIcon.icon}
-            size={scale(20)}
-            color={notificationIcon.color}
-          />
+        <View style={[styles.iconCircle, { backgroundColor: cfg.bg }]}>
+          <Ionicons name={cfg.icon as any} size={scale(24)} color={cfg.color} />
         </View>
 
         <View style={styles.cardContent}>
           <View style={styles.cardTopRow}>
             <Text
-              numberOfLines={1}
-              style={[styles.notificationTitle, !item.read && styles.unreadTitle]}
+              numberOfLines={2}
+              style={[
+                styles.notificationTitle,
+                !item.read && styles.unreadTitle,
+              ]}
             >
               {item.title}
             </Text>
@@ -169,13 +286,13 @@ const NotificationScreen: React.FC = () => {
           {shouldShowAction(item) && (
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => {
-                if (!item.read) markAsRead(item._id);
-                if (item.action) {
-                  // Navigation handled by parent
-                }
-              }}
-            />
+              onPress={() => handleCTA(item)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Text style={[styles.actionText, { color: cfg.color }]}>
+                {cfg.action}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -196,30 +313,27 @@ const NotificationScreen: React.FC = () => {
         <Text style={[styles.tabText, active && styles.activeTabText]}>
           {tab}
         </Text>
-        {active && <View style={styles.tabIndicator} />}
       </TouchableOpacity>
     );
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const hasNotifications = notifications.length > 0;
 
   return (
     <View style={styles.container}>
-      {/* ✅ Mark all read button — right aligned, no page title (fixed header exists) */}
       {unreadCount > 0 && (
         <View style={styles.markAllRow}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={markAllAsRead}
-            style={styles.markAllButton}
+            hitSlop={6}
           >
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text style={styles.markAllText}>Mark all as read</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ✅ Tabs — hidden until at least one notification exists */}
       {hasNotifications && (
         <View style={styles.tabsWrapper}>
           <ScrollView
@@ -237,7 +351,11 @@ const NotificationScreen: React.FC = () => {
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconContainer}>
-            <Ionicons name="notifications-off-outline" size={scale(40)} color="#D1D5DB" />
+            <Ionicons
+              name="notifications-off-outline"
+              size={scale(40)}
+              color="#D1D5DB"
+            />
           </View>
           <Text style={styles.emptyTitle}>No notifications yet</Text>
           <Text style={styles.emptySubtitle}>
@@ -245,21 +363,24 @@ const NotificationScreen: React.FC = () => {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredNotifications}
-          renderItem={renderNotification}
-          keyExtractor={(item) => item._id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={["#9E0E26"]}
-              tintColor="#9E0E26"
-            />
-          }
-        />
+        /* ✅ Outer rounded shell around the whole list */
+        <View style={styles.listPanel}>
+          <FlatList
+            data={filteredNotifications}
+            renderItem={renderNotification}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={["#9E0E26"]}
+                tintColor="#9E0E26"
+              />
+            }
+          />
+        </View>
       )}
     </View>
   );
@@ -268,139 +389,129 @@ const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
 
-  /* ✅ Mark-all row — no page title, right aligned */
+  /* Mark all as read */
   markAllRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingHorizontal: scale(14),
-    paddingTop: scale(6),
-    paddingBottom: scale(4),
+    paddingHorizontal: scale(16),
+    paddingTop: scale(10),
+    paddingBottom: scale(6),
     backgroundColor: "#F8F9FA",
   },
-  markAllButton: {
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(5),
-    borderRadius: 14,
-    backgroundColor: "#9E0E26",
-  },
   markAllText: {
-    fontSize: scale(10),
-    color: "#FFFFFF",
+    fontSize: scale(13),
+    color: "#9E0E26",
     fontWeight: "600",
   },
 
+  /* Tabs */
   tabsWrapper: {
     paddingHorizontal: scale(14),
     paddingTop: scale(4),
-    paddingBottom: scale(8),
+    paddingBottom: scale(10),
     backgroundColor: "#F8F9FA",
   },
-  tabsContent: { paddingRight: scale(14), gap: 5 },
+  tabsContent: { paddingRight: scale(14), gap: 8 },
   tab: {
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(5),
-    borderRadius: 14,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(8),
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
   },
   activeTab: { backgroundColor: "#9E0E26", borderColor: "#9E0E26" },
-  tabText: { fontSize: scale(11), color: "#6B7280", fontWeight: "500" },
-  activeTabText: { color: "#FFFFFF", fontWeight: "600" },
-  tabIndicator: {
-    position: "absolute",
-    bottom: -2,
-    left: "50%",
-    marginLeft: -3,
-    width: 6,
-    height: 2.5,
-    borderRadius: 1.5,
-    backgroundColor: "#9E0E26",
+  tabText: { fontSize: scale(12), color: "#374151", fontWeight: "500" },
+  activeTabText: { color: "#FFFFFF", fontWeight: "700" },
+
+  /* ✅ Outer rounded shell that contains the whole stack */
+  listPanel: {
+    flex: 1,
+    marginHorizontal: scale(12),
+    marginBottom: scale(6),
+    backgroundColor: "#FDFDFD",
+    borderRadius: 22,
+    overflow: "hidden",
   },
 
+  /* Inner padding of the FlatList */
   listContent: {
-    paddingHorizontal: scale(12),
-    paddingTop: scale(4),
-    paddingBottom: scale(20),
+    paddingHorizontal: scale(6),
+    paddingTop: scale(6),
+    paddingBottom: scale(12),
   },
 
-  notificationCard: {
+  /* ✅ Each card is its own rounded rectangle with a 2px seam */
+  notificationRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(14),
+    marginBottom: 2,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingVertical: scale(8),
-    paddingHorizontal: scale(10),
-    marginBottom: 6,
-  },
-
-  unreadCard: {
-    backgroundColor: "#FAF5F5",
-    borderLeftWidth: 2.5,
-    borderLeftColor: "#9E0E26",
+    position: "relative",
   },
 
   iconCircle: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
     alignItems: "center",
     justifyContent: "center",
-    marginRight: scale(8),
-    marginTop: 1,
+    marginRight: scale(12),
     flexShrink: 0,
   },
 
   cardContent: { flex: 1, minWidth: 0 },
+
   cardTopRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 1,
+    marginBottom: 2,
   },
   notificationTitle: {
     flex: 1,
-    fontSize: scale(12.5),
-    lineHeight: scale(16),
+    fontSize: scale(13.5),
+    lineHeight: scale(18),
     color: "#111827",
     fontWeight: "600",
-    marginRight: 6,
+    marginRight: 8,
   },
-  unreadTitle: { fontWeight: "700", color: "#151515" },
+  unreadTitle: { fontWeight: "700", color: "#0F172A" },
   notificationTime: {
-    fontSize: scale(10),
+    fontSize: scale(11),
     color: "#9CA3AF",
     fontWeight: "400",
     flexShrink: 0,
-    marginTop: 1,
+    marginTop: 2,
   },
   notificationBody: {
-    fontSize: scale(11.5),
-    lineHeight: scale(15),
+    fontSize: scale(12),
+    lineHeight: scale(16.5),
     color: "#6B7280",
     fontWeight: "400",
-    marginBottom: 2,
+    marginBottom: 6,
   },
   actionText: {
-    fontSize: scale(11.5),
-    color: "#9E0E26",
-    fontWeight: "600",
-    marginTop: 1,
+    fontSize: scale(12.5),
+    fontWeight: "700",
+    marginTop: 2,
   },
 
   unreadDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#9E0E26",
-    marginLeft: 5,
-    marginTop: scale(6),
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E53935",
+    marginLeft: 8,
+    marginTop: scale(20),
     flexShrink: 0,
   },
 

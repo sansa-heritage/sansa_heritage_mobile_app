@@ -43,6 +43,8 @@ import OrderDetailsScreen from "./src/screens/Profile/OrderDetails";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Snackbar from "./src/components/common/Snackbar";
 import HelpCenterScreen from "./src/screens/Info/HelpCenterScreen";
+import { HelpSheetProvider } from "./src/context/HelpSheetProvider"; // ✅ NEW
+
 
 const Stack = createStackNavigator();
 
@@ -171,48 +173,52 @@ const App = () => {
               </Stack.Navigator>
             ) : (
               <>
-                <Header currentRoute={currentRoute} routeParams={currentRouteParams} />
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="Dashboard" component={Dashboard} />
-                  <Stack.Screen name="ProductDetails" component={ProductDetails} />
-                  <Stack.Screen name="CartPage" component={CartPage} />
-                  <Stack.Screen name="CheckoutPage" component={CheckoutPage} />
-                  <Stack.Screen name="PaymentPage" component={PaymentPage} />
-                  <Stack.Screen name="Profile">
-                    {(props) => <Profile {...props} onLogout={logout} />}
-                  </Stack.Screen>
-                  {/* <Stack.Screen name="WalletsPage" component={WalletsPage} /> */}
-                  <Stack.Screen name="OrdersPage" component={OrdersPage} />
-                  <Stack.Screen name="SettingsPage" component={SettingsPage} />
-                  <Stack.Screen name="FavoritesPage" component={FavoriteScreen} />
-                  <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
-                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-                  <Stack.Screen name="AboutUs" component={AboutUsScreen} />
-                  <Stack.Screen name="TermsScreen" component={TermsScreen} />
-                  <Stack.Screen name="FAQScreen" component={FAQScreen} />
-                  <Stack.Screen name="AddressScreen" component={AddressScreen} />
-                  <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
-                  <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
-                  <Stack.Screen name="CardsScreen" component={CardsScreen} />
-                  <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
+                <HelpSheetProvider>
 
-                  {/* ✅ Add OrderDetails Screen here */}
-                  <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-                  <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+                  <Header currentRoute={currentRoute} routeParams={currentRouteParams} />
+                  <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="Dashboard" component={Dashboard} />
+                    <Stack.Screen name="ProductDetails" component={ProductDetails} />
+                    <Stack.Screen name="CartPage" component={CartPage} />
+                    <Stack.Screen name="CheckoutPage" component={CheckoutPage} />
+                    <Stack.Screen name="PaymentPage" component={PaymentPage} />
+                    <Stack.Screen name="Profile">
+                      {(props) => <Profile {...props} onLogout={logout} />}
+                    </Stack.Screen>
+                    {/* <Stack.Screen name="WalletsPage" component={WalletsPage} /> */}
+                    <Stack.Screen name="OrdersPage" component={OrdersPage} />
+                    <Stack.Screen name="SettingsPage" component={SettingsPage} />
+                    <Stack.Screen name="FavoritesPage" component={FavoriteScreen} />
+                    <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
+                    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                    <Stack.Screen name="AboutUs" component={AboutUsScreen} />
+                    <Stack.Screen name="TermsScreen" component={TermsScreen} />
+                    <Stack.Screen name="FAQScreen" component={FAQScreen} />
+                    <Stack.Screen name="AddressScreen" component={AddressScreen} />
+                    <Stack.Screen name="UpdateProfileScreen" component={UpdateProfileScreen} />
+                    <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
+                    <Stack.Screen name="CardsScreen" component={CardsScreen} />
+                    <Stack.Screen name="ReturnRefundScreen" component={ReturnRefundPolicyScreen} />
+
+                    {/* ✅ Add OrderDetails Screen here */}
+                    <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+                    <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
 
 
 
-                  <Stack.Screen name="AccountPage">
-                    {(props) => <AccountPage {...props} onLogout={logout} />}
-                  </Stack.Screen>
-                </Stack.Navigator>
-                <AlertComponent />
+                    <Stack.Screen name="AccountPage">
+                      {(props) => <AccountPage {...props} onLogout={logout} />}
+                    </Stack.Screen>
+                  </Stack.Navigator>
+                  <AlertComponent />
 
-                {/* <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} /> */}
-                {/* Only show tabs when NOT on ProductDetails */}
-                {(currentRoute === "Dashboard" || currentRoute === "AccountPage") && (
-                  <CustomBottomTabs activeRoute={currentRoute} onLogout={logout} />
-                )}
+                  {/* <CustomBottomTabs activeRoute="Dashboard" onLogout={logout} /> */}
+                  {/* Only show tabs when NOT on ProductDetails */}
+                  {(currentRoute === "Dashboard" || currentRoute === "AccountPage") && (
+                    <CustomBottomTabs activeRoute={currentRoute} onLogout={logout} />
+                  )}
+                </HelpSheetProvider>
+
               </>
             )}
           </NavigationContainer>

@@ -96,3 +96,34 @@ export const cancelOrder = async orderId => {
     console.error('Error fetching orders:', error);
   }
 };
+/* ============================================================
+   ✅ Change Phone Number
+   ============================================================ */
+export const updateOrderContact = async (orderId, phone) => {
+  try {
+    const storedToken = await AsyncStorage.getItem('authToken');
+
+    const response = await fetch(
+      `${config.baseURL}api/order/${orderId}/contact`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${storedToken}`,
+        },
+        body: JSON.stringify({ phone }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || `Error: ${response.statusText}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating order contact:', error);
+    throw error;
+  }
+};

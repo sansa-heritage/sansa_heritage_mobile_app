@@ -17,6 +17,7 @@ import { NotificationBadge } from "../NotificationBadge";
 import { getFavoriteProducts } from "../../api/favoriteApi";
 import { getCartItems } from "../../api/cartApi";
 import eventBus from "../../services/eventBus";
+import { useHelpSheet } from "../../context/HelpSheetContext"; // ✅ NEW
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -74,6 +75,8 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const navigation = useNavigation<NavigationProp>();
+  const { openHelpSheet } = useHelpSheet(); // ✅ NEW
+
   const isDashboard = currentRoute === "Dashboard";
   const isWishlist =
     currentRoute === "FavoritesPage" || currentRoute === "FavoriteScreen";
@@ -81,8 +84,6 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   const isOrders = currentRoute === "OrdersPage";
   const isOrderDetails = currentRoute === "OrderDetails";
 
-  // ✅ Hide notification bell on these pages
-  //    ✅ Wishlist page also hides the bell
   const hideNotification =
     currentRoute === "CategoryScreen" ||
     currentRoute === "ProductDetails" ||
@@ -91,9 +92,6 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
     currentRoute === "FavoritesPage" ||
     currentRoute === "FavoriteScreen";
 
-  // ✅ Hide ALL icons (wishlist, cart, bell) on focused flows:
-  //    AccountPage, HelpCenter, static info pages,
-  //    CheckoutPage, SettingsPage, FAQScreen, AddressScreen, AddressPage
   const hideAllIcons =
     currentRoute === "AccountPage" ||
     currentRoute === "HelpCenter" ||
@@ -179,7 +177,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
   /* ========== ORDER DETAILS — Only "Help" button ========== */
   if (isOrderDetails) {
     return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <StatusBar
           barStyle="dark-content"
           backgroundColor="#FFFFFF"
@@ -200,11 +198,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             <TouchableOpacity
               style={styles.helpBtn}
               activeOpacity={0.7}
-              onPress={() =>
-                navigation.navigate('HelpCenter', {
-                  orderId: routeParams?.orderId,
-                })
-              }
+              onPress={() => openHelpSheet(routeParams?.orderId)} // ✅ opens global sheet
             >
               <Ionicons name="headset-outline" size={20} color="#151515" />
               <Text style={styles.helpBtnText}>Help</Text>
@@ -252,7 +246,6 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
         </View>
 
         <View style={styles.rightSection}>
-          {/* ✅ Wishlist — hidden on Wishlist, Orders, and all focused flows */}
           {!isWishlist && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -271,7 +264,6 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Cart — hidden on Cart, Orders, and all focused flows */}
           {!isCart && !isOrders && !hideAllIcons && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -290,8 +282,6 @@ const Header: React.FC<HeaderProps> = ({ currentRoute, routeParams = {} }) => {
             </TouchableOpacity>
           )}
 
-          {/* ✅ Notification bell — hidden on Category, ProductDetails, Cart,
-              NotificationScreen, Wishlist, and all focused flows */}
           {!hideNotification && !hideAllIcons && (
             <NotificationBadge
               size={24}
@@ -370,7 +360,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-
   helpBtn: {
     flexDirection: 'row',
     alignItems: 'center',
