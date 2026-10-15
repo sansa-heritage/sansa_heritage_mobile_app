@@ -15,9 +15,9 @@
    ============================================================ */
 
 // ✅ FORCE a specific environment (uncomment the one you want)
-const ACTIVE_ENV = 'development';
+// const ACTIVE_ENV = 'development';
 // const ACTIVE_ENV = 'staging';
-// const ACTIVE_ENV = 'production';
+const ACTIVE_ENV = 'production';
 
 // ✅ OR auto-switch based on build type (comment out the line above)
 // const ACTIVE_ENV = __DEV__ ? 'development' : 'production';
