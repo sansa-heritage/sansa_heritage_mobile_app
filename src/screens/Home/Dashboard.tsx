@@ -36,7 +36,6 @@ import { getActiveBanners } from '../../api/bannerApi';
 import NotificationBadge from '../../components/NotificationBadge';
 import SansaLogo from '../../../assets/images/icon.svg';
 
-
 const { width } = Dimensions.get('window');
 
 const BASE_URL =
@@ -338,7 +337,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD — discount guard applied
+// PRODUCT CARD — discount guard + image fit
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -355,7 +354,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const originalPrice = Number(item.price || 0);
   const discountPercent = Number(item.discountPercent || 0);
-  // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
   const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
   const discountedPrice = hasRealDiscount
     ? originalPrice - (originalPrice * discountPercent) / 100
@@ -380,7 +378,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
       )}
 
       <View style={styles.imageWrapper}>
-        <Image source={getImageSource(item)} style={styles.productImage} />
+        {/* ✅ contain = full product visible, no crop */}
+        <Image
+          source={getImageSource(item)}
+          style={styles.productImage}
+          resizeMode="contain"
+        />
 
         <TouchableOpacity
           style={styles.favoriteBtn}
@@ -395,11 +398,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
@@ -442,7 +445,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 // ============================================
-// PREMIUM PRODUCT CARD — discount guard applied
+// PREMIUM PRODUCT CARD — discount guard + image fit
 // ============================================
 interface PremiumCardProps {
   item: any;
@@ -459,7 +462,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
 }) => {
   const originalPrice = Number(item.price || 0);
   const discountPercent = Number(item.discountPercent || 0);
-  // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
   const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
   const discountedPrice = hasRealDiscount
     ? originalPrice - (originalPrice * discountPercent) / 100
@@ -484,7 +486,12 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
       )}
 
       <View style={styles.imageWrapper}>
-        <Image source={getImageSource(item)} style={styles.productImage} />
+        {/* ✅ contain = full product visible, no crop */}
+        <Image
+          source={getImageSource(item)}
+          style={styles.productImage}
+          resizeMode="contain"
+        />
 
         <View style={styles.premiumTag}>
           <Text style={styles.premiumTagText}>{item.tag || 'PREMIUM'}</Text>
@@ -503,11 +510,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                  color: '#FFFFFF',
-                  textShadowColor: '#000',
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }
+                    color: '#FFFFFF',
+                    textShadowColor: '#000',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
             }
           />
         </TouchableOpacity>
@@ -798,8 +805,9 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -827,8 +835,9 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -866,8 +875,9 @@ export default function Dashboard() {
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
 
-      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''
-        }`;
+      const url = `${config.baseURL}api/products${
+        queryString ? '?' + queryString : ''
+      }`;
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1192,11 +1202,6 @@ export default function Dashboard() {
 
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
-          {/* <Image
-            source={require('../../../assets/images/icon.svg')}
-            style={styles.searchLogo}
-            resizeMode="contain"
-          /> */}
           <SansaLogo width={24} height={24} style={styles.searchLogo} />
 
           <TextInput
@@ -1286,7 +1291,7 @@ export default function Dashboard() {
                   style={[
                     styles.categoryFilterButton,
                     selectedCategory === cat._id &&
-                    styles.categoryFilterButtonActive,
+                      styles.categoryFilterButtonActive,
                   ]}
                   onPress={() => {
                     setSelectedCategory(cat._id);
@@ -1298,7 +1303,7 @@ export default function Dashboard() {
                     style={[
                       styles.categoryFilterText,
                       selectedCategory === cat._id &&
-                      styles.categoryFilterTextActive,
+                        styles.categoryFilterTextActive,
                     ]}
                   >
                     {cat.name}
@@ -1429,7 +1434,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  searchLogo: { width: 24, height: 24, marginRight: 8 },
+  searchLogo: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#111', paddingVertical: 0 },
   topIconBtn: { padding: 2 },
   badge: {
@@ -1541,9 +1546,10 @@ const styles = StyleSheet.create({
   imageWrapper: { position: 'relative' },
   productImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
+    aspectRatio: 1,
+    // ✅ Square box — the image scales inside without crop.
+    //    resizeMode="contain" is passed as a prop on <Image>.
+    backgroundColor: '#FFFFFF',
   },
   favoriteBtn: { position: 'absolute', top: 8, right: 8, padding: 2 },
   ratingPill: {
@@ -1565,7 +1571,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D0D0D0',
     marginHorizontal: 2,
   },
-  productInfo: { paddingTop: 8, paddingHorizontal: 2, paddingBottom: 10 },
+  productInfo: { paddingTop: 8, paddingHorizontal: 8, paddingBottom: 10 },
   productTitle: { fontSize: 13, color: '#111', marginBottom: 6 },
   productTitleBold: { fontWeight: '700', color: '#111' },
   productTitleNormal: { fontWeight: '400', color: '#333' },

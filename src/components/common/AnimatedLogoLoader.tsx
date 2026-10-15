@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import eventBus from '../../services/eventBus';
 import { LOADING_EVENTS } from '../../services/LoadingService';
+import SansaIcon from '../../../assets/images/icon.svg';
 
 const AnimatedLogoLoader: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -127,11 +128,14 @@ const AnimatedLogoLoader: React.FC = () => {
               },
             ]}
           >
-            <Image
+            {/* <Image
               source={require('../../../assets/images/icon.png')}
               style={styles.logo}
               resizeMode="contain"
-            />
+            /> */}
+
+            <SansaIcon width={LOGO_SIZE} height={LOGO_SIZE} />
+
           </Animated.View>
         </View>
       </Animated.View>

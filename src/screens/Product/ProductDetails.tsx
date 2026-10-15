@@ -32,6 +32,17 @@ import LoadingService from "../../services/LoadingService";
 
 const { width, height } = Dimensions.get("window");
 
+// ✅ FIXED IMAGE BOX — one constant controls every product hero image.
+//    Change HERO_RATIO to reshape all product pages at once:
+//      4 / 5  → portrait (fashion standard)
+//      3 / 4  → taller portrait
+//      1      → square
+//      16 / 9 → widescreen
+//      9 / 16 → very tall portrait
+const HERO_RATIO = 4 / 5;
+const MAX_IMAGE_HEIGHT = height * 0.7;
+const FIXED_IMAGE_HEIGHT = Math.min(width / HERO_RATIO, MAX_IMAGE_HEIGHT);
+
 interface ProductDetails {
   _id: number | string;
   image?: string;
@@ -78,9 +89,6 @@ const ProductPage = () => {
   const [zoomVisible, setZoomVisible] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
-
-  // ✅ Track the natural aspect ratio (width / height) of the visible image
-  const [imageAspect, setImageAspect] = useState<number>(4 / 5); // default portrait 4:5
 
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [sizeGuideVisible, setSizeGuideVisible] = useState(false);
@@ -204,8 +212,10 @@ const ProductPage = () => {
         const data = await res.json();
         setProductDetails(data);
 
-        // ✅ Do NOT auto-select first color → default gallery shows first
-        // Only auto-select size
+        if (Array.isArray(data.colors) && data.colors.length > 0) {
+          setSelectedColor(data.colors[0]);
+        }
+
         if (data.sizes?.length > 0) setSelectedSize(data.sizes[0]);
 
         const addr = await getAddresses();
@@ -278,29 +288,6 @@ const ProductPage = () => {
     return [];
   })();
 
-  // ✅ Fetch the real dimensions of the visible image so we can size the container
-  const fetchImageAspect = (uri?: string) => {
-    if (!uri) return;
-    Image.getSize(
-      uri,
-      (w, h) => {
-        if (w > 0 && h > 0) setImageAspect(w / h);
-      },
-      () => {
-        // keep previous aspect on error
-      },
-    );
-  };
-
-  // ✅ Update aspect whenever the visible image changes
-  useEffect(() => {
-    if (productImages.length > 0) {
-      const uri = productImages[activeIndex] || productImages[0];
-      fetchImageAspect(uri);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex, selectedColor, productDetails]);
-
   if (loading || !productDetails) {
     return <View style={styles.loader} />;
   }
@@ -308,7 +295,6 @@ const ProductPage = () => {
   const finalPrice =
     productDetails.price - (productDetails.price * productDetails.discountPercent) / 100;
 
-  // ✅ Only show discount UI when a positive discount actually exists
   const hasDiscount =
     Number(productDetails.discountPercent) > 0 &&
     finalPrice < Number(productDetails.price);
@@ -316,12 +302,6 @@ const ProductPage = () => {
   const nameParts = (productDetails.name || '').split(' ');
   const boldPart = nameParts.slice(0, 2).join(' ');
   const normalPart = nameParts.slice(2).join(' ');
-
-  // ✅ Compute the container height from the natural aspect ratio
-  //    Cap at 70% of screen height so very tall images don't dominate
-  const MAX_IMAGE_HEIGHT = height * 0.7;
-  const naturalHeight = width / imageAspect;
-  const imageHeight = Math.min(naturalHeight, MAX_IMAGE_HEIGHT);
 
   const handleAddToCart = async () => {
     const validation = validateSelections();
@@ -423,7 +403,6 @@ const ProductPage = () => {
     return String(color);
   };
 
-  // ✅ Validate hex so bad values (#FFFFFFHHHH) don't silently fail
   const getColorHex = (color: any): string => {
     if (!color) return '#ccc';
     let hex = '#ccc';
@@ -436,7 +415,6 @@ const ProductPage = () => {
     return isValid ? hex : '#ccc';
   };
 
-  // ✅ Choose black or white checkmark based on swatch brightness
   const getContrastColor = (hex: string): string => {
     const clean = hex.replace('#', '');
     if (clean.length !== 6) return '#fff';
@@ -456,7 +434,7 @@ const ProductPage = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* FULL-WIDTH IMAGE SLIDER — sized to natural image ratio */}
+        {/* ✅ FIXED-HEIGHT IMAGE SLIDER — no dynamic aspect, stable layout */}
         <View style={styles.imageWrapper}>
           <FlatList
             ref={flatListRef}
@@ -478,7 +456,7 @@ const ProductPage = () => {
                 }}
                 style={{
                   width: width,
-                  height: imageHeight,
+                  height: FIXED_IMAGE_HEIGHT,
                   backgroundColor: '#fff',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -488,7 +466,7 @@ const ProductPage = () => {
                   source={{ uri: item }}
                   style={{
                     width: width,
-                    height: imageHeight,
+                    height: FIXED_IMAGE_HEIGHT,
                     resizeMode: 'contain',
                   }}
                 />
@@ -549,7 +527,6 @@ const ProductPage = () => {
             </View>
           )}
 
-          {/* ✅ Discount UI only when there's a real discount */}
           <View style={styles.priceRow}>
             <Text style={styles.finalPrice}>₹{finalPrice.toFixed(0)}</Text>
 
@@ -568,7 +545,7 @@ const ProductPage = () => {
           <Text style={styles.tax}>Inclusive of all taxes</Text>
         </View>
 
-        {/* COLOR — horizontal scrollable, dots only (no labels) */}
+        {/* COLOR */}
         {requiresColor() && (
           <View style={styles.card}>
             <Text style={styles.section}>Color</Text>
@@ -630,12 +607,16 @@ const ProductPage = () => {
             </View>
             <View style={styles.sizeGrid}>
               {productDetails?.sizes?.map((s: any) => {
-                const isSelected = selectedSize?._id === s._id;
-                const isOutOfStock = s.stock === 0;
+                const isSelected =
+                  selectedSize?._id === s._id ||
+                  selectedSize?.label === s.label;
+
+                const isOutOfStock =
+                  typeof s.stock === 'number' && s.stock === 0;
 
                 return (
                   <TouchableOpacity
-                    key={s._id}
+                    key={s._id || s.label}
                     style={[
                       styles.sizeBox,
                       isSelected && styles.sizeActive,
@@ -643,12 +624,16 @@ const ProductPage = () => {
                     ]}
                     onPress={() => {
                       if (isOutOfStock) {
-                        snackbar.warning('This size is currently out of stock.', 'Out of Stock');
+                        snackbar.warning(
+                          'This size is currently out of stock.',
+                          'Out of Stock',
+                        );
                       } else {
                         setSelectedSize(s);
                       }
                     }}
                     disabled={isOutOfStock}
+                    activeOpacity={0.7}
                   >
                     <Text
                       style={[
@@ -659,7 +644,9 @@ const ProductPage = () => {
                     >
                       {s.label.toUpperCase()}
                     </Text>
-                    {isOutOfStock && <Text style={styles.outOfStockLabel}>OUT</Text>}
+                    {isOutOfStock && (
+                      <Text style={styles.outOfStockLabel}>OUT</Text>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -1126,28 +1113,50 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
   },
 
-  sizeGrid: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 8 },
+  sizeGrid: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
   sizeBox: {
-    minWidth: 35,
-    height: 35,
-    borderWidth: 1.2,
+    minWidth: 42,
+    height: 36,
     borderRadius: 6,
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: 1,
     borderColor: "#D1D5DB",
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 12,
     position: "relative",
   },
-  sizeActive: { backgroundColor: "#FFFFFF", borderColor: "#9E0E26", borderWidth: 1.8 },
-  sizeOutOfStock: { backgroundColor: "#FFFFFF", borderColor: "#E5E7EB" },
-  sizeText: { fontWeight: "600", color: "#333", fontSize: 10 },
-  sizeTextActive: { color: "#9E0E26", fontWeight: "700" },
-  sizeTextOutOfStock: { color: "#D1D5DB" },
+  sizeActive: {
+    borderColor: "#9E0E26",
+    borderWidth: 1.5,
+    backgroundColor: "#FFF5F7",
+  },
+  sizeOutOfStock: {
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F8FAFC",
+    opacity: 0.7,
+  },
+  sizeText: {
+    fontWeight: "600",
+    color: "#333",
+    fontSize: 11,
+  },
+  sizeTextActive: {
+    color: "#9E0E26",
+    fontWeight: "700",
+  },
+  sizeTextOutOfStock: {
+    color: "#CBD5E1",
+  },
   outOfStockLabel: {
     fontSize: 7,
-    color: "#d32f2f",
-    fontWeight: "bold",
+    color: "#9CA3AF",
+    fontWeight: "700",
     position: "absolute",
     top: 1,
     right: 3,
