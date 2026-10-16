@@ -36,6 +36,8 @@ import config from "../../config/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import eventBus from "../../services/eventBus";
 import { snackbar } from "../../components/common/Snackbar";
+import SansaLogo from '../../../assets/images/icon.svg';
+
 
 const { width } = Dimensions.get("window");
 const BASE_URL =
@@ -314,9 +316,8 @@ export default function CategoryScreen() {
         )
         .join("&");
 
-      const url = `${config.baseURL}api/products${
-        queryString ? "?" + queryString : ""
-      }`;
+      const url = `${config.baseURL}api/products${queryString ? "?" + queryString : ""
+        }`;
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
@@ -613,7 +614,7 @@ export default function CategoryScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {},
+      onPanResponderGrant: () => { },
       onPanResponderMove: (_, g) => {
         const w = sliderWidthRef.current;
         if (w === 0) return;
@@ -634,7 +635,7 @@ export default function CategoryScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {},
+      onPanResponderGrant: () => { },
       onPanResponderMove: (_, g) => {
         const w = sliderWidthRef.current;
         if (w === 0) return;
@@ -704,11 +705,11 @@ export default function CategoryScreen() {
                 isFav
                   ? { color: BRAND_COLOR }
                   : {
-                      color: "#FFFFFF",
-                      textShadowColor: "#000",
-                      textShadowOffset: { width: 0, height: 0 },
-                      textShadowRadius: 2,
-                    }
+                    color: "#FFFFFF",
+                    textShadowColor: "#000",
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }
               }
             />
           </TouchableOpacity>
@@ -786,11 +787,8 @@ export default function CategoryScreen() {
         {/* SEARCH BAR + FILTER */}
         <View style={styles.searchRow}>
           <View style={styles.searchBarWrap}>
-            <Image
-              source={require("../../../assets/images/icon.png")}
-              style={styles.searchLogo}
-              resizeMode="contain"
-            />
+            <SansaLogo width={24} height={24} style={styles.searchLogo} />
+
             <TextInput
               style={styles.searchInput}
               placeholder="Search products..."
