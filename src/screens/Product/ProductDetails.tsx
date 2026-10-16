@@ -32,13 +32,6 @@ import LoadingService from "../../services/LoadingService";
 
 const { width, height } = Dimensions.get("window");
 
-// ✅ FIXED IMAGE BOX — one constant controls every product hero image.
-//    Change HERO_RATIO to reshape all product pages at once:
-//      4 / 5  → portrait (fashion standard)
-//      3 / 4  → taller portrait
-//      1      → square
-//      16 / 9 → widescreen
-//      9 / 16 → very tall portrait
 const HERO_RATIO = 4 / 5;
 const MAX_IMAGE_HEIGHT = height * 0.7;
 const FIXED_IMAGE_HEIGHT = Math.min(width / HERO_RATIO, MAX_IMAGE_HEIGHT);
@@ -88,7 +81,12 @@ const ProductPage = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [zoomIndex, setZoomIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const zoomListRef = useRef<FlatList>(null);
+
+  const [isAutoSliding, setIsAutoSliding] = useState(true);
+  const autoSlideTimer = useRef<any>(null);
 
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [sizeGuideVisible, setSizeGuideVisible] = useState(false);
@@ -261,13 +259,12 @@ const ProductPage = () => {
     return unsubscribe;
   }, [navigation]);
 
-  // ✅ Reset carousel to first slide whenever color changes
   useEffect(() => {
     setActiveIndex(0);
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setIsAutoSliding(true);
   }, [selectedColor]);
 
-  // ✅ Color-aware image list — default gallery when no color selected
   const productImages = (() => {
     if (selectedColor && Array.isArray(productDetails?.colorImages)) {
       const selectedId =
@@ -287,6 +284,43 @@ const ProductPage = () => {
     if (productDetails?.image) return [productDetails.image];
     return [];
   })();
+
+  // ✅ Auto-slide hero carousel every 4s
+  useEffect(() => {
+    if (!isAutoSliding) return;
+    if (productImages.length <= 1) return;
+
+    autoSlideTimer.current = setInterval(() => {
+      setActiveIndex(prev => {
+        const next = (prev + 1) % productImages.length;
+        try {
+          flatListRef.current?.scrollToIndex({ index: next, animated: true });
+        } catch {
+          flatListRef.current?.scrollToOffset({
+            offset: next * width,
+            animated: true,
+          });
+        }
+        return next;
+      });
+    }, 4000);
+
+    return () => {
+      if (autoSlideTimer.current) {
+        clearInterval(autoSlideTimer.current);
+        autoSlideTimer.current = null;
+      }
+    };
+  }, [isAutoSliding, productImages.length]);
+
+  const handleUserScroll = () => {
+    if (autoSlideTimer.current) {
+      clearInterval(autoSlideTimer.current);
+      autoSlideTimer.current = null;
+    }
+    setIsAutoSliding(false);
+    setTimeout(() => setIsAutoSliding(true), 5000);
+  };
 
   if (loading || !productDetails) {
     return <View style={styles.loader} />;
@@ -434,7 +468,7 @@ const ProductPage = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ✅ FIXED-HEIGHT IMAGE SLIDER — no dynamic aspect, stable layout */}
+        {/* ✅ FIXED-HEIGHT IMAGE SLIDER — auto-slide + tap-to-open */}
         <View style={styles.imageWrapper}>
           <FlatList
             ref={flatListRef}
@@ -443,14 +477,20 @@ const ProductPage = () => {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_, i) => i.toString()}
-            onScroll={e => {
+            onScrollBeginDrag={handleUserScroll}
+            onMomentumScrollEnd={e => {
               const index = Math.round(e.nativeEvent.contentOffset.x / width);
               setActiveIndex(index);
             }}
-            renderItem={({ item }) => (
+            onScroll={e => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / width);
+              if (index !== activeIndex) setActiveIndex(index);
+            }}
+            renderItem={({ item, index }) => (
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => {
+                  setZoomIndex(index);
                   setZoomImage(item);
                   setZoomVisible(true);
                 }}
@@ -477,6 +517,7 @@ const ProductPage = () => {
               offset: width * index,
               index,
             })}
+            scrollEventThrottle={16}
           />
 
           {productImages.length > 1 && (
@@ -732,25 +773,78 @@ const ProductPage = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ZOOM MODAL */}
-      <Modal visible={zoomVisible} transparent>
+      {/* ✅ FULLSCREEN ZOOM MODAL — swipeable + pinch-zoom */}
+      <Modal
+        visible={zoomVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setZoomVisible(false)}
+        statusBarTranslucent
+      >
         <View style={styles.zoomContainer}>
           <TouchableOpacity
             style={[styles.closeBtn, { top: insets.top + 16 }]}
             onPress={() => setZoomVisible(false)}
+            hitSlop={8}
           >
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
-          <ScrollView
-            maximumZoomScale={3}
-            minimumZoomScale={1}
-            centerContent
-            contentContainerStyle={styles.zoomScroll}
-          >
-            {zoomImage && (
-              <Image source={{ uri: zoomImage }} style={styles.zoomImage} resizeMode="contain" />
+
+          <FlatList
+            ref={zoomListRef}
+            data={productImages}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(_, i) => `zoom-${i}`}
+            initialScrollIndex={zoomIndex}
+            getItemLayout={(_, index) => ({
+              length: width,
+              offset: width * index,
+              index,
+            })}
+            onMomentumScrollEnd={e => {
+              const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+              setZoomIndex(idx);
+              setZoomImage(productImages[idx] || null);
+            }}
+            onScrollToIndexFailed={info => {
+              setTimeout(() => {
+                zoomListRef.current?.scrollToIndex({
+                  index: info.index,
+                  animated: false,
+                });
+              }, 300);
+            }}
+            renderItem={({ item }) => (
+              <ScrollView
+                style={{ width }}
+                contentContainerStyle={styles.zoomScroll}
+                maximumZoomScale={3}
+                minimumZoomScale={1}
+                centerContent
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              >
+                <Image
+                  source={{ uri: item }}
+                  style={styles.zoomImage}
+                  resizeMode="contain"
+                />
+              </ScrollView>
             )}
-          </ScrollView>
+          />
+
+          {productImages.length > 1 && (
+            <View style={styles.zoomDots}>
+              {productImages.map((_, i) => (
+                <View
+                  key={`zoom-dot-${i}`}
+                  style={[styles.zoomDot, zoomIndex === i && styles.zoomDotActive]}
+                />
+              ))}
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -1246,9 +1340,37 @@ const styles = StyleSheet.create({
   },
 
   zoomContainer: { flex: 1, backgroundColor: "#000" },
-  zoomScroll: { flex: 1, justifyContent: "center" },
-  zoomImage: { width: "100%", height: "100%" },
+  zoomScroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  zoomImage: {
+    width: width,
+    height: height * 0.8,
+  },
   closeBtn: { position: "absolute", right: 20, zIndex: 10 },
+  zoomDots: {
+    position: "absolute",
+    bottom: 24,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+  zoomDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+  zoomDotActive: {
+    backgroundColor: "#FFFFFF",
+    width: 20,
+    borderRadius: 3.5,
+  },
 
   sizeGuideOverlay: {
     flex: 1,

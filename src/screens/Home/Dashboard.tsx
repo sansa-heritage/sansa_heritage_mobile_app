@@ -150,7 +150,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — taller + rounded corners + contain fit
+// BANNER SLIDER — FIXED SHAPE + cover fit + rounded corners
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -168,8 +168,12 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  // ✅ Slightly taller than 16:9 — increase for even more height
-  const BANNER_RATIO = 9 / 16;
+  // ✅ Wider ratio (2.5:1) matches typical banner shape — no side cropping
+  //    Common alternatives:
+  //      9 / 16 (16:9)  →  video banners
+  //      2 / 5  (2.5:1) →  wide promo banners ← current
+  //      1 / 3  (3:1)   →  ultra-wide strips
+  const BANNER_RATIO = 2 / 5;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -211,11 +215,18 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
-            {/* ✅ contain = full banner visible inside the locked box */}
+            {/*
+              ✅ cover = full-bleed image filling the fixed box,
+                 no letterbox padding, minimal edge crop.
+                 The TouchableOpacity is the ONLY clipping boundary.
+            */}
             <Image
               source={{ uri: item.image || item.uri }}
-              style={{ width: bannerWidth, height: bannerHeight }}
-              resizeMode="contain"
+              style={[
+                styles.bannerImage,
+                { width: bannerWidth, height: bannerHeight },
+              ]}
+              resizeMode="cover"
             />
           </TouchableOpacity>
         )}
@@ -1727,22 +1738,21 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* ✅ Rounded banner corners + tightened spacing */
+  /* ✅ Banner — fixed shape, cover fit, rounded corners */
   bannerWrapper: {
-    marginTop: 0,
+    marginTop: 5,
     marginBottom: 4,
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   bannerItem: {
-    // ✅ No borderRadius / overflow here — the wrapper clips everything
+    borderRadius: 20,
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   bannerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
   },
   dotsContainer: {
     position: 'absolute',

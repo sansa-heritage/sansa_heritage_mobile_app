@@ -4,7 +4,17 @@ export interface Notification {
   title: string;
   body: string;
   data?: any;
-  type: 'order' | 'promotion' | 'general' | 'system' | 'payment';
+  type:
+    | 'order'
+    | 'promotion'
+    | 'general'
+    | 'system'
+    | 'payment'
+    | 'delivery'
+    | 'cart'
+    | 'wishlist'
+    | 'reminder'
+    | 'birthday';
   read: boolean;
   readAt?: string;
   image?: string;
@@ -21,7 +31,17 @@ export interface NotificationPayload {
     params?: any;
     [key: string]: any;
   };
-  type?: 'order' | 'promotion' | 'general' | 'system' | 'payment';
+  type?:
+    | 'order'
+    | 'promotion'
+    | 'general'
+    | 'system'
+    | 'payment'
+    | 'delivery'
+    | 'cart'
+    | 'wishlist'
+    | 'reminder'
+    | 'birthday';
   image?: string;
   action?: string;
 }
