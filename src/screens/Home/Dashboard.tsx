@@ -1740,7 +1740,7 @@ const styles = StyleSheet.create({
 
   /* ✅ Banner — fixed shape, cover fit, rounded corners */
   bannerWrapper: {
-    marginTop: 0,
+    marginTop: 5,
     marginBottom: 4,
     borderRadius: 20,
     overflow: 'hidden',
