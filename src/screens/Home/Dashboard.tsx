@@ -150,7 +150,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — FIXED SHAPE + cover fit + rounded corners
+// BANNER SLIDER — original simple format
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -168,12 +168,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  // ✅ Wider ratio (2.5:1) matches typical banner shape — no side cropping
-  //    Common alternatives:
-  //      9 / 16 (16:9)  →  video banners
-  //      2 / 5  (2.5:1) →  wide promo banners ← current
-  //      1 / 3  (3:1)   →  ultra-wide strips
-  const BANNER_RATIO = 13 / 28;
+  const BANNER_RATIO = 9 / 16; // 16:9 widescreen
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -215,17 +210,9 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
-            {/*
-              ✅ cover = full-bleed image filling the fixed box,
-                 no letterbox padding, minimal edge crop.
-                 The TouchableOpacity is the ONLY clipping boundary.
-            */}
             <Image
               source={{ uri: item.image || item.uri }}
-              style={[
-                styles.bannerImage,
-                { width: bannerWidth, height: bannerHeight },
-              ]}
+              style={{ width: bannerWidth, height: bannerHeight }}
               resizeMode="cover"
             />
           </TouchableOpacity>
@@ -1738,22 +1725,18 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* ✅ Banner — fixed shape, cover fit, rounded corners */
+  /* ============ BANNER — old format, rounded corners preserved ============ */
   bannerWrapper: {
-    marginTop: 10,
-    marginBottom: 10,
-    borderRadius: 20,
+    marginTop: 12,
+    marginBottom: 12,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#f5f5f5',
   },
   bannerItem: {
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-  bannerImage: {
-    backgroundColor: '#FFFFFF',
-    height:'auto'
+    backgroundColor: '#f5f5f5',
   },
   dotsContainer: {
     position: 'absolute',
