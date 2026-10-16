@@ -38,6 +38,8 @@ import eventBus from "../../services/eventBus";
 import { snackbar } from "../../components/common/Snackbar";
 import SansaLogo from '../../../assets/images/icon.svg';
 
+// ✅ Skeleton import
+import { ScreenGridSkeleton } from "../../components/common/Skeleton";
 
 const { width } = Dimensions.get("window");
 const BASE_URL =
@@ -376,7 +378,6 @@ export default function CategoryScreen() {
 
       const price = Number(item.price || 0);
       const disc = Number(item.discountPercent || 0);
-      // ✅ Guard: exclude 100% discounts from price bounds
       const hasDisc = disc > 0 && disc < 100;
       const finalPrice = hasDisc ? price - (price * disc) / 100 : price;
       if (finalPrice > 0) {
@@ -442,7 +443,6 @@ export default function CategoryScreen() {
   const filteredPreview = useMemo(() => {
     let filtered = [...allProducts];
 
-    // ✅ Category — client-side, applied only when user taps Apply
     if (
       selectedCategory &&
       selectedCategory !== "" &&
@@ -459,7 +459,6 @@ export default function CategoryScreen() {
       filtered = filtered.filter((p) => {
         const price = Number(p.price || 0);
         const disc = Number(p.discountPercent || 0);
-        // ✅ Guard: exclude 100% discounts from the filter preview
         const hasDisc = disc > 0 && disc < 100;
         const finalPrice = hasDisc ? price - (price * disc) / 100 : price;
         return finalPrice >= priceStart && finalPrice <= priceEnd;
@@ -558,12 +557,11 @@ export default function CategoryScreen() {
   };
 
   /* ============================================================
-     ✅ PRICE SLIDER — TWO INDEPENDENT PAN RESPONDERS
+     PRICE SLIDER — TWO INDEPENDENT PAN RESPONDERS
      ============================================================ */
   const SLIDER_PADDING = 10;
   const [sliderWidth, setSliderWidth] = useState(0);
 
-  // Refs so PanResponder always sees fresh values
   const sliderWidthRef = React.useRef(0);
   const priceBoundsRef = React.useRef(priceBounds);
   const priceStartRef = React.useRef(priceStart);
@@ -582,7 +580,6 @@ export default function CategoryScreen() {
     priceEndRef.current = priceEnd;
   }, [priceEnd]);
 
-  // Convert price to pixel position
   const priceToX = (price: number) => {
     const w = sliderWidthRef.current;
     const { min, max } = priceBoundsRef.current;
@@ -591,7 +588,6 @@ export default function CategoryScreen() {
     return SLIDER_PADDING + ((price - min) / range) * (w - SLIDER_PADDING * 2);
   };
 
-  // Convert pixel position to price
   const xToPrice = (x: number) => {
     const w = sliderWidthRef.current;
     const { min, max } = priceBoundsRef.current;
@@ -602,14 +598,12 @@ export default function CategoryScreen() {
     return Math.round(min + clamped * range);
   };
 
-  // Minimum gap between thumbs
   const getMinGap = () => {
     const { min, max } = priceBoundsRef.current;
     const range = Math.max(1, max - min);
     return Math.max(50, Math.floor(range * 0.05));
   };
 
-  /* ✅ LEFT thumb — controls priceStart */
   const startThumbPan = React.useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -630,7 +624,6 @@ export default function CategoryScreen() {
     })
   ).current;
 
-  /* ✅ RIGHT thumb — controls priceEnd */
   const endThumbPan = React.useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -656,7 +649,6 @@ export default function CategoryScreen() {
     const isFav = favorites.includes(item._id);
     const originalPrice = Number(item.price || 0);
     const discountPercent = Number(item.discountPercent || 0);
-    // ✅ Guard: only a real discount between 1–99 changes the price / shows the badge
     const hasRealDiscount = discountPercent > 0 && discountPercent < 100;
     const discountedPrice = hasRealDiscount
       ? originalPrice - (originalPrice * discountPercent) / 100
@@ -777,8 +769,21 @@ export default function CategoryScreen() {
     );
   };
 
+  // ✅ Skeleton wired in here — replaces the blank loading view
   if (loading && products.length === 0) {
-    return <View style={styles.loadingContainer} />;
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+        <View style={styles.container}>
+          <ScreenGridSkeleton
+            width={width}
+            count={6}
+            imageHeight={CARD_IMG_HEIGHT}
+            horizontalPadding={CARD_H_PADDING}
+            showSearchBar
+          />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -853,7 +858,7 @@ export default function CategoryScreen() {
           </View>
         )}
 
-        {/* ✅ FILTER MODAL */}
+        {/* FILTER MODAL */}
         <Modal
           visible={filterModalVisible}
           transparent
@@ -927,8 +932,6 @@ export default function CategoryScreen() {
                           key={cat._id || "all"}
                           style={[styles.chip, isActive && styles.chipActive]}
                           onPress={() => {
-                            // ✅ Only remember the selection.
-                            // The actual filter runs when user taps "Apply Filters".
                             setSelectedCategory(cat._id || "");
                           }}
                           activeOpacity={0.7}
@@ -982,7 +985,6 @@ export default function CategoryScreen() {
                     >
                       <View style={styles.sliderTrack} />
 
-                      {/* Active track between thumbs */}
                       <View
                         style={[
                           styles.sliderActiveTrack,
@@ -996,7 +998,6 @@ export default function CategoryScreen() {
                         ]}
                       />
 
-                      {/* ✅ LEFT thumb */}
                       <View
                         style={[
                           styles.sliderThumb,
@@ -1005,7 +1006,6 @@ export default function CategoryScreen() {
                         {...startThumbPan.panHandlers}
                       />
 
-                      {/* ✅ RIGHT thumb */}
                       <View
                         style={[
                           styles.sliderThumb,
@@ -1220,7 +1220,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
-  /* Search */
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1260,7 +1259,6 @@ const styles = StyleSheet.create({
   columnWrapper: { justifyContent: "space-between" },
   listContent: { paddingTop: 4 },
 
-  /* Product Card */
   productCard: {
     backgroundColor: "#fff",
     borderRadius: 8,
@@ -1373,7 +1371,6 @@ const styles = StyleSheet.create({
   finalPrice: { fontSize: 14, fontWeight: "800", color: "#111" },
   discountText: { fontSize: 11, color: "#9E0E26", fontWeight: "700" },
 
-  /* Empty */
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1402,7 +1399,6 @@ const styles = StyleSheet.create({
   },
   clearFilterBtnText: { color: "#fff", fontWeight: "600", fontSize: 12 },
 
-  /* ── Filter Modal ── */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -1436,7 +1432,6 @@ const styles = StyleSheet.create({
 
   modalScroll: { paddingHorizontal: 16 },
 
-  /* Section header */
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1464,7 +1459,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
 
-  /* Category chips */
   chipsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1487,7 +1481,6 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 9.5, color: "#333", fontWeight: "600" },
   chipTextActive: { color: BRAND_COLOR, fontWeight: "800" },
 
-  /* Slider */
   sliderWrap: {
     height: 40,
     marginTop: 4,
@@ -1535,7 +1528,6 @@ const styles = StyleSheet.create({
   },
   priceLabel: { fontSize: 9, color: "#555", fontWeight: "600" },
 
-  /* Size */
   sizeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1559,7 +1551,6 @@ const styles = StyleSheet.create({
   sizeChipText: { fontSize: 9.5, color: "#333", fontWeight: "700" },
   sizeChipTextActive: { color: BRAND_COLOR, fontWeight: "800" },
 
-  /* Colors */
   colorRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1594,7 +1585,6 @@ const styles = StyleSheet.create({
   },
   colorLabelActive: { color: BRAND_COLOR, fontWeight: "800" },
 
-  /* Footer */
   modalFooter: {
     flexDirection: "row",
     paddingHorizontal: 16,

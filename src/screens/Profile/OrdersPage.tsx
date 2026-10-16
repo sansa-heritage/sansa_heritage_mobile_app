@@ -21,6 +21,9 @@ import config from '../../config/config';
 import eventBus from '../../services/eventBus';
 import { snackbar } from '../../components/common/Snackbar';
 
+// ✅ Skeleton import
+import { OrderListSkeleton } from '../../components/common/Skeleton';
+
 const { width } = Dimensions.get('window');
 
 type OrderProduct = {
@@ -231,7 +234,17 @@ const MyOrdersScreen: React.FC = () => {
     </View>
   );
 
-  if (loading && orders.length === 0) return <View style={styles.loadingContainer} />;
+  // ✅ Skeleton wired in here — replaces the blank white loading view
+  if (loading && orders.length === 0) {
+    return (
+      <View style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
+        <View style={styles.container}>
+          <OrderListSkeleton count={4} />
+        </View>
+      </View>
+    );
+  }
 
   // ✅ Hide search when there are no orders at all (regardless of filter)
   const showSearch = orders.length > 0;
@@ -279,6 +292,7 @@ const MyOrdersScreen: React.FC = () => {
 
 export default MyOrdersScreen;
 
+/* ================= STYLES — unchanged ================= */
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f8f8f8' },
   container: { flex: 1, backgroundColor: '#f8f8f8' },

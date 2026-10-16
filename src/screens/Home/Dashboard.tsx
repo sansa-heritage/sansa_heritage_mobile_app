@@ -36,6 +36,9 @@ import { getActiveBanners } from '../../api/bannerApi';
 import NotificationBadge from '../../components/NotificationBadge';
 import SansaLogo from '../../../assets/images/icon.svg';
 
+// ✅ Skeleton import
+import { DashboardSkeleton } from '../../components/common/Skeleton';
+
 const { width } = Dimensions.get('window');
 
 const BASE_URL =
@@ -168,7 +171,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  const BANNER_RATIO = 9 / 16; // 16:9 widescreen
+  const BANNER_RATIO = 9 / 16;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -774,8 +777,24 @@ export default function Dashboard() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await response.json();
+
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
-      setCategories(activeCategories);
+
+      const sortedCategories = activeCategories.sort((a: any, b: any) => {
+        const aTime = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : a._id
+          ? parseInt(String(a._id).substring(0, 8), 16) * 1000
+          : 0;
+        const bTime = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : b._id
+          ? parseInt(String(b._id).substring(0, 8), 16) * 1000
+          : 0;
+        return aTime - bTime;
+      });
+
+      setCategories(sortedCategories);
     } catch (error) {
       setCategories([
         { _id: '1', name: 'Sarees' },
@@ -1079,105 +1098,112 @@ export default function Dashboard() {
     ? trendingItems
     : trendingItems.slice(0, 4);
 
-  const HomeContent = () => (
-    <>
-      <BannerSlider
-        bannerImages={bannerImages}
-        currentBannerIndex={currentBannerIndex}
-        onBannerPress={handleBannerPress}
-        setCurrentBannerIndex={handleBannerScroll}
-      />
+  // ✅ Skeleton wired in here — 3 lines added, rest unchanged
+  const HomeContent = () => {
+    if (loading && bannerImages.length === 0) {
+      return <DashboardSkeleton width={width} />;
+    }
 
-      <View style={styles.categoryWrapper}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={categories}
-          keyExtractor={item => item._id || 'cat'}
-          renderItem={({ item }) => (
-            <CategoryItem
-              item={item}
-              selectedCategory={selectedCategory}
-              onPress={navigateToCategory}
+    return (
+      <>
+        <BannerSlider
+          bannerImages={bannerImages}
+          currentBannerIndex={currentBannerIndex}
+          onBannerPress={handleBannerPress}
+          setCurrentBannerIndex={handleBannerScroll}
+        />
+
+        <View style={styles.categoryWrapper}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={categories}
+            keyExtractor={item => item._id || 'cat'}
+            renderItem={({ item }) => (
+              <CategoryItem
+                item={item}
+                selectedCategory={selectedCategory}
+                onPress={navigateToCategory}
+              />
+            )}
+            contentContainerStyle={styles.categoryList}
+          />
+        </View>
+
+        <FeatureBadges />
+
+        <View style={styles.newArrivalSection}>
+          <View style={styles.newArrivalHeader}>
+            <Text style={styles.newArrivalTitle}>New Arrival</Text>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('CategoryScreen', {
+                  mainCategory: 'New Arrival',
+                  displayTitle: 'New Arrivals',
+                })
+              }
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          {itemsToShowNew.length === 0 ? (
+            <Text style={styles.noRecordsText}>No Records found</Text>
+          ) : (
+            <FlatList
+              data={itemsToShowNew}
+              keyExtractor={(item, index) => `${item._id}-${index}`}
+              numColumns={2}
+              columnWrapperStyle={styles.columnWrapper}
+              renderItem={({ item }) => (
+                <ProductCard
+                  item={item}
+                  onPress={product => redirectToProductDetails(product._id)}
+                  onFavoritePress={toggleFavorite}
+                  isFavorite={favorites.includes(item._id)}
+                />
+              )}
+              scrollEnabled={false}
             />
           )}
-          contentContainerStyle={styles.categoryList}
-        />
-      </View>
-
-      <FeatureBadges />
-
-      <View style={styles.newArrivalSection}>
-        <View style={styles.newArrivalHeader}>
-          <Text style={styles.newArrivalTitle}>New Arrival</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('CategoryScreen', {
-                mainCategory: 'New Arrival',
-                displayTitle: 'New Arrivals',
-              })
-            }
-          >
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
         </View>
-        {itemsToShowNew.length === 0 ? (
-          <Text style={styles.noRecordsText}>No Records found</Text>
-        ) : (
-          <FlatList
-            data={itemsToShowNew}
-            keyExtractor={(item, index) => `${item._id}-${index}`}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            renderItem={({ item }) => (
-              <ProductCard
-                item={item}
-                onPress={product => redirectToProductDetails(product._id)}
-                onFavoritePress={toggleFavorite}
-                isFavorite={favorites.includes(item._id)}
-              />
-            )}
-            scrollEnabled={false}
-          />
-        )}
-      </View>
 
-      <View style={styles.newArrivalSection}>
-        <View style={styles.newArrivalHeader}>
-          <Text style={styles.newArrivalTitle}>Trending</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('CategoryScreen', {
-                mainCategory: 'Trending',
-                displayTitle: 'Trending Now',
-              })
-            }
-          >
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
+        <View style={styles.newArrivalSection}>
+          <View style={styles.newArrivalHeader}>
+            <Text style={styles.newArrivalTitle}>Trending</Text>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('CategoryScreen', {
+                  mainCategory: 'Trending',
+                  displayTitle: 'Trending Now',
+                })
+              }
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          {itemsToShowTrending.length === 0 ? (
+            <Text style={styles.noRecordsText}>No Records found</Text>
+          ) : (
+            <FlatList
+              data={itemsToShowTrending}
+              keyExtractor={(item, index) => `${item._id}-${index}`}
+              numColumns={2}
+              columnWrapperStyle={styles.columnWrapper}
+              renderItem={({ item }) => (
+                <ProductCard
+                  item={item}
+                  onPress={product => redirectToProductDetails(product._id)}
+                  onFavoritePress={toggleFavorite}
+                  isFavorite={favorites.includes(item._id)}
+                />
+              )}
+              scrollEnabled={false}
+            />
+          )}
         </View>
-        {itemsToShowTrending.length === 0 ? (
-          <Text style={styles.noRecordsText}>No Records found</Text>
-        ) : (
-          <FlatList
-            data={itemsToShowTrending}
-            keyExtractor={(item, index) => `${item._id}-${index}`}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            renderItem={({ item }) => (
-              <ProductCard
-                item={item}
-                onPress={product => redirectToProductDetails(product._id)}
-                onFavoritePress={toggleFavorite}
-                isFavorite={favorites.includes(item._id)}
-              />
-            )}
-            scrollEnabled={false}
-          />
-        )}
-      </View>
-    </>
-  );
+      </>
+    );
+  };
 
   const PremiumContent = () => (
     <PremiumSection
@@ -1350,7 +1376,7 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES
+// STYLES — unchanged from your original
 // ============================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
@@ -1725,7 +1751,6 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* ============ BANNER — old format, rounded corners preserved ============ */
   bannerWrapper: {
     marginTop: 12,
     marginBottom: 12,

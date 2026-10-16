@@ -24,6 +24,9 @@ import { addToCart } from '../../api/cartApi';
 import LoadingService from '../../services/LoadingService';
 import { snackbar } from '../../components/common/Snackbar';
 
+// ✅ Skeleton import
+import { ScreenGridSkeleton } from '../../components/common/Skeleton';
+
 const { width } = Dimensions.get('window');
 
 interface FavoriteItem {
@@ -92,14 +95,12 @@ const FavoriteScreen = () => {
         return newMap;
       });
 
-      // ✅ Snackbar feedback
       snackbar.success('Removed from wishlist');
 
       eventBus.emit('ITEM_REMOVED', { id: 123 });
       eventBus.emit('FAVORITE_UPDATED', {});
     } catch (err) {
       console.log('❌ Error removing favorite:', err);
-      // ✅ Snackbar error
       snackbar.error('Failed to remove from wishlist');
     }
   };
@@ -132,12 +133,10 @@ const FavoriteScreen = () => {
       LoadingService.show('Adding to cart...');
       await addToCart(productId, 1, colorValue, sizeValue);
 
-      // ✅ Only snackbar — no Alert modal
       snackbar.success('Item added to cart successfully!');
 
       eventBus.emit('CART_UPDATED', {});
     } catch (error) {
-      // ✅ Only snackbar — no Alert modal
       snackbar.error('Failed to add item to cart. Please try again.');
     } finally {
       LoadingService.hide();
@@ -275,7 +274,6 @@ const FavoriteScreen = () => {
         onPress={() => redirectToProductDetails(productId)}
         activeOpacity={0.9}
       >
-        {/* ====== IMAGE ====== */}
         <View style={styles.imageWrap}>
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />
@@ -302,7 +300,6 @@ const FavoriteScreen = () => {
             </View>
           )}
 
-          {/* ✅ Remove (X) — top-left */}
           <TouchableOpacity
             style={styles.removeIcon}
             onPress={() => handleRemoveFavorite(productId)}
@@ -319,7 +316,6 @@ const FavoriteScreen = () => {
             <Ionicons name="share-social-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Add / Similar pill — icon only */}
           <TouchableOpacity
             style={styles.addPill}
             activeOpacity={0.85}
@@ -339,7 +335,6 @@ const FavoriteScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* ====== INFO ====== */}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={2}>
             <Text style={styles.nameBold}>{boldPart}</Text>
@@ -387,8 +382,19 @@ const FavoriteScreen = () => {
     </View>
   );
 
+  // ✅ Skeleton wired in here — replaces blank loading view
   if (loading) {
-    return <View style={styles.loadingContainer} />;
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <ScreenGridSkeleton
+          width={width}
+          count={4}
+          horizontalPadding={H_PADDING}
+          showSearchBar={false}
+        />
+      </SafeAreaView>
+    );
   }
 
   if (error) {
@@ -455,9 +461,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
-  // ============================================================
-  // PRODUCT CARD
-  // ============================================================
   card: {
     width: (width - H_PADDING * 2 - CARD_GAP) / 2,
     backgroundColor: '#fff',
@@ -485,7 +488,6 @@ const styles = StyleSheet.create({
   },
   placeholderText: { color: '#999', fontSize: 10, fontWeight: '500' },
 
-  // Out-of-stock
   oosOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.55)',
@@ -506,7 +508,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
-  // Rating pill
   ratingPill: {
     position: 'absolute',
     bottom: 8,
@@ -536,7 +537,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
 
-  // Share — top-right
   shareIcon: {
     position: 'absolute',
     top: 6,
@@ -544,7 +544,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // ✅ Remove (X) — top-left
   removeIcon: {
     position: 'absolute',
     top: 6,
@@ -552,7 +551,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Add / Similar pill
   addPill: {
     position: 'absolute',
     bottom: -12,
@@ -566,7 +564,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  // Info section
   info: {
     paddingHorizontal: 10,
     paddingTop: 20,
@@ -604,7 +601,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Footer quote
   footer: {
     alignItems: 'center',
     paddingTop: 20,
@@ -624,7 +620,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Empty
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -658,7 +653,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Loading & Error
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -15,6 +15,9 @@ import { useNotifications } from "../../context/NotificationContext";
 import { Notification } from "../../models/notification.model";
 import LoadingService from "../../services/LoadingService";
 
+// ✅ Skeleton import
+import { NotificationListSkeleton } from "../../components/common/Skeleton";
+
 const { width } = Dimensions.get("window");
 
 const scale = (size: number) => {
@@ -129,7 +132,6 @@ const NotificationScreen: React.FC = () => {
     }
   };
 
-  // ✅ NEW — specific icons for auth-related events
   const getEventConfig = (
     eventKey: string,
   ): { icon: string; color: string; bg: string; action: string } | null => {
@@ -241,14 +243,12 @@ const NotificationScreen: React.FC = () => {
 
     const navAction = (item as any).action;
 
-    // ✅ NEW — handle simple string actions first
     if (typeof navAction === "string") {
       if (navAction === "open_home") {
         navigation.navigate("Dashboard");
         return;
       }
       if (navAction === "open_profile") {
-        // ✅ Falls back to Dashboard if Profile route isn't registered
         try {
           navigation.navigate("Profile");
         } catch {
@@ -265,7 +265,6 @@ const NotificationScreen: React.FC = () => {
         return;
       }
 
-      // JSON-encoded action
       try {
         const parsed = JSON.parse(navAction);
         if (parsed?.screen) {
@@ -310,7 +309,6 @@ const NotificationScreen: React.FC = () => {
 
       case "system":
       case "general":
-        // ✅ Auth events land here — route based on event
         if (data?.event === "login" || data?.event === "welcome") {
           navigation.navigate("Dashboard");
         } else if (
@@ -338,7 +336,6 @@ const NotificationScreen: React.FC = () => {
   };
 
   const renderNotification = ({ item }: { item: Notification }) => {
-    // ✅ NEW — prefer per-event config, fall back to type config
     const eventKey = (item as any)?.data?.event;
     const cfg = (eventKey && getEventConfig(eventKey)) || getTypeConfig(item.type as string);
 
@@ -411,6 +408,19 @@ const NotificationScreen: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const hasNotifications = notifications.length > 0;
 
+  // ✅ Skeleton wired in here — replaces blank loading view
+  if (loading && notifications.length === 0) {
+    return (
+      <View style={styles.container}>
+        <NotificationListSkeleton
+          count={6}
+          showMarkAll
+          showTabs
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {unreadCount > 0 && (
@@ -437,9 +447,7 @@ const NotificationScreen: React.FC = () => {
         </View>
       )}
 
-      {loading && notifications.length === 0 ? (
-        <View style={styles.loading} />
-      ) : filteredNotifications.length === 0 ? (
+      {filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconContainer}>
             <Ionicons
@@ -477,7 +485,6 @@ const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
 
-  /* Mark all as read */
   markAllRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -493,7 +500,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  /* Tabs */
   tabsWrapper: {
     paddingHorizontal: scale(14),
     paddingTop: scale(4),
@@ -515,14 +521,12 @@ const styles = StyleSheet.create({
   tabText: { fontSize: scale(12), color: "#374151", fontWeight: "500" },
   activeTabText: { color: "#FFFFFF", fontWeight: "700" },
 
-  /* Inner padding of the FlatList */
   listContent: {
     paddingHorizontal: scale(12),
     paddingTop: scale(6),
     paddingBottom: scale(12),
   },
 
-  /* Each notification row is its own standalone card */
   notificationRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -592,8 +596,6 @@ const styles = StyleSheet.create({
     marginTop: scale(20),
     flexShrink: 0,
   },
-
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   empty: {
     flex: 1,
