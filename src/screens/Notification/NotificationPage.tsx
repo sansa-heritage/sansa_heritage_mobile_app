@@ -129,6 +129,51 @@ const NotificationScreen: React.FC = () => {
     }
   };
 
+  // ✅ NEW — specific icons for auth-related events
+  const getEventConfig = (
+    eventKey: string,
+  ): { icon: string; color: string; bg: string; action: string } | null => {
+    switch (eventKey) {
+      case "welcome":
+        return {
+          icon: "sparkles-outline",
+          color: "#D64C5B",
+          bg: "#FBE4E7",
+          action: "Start Shopping",
+        };
+      case "login":
+        return {
+          icon: "log-in-outline",
+          color: "#1F8A7A",
+          bg: "#E4F5F1",
+          action: "Continue Shopping",
+        };
+      case "account_linked":
+        return {
+          icon: "link-outline",
+          color: "#3D7AA7",
+          bg: "#E4EFF9",
+          action: "View Profile",
+        };
+      case "password_changed":
+        return {
+          icon: "lock-closed-outline",
+          color: "#B57724",
+          bg: "#FDF2E0",
+          action: "Continue",
+        };
+      case "profile_updated":
+        return {
+          icon: "person-outline",
+          color: "#72559A",
+          bg: "#EEE6F8",
+          action: "View Profile",
+        };
+      default:
+        return null;
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -182,6 +227,8 @@ const NotificationScreen: React.FC = () => {
         "wishlist",
         "reminder",
         "birthday",
+        "system",
+        "general",
       ].includes(item.type as string)
     );
   };
@@ -193,7 +240,32 @@ const NotificationScreen: React.FC = () => {
     const t = item.type as string;
 
     const navAction = (item as any).action;
-    if (navAction && typeof navAction === "string") {
+
+    // ✅ NEW — handle simple string actions first
+    if (typeof navAction === "string") {
+      if (navAction === "open_home") {
+        navigation.navigate("Dashboard");
+        return;
+      }
+      if (navAction === "open_profile") {
+        // ✅ Falls back to Dashboard if Profile route isn't registered
+        try {
+          navigation.navigate("Profile");
+        } catch {
+          navigation.navigate("Dashboard");
+        }
+        return;
+      }
+      if (navAction === "open_product" && data.productId) {
+        navigation.navigate("ProductDetails", { itemId: data.productId });
+        return;
+      }
+      if (navAction === "open_order" && data.orderId) {
+        navigation.navigate("OrderDetails", { orderId: data.orderId });
+        return;
+      }
+
+      // JSON-encoded action
       try {
         const parsed = JSON.parse(navAction);
         if (parsed?.screen) {
@@ -236,10 +308,27 @@ const NotificationScreen: React.FC = () => {
         }
         break;
 
-      case "payment":
-      case "reminder":
       case "system":
       case "general":
+        // ✅ Auth events land here — route based on event
+        if (data?.event === "login" || data?.event === "welcome") {
+          navigation.navigate("Dashboard");
+        } else if (
+          data?.event === "account_linked" ||
+          data?.event === "profile_updated"
+        ) {
+          try {
+            navigation.navigate("Profile");
+          } catch {
+            navigation.navigate("Dashboard");
+          }
+        } else if (data?.orderId) {
+          navigation.navigate("OrderDetails", { orderId: data.orderId });
+        }
+        break;
+
+      case "payment":
+      case "reminder":
       default:
         if (data.orderId) {
           navigation.navigate("OrderDetails", { orderId: data.orderId });
@@ -249,7 +338,9 @@ const NotificationScreen: React.FC = () => {
   };
 
   const renderNotification = ({ item }: { item: Notification }) => {
-    const cfg = getTypeConfig(item.type as string);
+    // ✅ NEW — prefer per-event config, fall back to type config
+    const eventKey = (item as any)?.data?.event;
+    const cfg = (eventKey && getEventConfig(eventKey)) || getTypeConfig(item.type as string);
 
     return (
       <TouchableOpacity
@@ -363,7 +454,6 @@ const NotificationScreen: React.FC = () => {
           </Text>
         </View>
       ) : (
-        /* ✅ FlatList sits directly on screen background — no outer card */
         <FlatList
           data={filteredNotifications}
           renderItem={renderNotification}
@@ -425,14 +515,14 @@ const styles = StyleSheet.create({
   tabText: { fontSize: scale(12), color: "#374151", fontWeight: "500" },
   activeTabText: { color: "#FFFFFF", fontWeight: "700" },
 
-  /* Inner padding of the FlatList (no outer card anymore) */
+  /* Inner padding of the FlatList */
   listContent: {
     paddingHorizontal: scale(12),
     paddingTop: scale(6),
     paddingBottom: scale(12),
   },
 
-  /* ✅ Each notification row is its own standalone card */
+  /* Each notification row is its own standalone card */
   notificationRow: {
     flexDirection: "row",
     alignItems: "flex-start",

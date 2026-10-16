@@ -114,7 +114,7 @@ const SignUpPage = () => {
         source={require('../../../assets/images/SANSA-final-logo.png')}
       /> */}
        <SansaFinalLogo
-        width={250}
+        width={180}
         height={100}
         style={styles.brandLogo}
       />

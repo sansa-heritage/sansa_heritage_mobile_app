@@ -150,7 +150,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — taller + rounded corners + contain fit
+// BANNER SLIDER — ROUNDED CORNERS + contain fit
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -168,7 +168,6 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  // ✅ Slightly taller than 16:9 — increase for even more height
   const BANNER_RATIO = 9 / 16;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
@@ -192,7 +191,10 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   }, [currentBannerIndex]);
 
   return (
-    <View style={styles.bannerWrapper}>
+    <View
+      style={styles.bannerWrapper}
+      renderToHardwareTextureAndroid
+    >
       <FlatList
         ref={flatListRef}
         data={bannerImages}
@@ -211,12 +213,23 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
-            {/* ✅ contain = full banner visible inside the locked box */}
-            <Image
-              source={{ uri: item.image || item.uri }}
-              style={{ width: bannerWidth, height: bannerHeight }}
-              resizeMode="contain"
-            />
+            {/* ✅ Rounded clipping view — the ONLY place that rounds the image */}
+            <View
+              renderToHardwareTextureAndroid
+              style={{
+                width: bannerWidth,
+                height: bannerHeight,
+                borderRadius: 20,
+                overflow: 'hidden',
+                backgroundColor: '#FFFFFF',
+              }}
+            >
+              <Image
+                source={{ uri: item.image || item.uri }}
+                style={{ width: bannerWidth, height: bannerHeight }}
+                resizeMode="contain"
+              />
+            </View>
           </TouchableOpacity>
         )}
         onMomentumScrollEnd={handleScrollEnd}
@@ -1727,16 +1740,15 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* ✅ Rounded banner corners + tightened spacing */
+  /* ✅ Rounded banner corners */
   bannerWrapper: {
     marginTop: 0,
     marginBottom: 4,
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   bannerItem: {
-    // ✅ No borderRadius / overflow here — the wrapper clips everything
     backgroundColor: '#FFFFFF',
   },
   bannerImage: {
