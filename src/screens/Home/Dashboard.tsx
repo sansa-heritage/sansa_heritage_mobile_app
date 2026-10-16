@@ -150,7 +150,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — ROUNDED CORNERS + contain fit
+// BANNER SLIDER — FIXED SHAPE + cover fit + rounded corners
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -168,7 +168,12 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
 
-  const BANNER_RATIO = 9 / 16;
+  // ✅ Wider ratio (2.5:1) matches typical banner shape — no side cropping
+  //    Common alternatives:
+  //      9 / 16 (16:9)  →  video banners
+  //      2 / 5  (2.5:1) →  wide promo banners ← current
+  //      1 / 3  (3:1)   →  ultra-wide strips
+  const BANNER_RATIO = 2 / 5;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -191,10 +196,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   }, [currentBannerIndex]);
 
   return (
-    <View
-      style={styles.bannerWrapper}
-      renderToHardwareTextureAndroid
-    >
+    <View style={styles.bannerWrapper}>
       <FlatList
         ref={flatListRef}
         data={bannerImages}
@@ -213,23 +215,19 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
             onPress={() => onBannerPress(item)}
             activeOpacity={0.9}
           >
-            {/* ✅ Rounded clipping view — the ONLY place that rounds the image */}
-            <View
-              renderToHardwareTextureAndroid
-              style={{
-                width: bannerWidth,
-                height: bannerHeight,
-                borderRadius: 20,
-                overflow: 'hidden',
-                backgroundColor: '#FFFFFF',
-              }}
-            >
-              <Image
-                source={{ uri: item.image || item.uri }}
-                style={{ width: bannerWidth, height: bannerHeight }}
-                resizeMode="contain"
-              />
-            </View>
+            {/*
+              ✅ cover = full-bleed image filling the fixed box,
+                 no letterbox padding, minimal edge crop.
+                 The TouchableOpacity is the ONLY clipping boundary.
+            */}
+            <Image
+              source={{ uri: item.image || item.uri }}
+              style={[
+                styles.bannerImage,
+                { width: bannerWidth, height: bannerHeight },
+              ]}
+              resizeMode="cover"
+            />
           </TouchableOpacity>
         )}
         onMomentumScrollEnd={handleScrollEnd}
@@ -1740,7 +1738,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  /* ✅ Rounded banner corners */
+  /* ✅ Banner — fixed shape, cover fit, rounded corners */
   bannerWrapper: {
     marginTop: 0,
     marginBottom: 4,
@@ -1749,12 +1747,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   bannerItem: {
+    borderRadius: 20,
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   bannerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
   },
   dotsContainer: {
     position: 'absolute',
