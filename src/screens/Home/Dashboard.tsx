@@ -173,7 +173,7 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
   //      9 / 16 (16:9)  →  video banners
   //      2 / 5  (2.5:1) →  wide promo banners ← current
   //      1 / 3  (3:1)   →  ultra-wide strips
-  const BANNER_RATIO = 2 / 5;
+  const BANNER_RATIO = 13 / 28;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
   if (bannerImages.length === 0) return null;
@@ -1740,8 +1740,8 @@ const styles = StyleSheet.create({
 
   /* ✅ Banner — fixed shape, cover fit, rounded corners */
   bannerWrapper: {
-    marginTop: 5,
-    marginBottom: 4,
+    marginTop: 10,
+    marginBottom: 10,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -1753,6 +1753,7 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     backgroundColor: '#FFFFFF',
+    height:'auto'
   },
   dotsContainer: {
     position: 'absolute',
