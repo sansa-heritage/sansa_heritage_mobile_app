@@ -8,7 +8,6 @@ import {
   Modal,
   Dimensions,
   TextInput,
-  Platform,
   StatusBar,
 } from 'react-native';
 import {
@@ -36,17 +35,12 @@ import { getActiveBanners } from '../../api/bannerApi';
 import NotificationBadge from '../../components/NotificationBadge';
 import SansaLogo from '../../../assets/images/icon.svg';
 
-// ✅ Skeleton import
 import { DashboardSkeleton } from '../../components/common/Skeleton';
 
 const { width } = Dimensions.get('window');
-
 const BASE_URL =
   config.baseURL || 'https://ecappbe-sanasaheritages-projects.vercel.app';
 
-// ============================================
-// TITLE SPLITTER
-// ============================================
 const splitTitle = (fullName: string, boldWords = 2) => {
   const words = (fullName || '').trim().split(/\s+/);
   if (words.length <= boldWords) {
@@ -59,7 +53,7 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 // ============================================
-// TOP TABS (kept for future re-enable — currently unused)
+// TOP TABS — no full background, floating tabs
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -68,62 +62,58 @@ interface TopTabsProps {
 
 const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
   return (
-    <View style={styles.topTabsBar}>
-      <View style={styles.topTabsRow}>
-        <TouchableOpacity
+    <View style={styles.tabBarContainer}>
+      {/* LEFT TAB */}
+      <TouchableOpacity
+        onPress={() => onTabChange('home')}
+        activeOpacity={0.85}
+        style={[
+          styles.tab,
+          activeTab === 'home' ? styles.tabActive : styles.tabInactive,
+        ]}
+      >
+        <SansaLogo
+          width={20}
+          height={20}
+          style={{ marginRight: 8 }}
+          fill={activeTab === 'home' ? '#9E0E26' : '#888'}
+        />
+        <Text
           style={[
-            styles.topTab,
-            styles.topTabLeft,
-            activeTab === 'home' && styles.topTabActive,
+            styles.tabText,
+            activeTab === 'home' ? styles.tabTextActive : styles.tabTextInactive,
           ]}
-          onPress={() => onTabChange('home')}
-          activeOpacity={0.9}
         >
-          <View style={styles.topTabInner}>
-            <MaterialIcons
-              name="storefront"
-              size={16}
-              color="#9E0E26"
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                styles.topTabText,
-                activeTab === 'home' && styles.topTabTextActive,
-              ]}
-            >
-              SansaHome
-            </Text>
-          </View>
-        </TouchableOpacity>
+          SansaHome
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
+      {/* RIGHT TAB */}
+      <TouchableOpacity
+        onPress={() => onTabChange('premium')}
+        activeOpacity={0.85}
+        style={[
+          styles.tab,
+          activeTab === 'premium' ? styles.tabActive : styles.tabInactive,
+        ]}
+      >
+        <MaterialIcons
+          name="stars"
+          size={20}
+          color={activeTab === 'premium' ? '#9E0E26' : '#888'}
+          style={{ marginRight: 8 }}
+        />
+        <Text
           style={[
-            styles.topTab,
-            styles.topTabRight,
-            activeTab === 'premium' && styles.topTabActive,
+            styles.tabText,
+            activeTab === 'premium'
+              ? styles.tabTextActive
+              : styles.tabTextInactive,
           ]}
-          onPress={() => onTabChange('premium')}
-          activeOpacity={0.9}
         >
-          <View style={styles.topTabInner}>
-            <MaterialIcons
-              name="stars"
-              size={16}
-              color="#9E0E26"
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={[
-                styles.topTabText,
-                activeTab === 'premium' && styles.topTabTextActive,
-              ]}
-            >
-              Premium
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          Premium
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -153,7 +143,7 @@ const getImageSource = (item: any) => {
 };
 
 // ============================================
-// BANNER SLIDER — original simple format
+// BANNER SLIDER
 // ============================================
 interface BannerSliderProps {
   bannerImages: any[];
@@ -215,8 +205,14 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
           >
             <Image
               source={{ uri: item.image || item.uri }}
-              style={{ width: bannerWidth, height: bannerHeight }}
+              style={[StyleSheet.absoluteFillObject, { opacity: 0.8 }]}
               resizeMode="cover"
+              blurRadius={15}
+            />
+            <Image
+              source={{ uri: item.image || item.uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="contain"
             />
           </TouchableOpacity>
         )}
@@ -304,9 +300,7 @@ const FeatureBadges: React.FC = () => (
         </Text>
       </View>
     </View>
-
     <View style={styles.featureDivider} />
-
     <View style={styles.featureItem}>
       <View style={styles.featureIconWrapper}>
         <MaterialIcons name="verified" size={16} color="#9E0E26" />
@@ -320,9 +314,7 @@ const FeatureBadges: React.FC = () => (
         </Text>
       </View>
     </View>
-
     <View style={styles.featureDivider} />
-
     <View style={styles.featureItem}>
       <View style={styles.featureIconWrapper}>
         <MaterialIcons name="lock" size={16} color="#9E0E26" />
@@ -340,7 +332,7 @@ const FeatureBadges: React.FC = () => (
 );
 
 // ============================================
-// PRODUCT CARD — discount guard + image fit
+// PRODUCT CARD
 // ============================================
 interface ProductCardProps {
   item: any;
@@ -361,9 +353,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const discountedPrice = hasRealDiscount
     ? originalPrice - (originalPrice * discountPercent) / 100
     : originalPrice;
-
   const rating = Number(item.rating || 0);
-
   const { boldPart, normalPart } = splitTitle(item.name || 'Product', 2);
 
   return (
@@ -379,14 +369,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </View>
         </View>
       )}
-
       <View style={styles.imageWrapper}>
         <Image
           source={getImageSource(item)}
           style={styles.productImage}
           resizeMode="contain"
         />
-
         <TouchableOpacity
           style={styles.favoriteBtn}
           onPress={() => onFavoritePress(item._id)}
@@ -400,15 +388,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
-
         {rating > 0 && (
           <View style={styles.ratingPill}>
             <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
@@ -417,7 +404,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </View>
         )}
       </View>
-
       <View style={styles.productInfo}>
         <Text numberOfLines={1} style={styles.productTitle}>
           <Text style={styles.productTitleBold}>{boldPart}</Text>
@@ -425,13 +411,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <Text style={styles.productTitleNormal}> {normalPart}</Text>
           ) : null}
         </Text>
-
         {hasRealDiscount && discountPercent >= 20 && (
           <View style={styles.megaDropInline}>
             <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
           </View>
         )}
-
         <View style={styles.priceRow}>
           {hasRealDiscount && (
             <Text style={styles.strikePrice}>₹{originalPrice}</Text>
@@ -447,7 +431,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 };
 
 // ============================================
-// PREMIUM PRODUCT CARD — discount guard + image fit
+// PREMIUM CARD
 // ============================================
 interface PremiumCardProps {
   item: any;
@@ -468,9 +452,7 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
   const discountedPrice = hasRealDiscount
     ? originalPrice - (originalPrice * discountPercent) / 100
     : originalPrice;
-
   const rating = Number(item.rating || 0);
-
   const { boldPart, normalPart } = splitTitle(item.name || 'Product', 2);
 
   return (
@@ -486,18 +468,15 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
           </View>
         </View>
       )}
-
       <View style={styles.imageWrapper}>
         <Image
           source={getImageSource(item)}
           style={styles.productImage}
           resizeMode="contain"
         />
-
         <View style={styles.premiumTag}>
           <Text style={styles.premiumTagText}>{item.tag || 'PREMIUM'}</Text>
         </View>
-
         <TouchableOpacity
           style={styles.favoriteBtn}
           onPress={() => onFavoritePress(item._id)}
@@ -511,15 +490,14 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
               isFavorite
                 ? { color: '#E9445A' }
                 : {
-                    color: '#FFFFFF',
-                    textShadowColor: '#000',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }
+                  color: '#FFFFFF',
+                  textShadowColor: '#000',
+                  textShadowOffset: { width: 0, height: 0 },
+                  textShadowRadius: 2,
+                }
             }
           />
         </TouchableOpacity>
-
         {rating > 0 && (
           <View style={styles.ratingPill}>
             <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
@@ -528,7 +506,6 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
           </View>
         )}
       </View>
-
       <View style={styles.productInfo}>
         <Text numberOfLines={1} style={styles.productTitle}>
           <Text style={styles.productTitleBold}>{boldPart}</Text>
@@ -536,13 +513,11 @@ const PremiumCard: React.FC<PremiumCardProps> = ({
             <Text style={styles.productTitleNormal}> {normalPart}</Text>
           ) : null}
         </Text>
-
         {hasRealDiscount && discountPercent >= 20 && (
           <View style={styles.megaDropInline}>
             <Text style={styles.megaDropInlineText}>Mega Price Drop</Text>
           </View>
         )}
-
         <View style={styles.priceRow}>
           {hasRealDiscount && (
             <Text style={styles.strikePrice}>₹{originalPrice}</Text>
@@ -567,42 +542,19 @@ const PremiumSection: React.FC<{
   favorites: string[];
 }> = ({ items, onProductPress, onFavoritePress, favorites }) => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-
   if (!items || items.length === 0) {
     return (
-      <View
-        style={{
-          marginTop: 60,
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingHorizontal: 40,
-        }}
-      >
+      <View style={{ marginTop: 60, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
         <MaterialIcons name="stars" size={48} color="#E0E0E0" />
-        <Text
-          style={{
-            marginTop: 12,
-            color: '#999',
-            fontSize: 14,
-            textAlign: 'center',
-          }}
-        >
+        <Text style={{ marginTop: 12, color: '#999', fontSize: 14, textAlign: 'center' }}>
           No premium products yet
         </Text>
-        <Text
-          style={{
-            marginTop: 4,
-            color: '#BBB',
-            fontSize: 12,
-            textAlign: 'center',
-          }}
-        >
+        <Text style={{ marginTop: 4, color: '#BBB', fontSize: 12, textAlign: 'center' }}>
           Check back soon for exclusive pieces
         </Text>
       </View>
     );
   }
-
   return (
     <View style={styles.premiumSectionWrapper}>
       <View style={styles.premiumHeader}>
@@ -625,7 +577,6 @@ const PremiumSection: React.FC<{
           <MaterialIcons name="arrow-forward" size={14} color="#9E0E26" />
         </TouchableOpacity>
       </View>
-
       <FlatList
         data={items}
         keyExtractor={(item, index) => `${item._id}-${index}`}
@@ -655,58 +606,37 @@ export default function Dashboard() {
   const [premiumItems, setPremiumItems] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<any[]>([]);
-
   const [favorites, setFavorites] = useState<string[]>([]);
-
   const [bannerImages, setBannerImages] = useState<any[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
-
   const [activeTab, setActiveTab] = useState<'home' | 'premium'>('home');
-
   const [showAllNew] = useState(false);
   const [showAllTrending] = useState(false);
-
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [favoriteCount, setFavoriteCount] = useState(0);
-
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
-
   const [modalVisible, setModalVisible] = useState(false);
-
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setSelectedCategory('');
-    }, [])
-  );
+  useEffect(() => { loadFavorites(); }, []);
+  useFocusEffect(React.useCallback(() => { setSelectedCategory(''); }, []));
 
   useEffect(() => {
     let mounted = true;
-
     const fetchCounts = async () => {
       try {
         const favs = await getFavoriteProducts();
         const list = Array.isArray(favs) ? favs : favs?.items || [];
         if (mounted) setFavoriteCount(list.length);
-      } catch {
-        if (mounted) setFavoriteCount(0);
-      }
+      } catch { if (mounted) setFavoriteCount(0); }
     };
-
     fetchCounts();
-
     const listener = () => fetchCounts();
     eventBus.on('FAVORITE_UPDATED', listener);
     eventBus.on('ITEM_REMOVED', listener);
-
     return () => {
       mounted = false;
       eventBus.off('FAVORITE_UPDATED', listener);
@@ -718,15 +648,12 @@ export default function Dashboard() {
     try {
       const stored = await AsyncStorage.getItem('favorites');
       if (stored) setFavorites(JSON.parse(stored));
-    } catch (err) {
-      console.error('Error loading favorites:', err);
-    }
+    } catch (err) { console.error('Error loading favorites:', err); }
   };
 
   const toggleFavorite = async (id: string) => {
     try {
       const isAlreadyFav = favorites.includes(id);
-
       if (isAlreadyFav) {
         await removeFromFavoritesList(id);
         const updated = favorites.filter(fav => fav !== id);
@@ -738,27 +665,17 @@ export default function Dashboard() {
         setFavorites(updated);
         await AsyncStorage.setItem('favorites', JSON.stringify(updated));
       }
-
       eventBus.emit('FAVORITE_UPDATED', {});
       eventBus.emit('ITEM_REMOVED', { id: 123 });
-    } catch (err) {
-      console.error('Error toggling favorite:', err);
-    }
+    } catch (err) { console.error('Error toggling favorite:', err); }
   };
 
   const fetchBanners = async () => {
     try {
       const banners = await getActiveBanners();
-      if (banners && banners.length > 0) {
-        setBannerImages(banners);
-        setCurrentBannerIndex(0);
-      } else {
-        setBannerImages([]);
-      }
-    } catch (error) {
-      console.error('Error fetching banners:', error);
-      setBannerImages([]);
-    }
+      if (banners && banners.length > 0) { setBannerImages(banners); setCurrentBannerIndex(0); }
+      else { setBannerImages([]); }
+    } catch (error) { console.error('Error fetching banners:', error); setBannerImages([]); }
   };
 
   useEffect(() => {
@@ -777,134 +694,67 @@ export default function Dashboard() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const data = await response.json();
-
       const activeCategories = data.filter((cat: any) => cat.isActive === true);
-
       const sortedCategories = activeCategories.sort((a: any, b: any) => {
-        const aTime = a.createdAt
-          ? new Date(a.createdAt).getTime()
-          : a._id
-          ? parseInt(String(a._id).substring(0, 8), 16) * 1000
-          : 0;
-        const bTime = b.createdAt
-          ? new Date(b.createdAt).getTime()
-          : b._id
-          ? parseInt(String(b._id).substring(0, 8), 16) * 1000
-          : 0;
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : a._id ? parseInt(String(a._id).substring(0, 8), 16) * 1000 : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : b._id ? parseInt(String(b._id).substring(0, 8), 16) * 1000 : 0;
         return aTime - bTime;
       });
-
       setCategories(sortedCategories);
     } catch (error) {
       setCategories([
-        { _id: '1', name: 'Sarees' },
-        { _id: '2', name: 'Kurtis' },
-        { _id: '3', name: 'Lehengas' },
-        { _id: '4', name: 'Ethnic Sets' },
-        { _id: '5', name: 'Dupattas' },
+        { _id: '1', name: 'Sarees' }, { _id: '2', name: 'Kurtis' },
+        { _id: '3', name: 'Lehengas' }, { _id: '4', name: 'Ethnic Sets' }, { _id: '5', name: 'Dupattas' },
       ]);
     }
   };
 
-  const fetchNewArrivals = async ({
-    searchText,
-    selectedCategory,
-    priceRange,
-  }: any) => {
+  const fetchNewArrivals = async ({ searchText, selectedCategory, priceRange }: any) => {
     try {
       const params: any = { isNewArrival: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
       if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
-
-      const queryString = Object.keys(params)
-        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-        .join('&');
-
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const queryString = Object.keys(params).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const data = await response.json();
       setNewArrivals(data || []);
-    } catch (err) {
-      setNewArrivals([]);
-    }
+    } catch (err) { setNewArrivals([]); }
   };
 
-  const fetchTrending = async ({
-    searchText,
-    selectedCategory,
-    priceRange,
-  }: any) => {
+  const fetchTrending = async ({ searchText, selectedCategory, priceRange }: any) => {
     try {
       const params: any = { isTrending: true };
       if (searchText) params.search = searchText;
       if (selectedCategory) params.category = selectedCategory;
       if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
       if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
-
-      const queryString = Object.keys(params)
-        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-        .join('&');
-
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const queryString = Object.keys(params).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const data = await response.json();
       setTrendingItems(data || []);
-    } catch (err) {
-      setTrendingItems([]);
-    }
+    } catch (err) { setTrendingItems([]); }
   };
 
-  const fetchPremium = async ({
-    searchText = '',
-    selectedCategory = '',
-    priceRange = [0, 10000],
-  }: {
-    searchText?: string;
-    selectedCategory?: string;
-    priceRange?: [number, number];
-  } = {}) => {
+  const fetchPremium = async ({ searchText = '', selectedCategory = '', priceRange = [0, 10000] }: { searchText?: string; selectedCategory?: string; priceRange?: [number, number]; } = {}) => {
     try {
       const params: any = { isPremium: true };
       if (searchText && searchText.trim()) params.search = searchText.trim();
-      if (
-        selectedCategory &&
-        selectedCategory !== 'All' &&
-        selectedCategory !== ''
-      ) {
-        params.category = selectedCategory;
-      }
+      if (selectedCategory && selectedCategory !== 'All' && selectedCategory !== '') params.category = selectedCategory;
       if (priceRange?.[0] > 0) params.minPrice = priceRange[0];
       if (priceRange?.[1] < 10000) params.maxPrice = priceRange[1];
-
-      const queryString = Object.keys(params)
-        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
-        .join('&');
-
-      const url = `${config.baseURL}api/products${
-        queryString ? '?' + queryString : ''
-      }`;
+      const queryString = Object.keys(params).map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
+      const url = `${config.baseURL}api/products${queryString ? '?' + queryString : ''}`;
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const data = await response.json();
       setPremiumItems(data || []);
-    } catch (err) {
-      console.error('Error fetching premium products:', err);
-      setPremiumItems([]);
-    }
+    } catch (err) { console.error('Error fetching premium products:', err); setPremiumItems([]); }
   };
 
   useEffect(() => {
@@ -913,21 +763,9 @@ export default function Dashboard() {
       setLoading(true);
       await Promise.all([fetchBanners(), fetchCategories()]);
       await Promise.all([
-        fetchNewArrivals({
-          searchText: '',
-          selectedCategory: '',
-          priceRange: [0, 10000],
-        }),
-        fetchTrending({
-          searchText: '',
-          selectedCategory: '',
-          priceRange: [0, 10000],
-        }),
-        fetchPremium({
-          searchText: '',
-          selectedCategory: '',
-          priceRange: [0, 10000],
-        }),
+        fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+        fetchTrending({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+        fetchPremium({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
       ]);
       setLoading(false);
       LoadingService.hide();
@@ -941,21 +779,9 @@ export default function Dashboard() {
         LoadingService.show();
         setLoading(true);
         await Promise.all([
-          fetchNewArrivals({
-            searchText: debouncedSearchText,
-            selectedCategory,
-            priceRange,
-          }),
-          fetchTrending({
-            searchText: debouncedSearchText,
-            selectedCategory,
-            priceRange,
-          }),
-          fetchPremium({
-            searchText: debouncedSearchText,
-            selectedCategory,
-            priceRange,
-          }),
+          fetchNewArrivals({ searchText: debouncedSearchText, selectedCategory, priceRange }),
+          fetchTrending({ searchText: debouncedSearchText, selectedCategory, priceRange }),
+          fetchPremium({ searchText: debouncedSearchText, selectedCategory, priceRange }),
         ]);
         LoadingService.hide();
         setLoading(false);
@@ -964,30 +790,16 @@ export default function Dashboard() {
     }
   }, [selectedCategory, priceRange]);
 
-  const redirectToProductDetails = (id: string) => {
-    navigation.navigate('ProductDetails', { itemId: id });
-  };
+  const redirectToProductDetails = (id: string) => navigation.navigate('ProductDetails', { itemId: id });
 
   const applyFilter = async () => {
     setModalVisible(false);
     LoadingService.show();
     setLoading(true);
     await Promise.all([
-      fetchNewArrivals({
-        searchText: debouncedSearchText,
-        selectedCategory,
-        priceRange,
-      }),
-      fetchTrending({
-        searchText: debouncedSearchText,
-        selectedCategory,
-        priceRange,
-      }),
-      fetchPremium({
-        searchText: debouncedSearchText,
-        selectedCategory,
-        priceRange,
-      }),
+      fetchNewArrivals({ searchText: debouncedSearchText, selectedCategory, priceRange }),
+      fetchTrending({ searchText: debouncedSearchText, selectedCategory, priceRange }),
+      fetchPremium({ searchText: debouncedSearchText, selectedCategory, priceRange }),
     ]);
     LoadingService.hide();
     setLoading(false);
@@ -999,25 +811,12 @@ export default function Dashboard() {
     setSelectedCategory('');
     setPriceRange([0, 10000]);
     setModalVisible(false);
-
     LoadingService.show();
     setLoading(true);
     await Promise.all([
-      fetchNewArrivals({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
-      fetchTrending({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
-      fetchPremium({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
+      fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+      fetchTrending({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+      fetchPremium({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
     ]);
     LoadingService.hide();
     setLoading(false);
@@ -1026,7 +825,6 @@ export default function Dashboard() {
   const handleSearch = async () => {
     const query = searchText.trim();
     setDebouncedSearchText(query);
-
     LoadingService.show();
     setLoading(true);
     await Promise.all([
@@ -1043,43 +841,24 @@ export default function Dashboard() {
     setDebouncedSearchText('');
     setSelectedCategory('');
     setPriceRange([0, 10000]);
-
     LoadingService.show();
     setLoading(true);
     await Promise.all([
-      fetchNewArrivals({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
-      fetchTrending({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
-      fetchPremium({
-        searchText: '',
-        selectedCategory: '',
-        priceRange: [0, 10000],
-      }),
+      fetchNewArrivals({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+      fetchTrending({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
+      fetchPremium({ searchText: '', selectedCategory: '', priceRange: [0, 10000] }),
     ]);
     LoadingService.hide();
     setLoading(false);
   };
 
   const navigateToCategory = (item: any) => {
-    navigation.navigate('CategoryScreen', {
-      mainCategory: item._id,
-      displayTitle: item.name,
-    });
+    navigation.navigate('CategoryScreen', { mainCategory: item._id, displayTitle: item.name });
   };
 
   const handleBannerPress = (banner: any) => {
     if (banner.linkType === 'collection' && banner.link) {
-      navigation.navigate('CategoryScreen', {
-        mainCategory: banner.link,
-        displayTitle: banner.link,
-      });
+      navigation.navigate('CategoryScreen', { mainCategory: banner.link, displayTitle: banner.link });
     } else if (banner.linkType === 'product' && banner.linkId) {
       navigation.navigate('ProductDetails', { itemId: banner.linkId });
     }
@@ -1094,15 +873,10 @@ export default function Dashboard() {
   };
 
   const itemsToShowNew = showAllNew ? newArrivals : newArrivals.slice(0, 4);
-  const itemsToShowTrending = showAllTrending
-    ? trendingItems
-    : trendingItems.slice(0, 4);
+  const itemsToShowTrending = showAllTrending ? trendingItems : trendingItems.slice(0, 4);
 
-  // ✅ Skeleton wired in here — 3 lines added, rest unchanged
   const HomeContent = () => {
-    if (loading && bannerImages.length === 0) {
-      return <DashboardSkeleton width={width} />;
-    }
+    if (loading && bannerImages.length === 0) return <DashboardSkeleton width={width} />;
 
     return (
       <>
@@ -1112,7 +886,6 @@ export default function Dashboard() {
           onBannerPress={handleBannerPress}
           setCurrentBannerIndex={handleBannerScroll}
         />
-
         <View style={styles.categoryWrapper}>
           <FlatList
             horizontal
@@ -1120,29 +893,16 @@ export default function Dashboard() {
             data={categories}
             keyExtractor={item => item._id || 'cat'}
             renderItem={({ item }) => (
-              <CategoryItem
-                item={item}
-                selectedCategory={selectedCategory}
-                onPress={navigateToCategory}
-              />
+              <CategoryItem item={item} selectedCategory={selectedCategory} onPress={navigateToCategory} />
             )}
             contentContainerStyle={styles.categoryList}
           />
         </View>
-
         <FeatureBadges />
-
         <View style={styles.newArrivalSection}>
           <View style={styles.newArrivalHeader}>
             <Text style={styles.newArrivalTitle}>New Arrival</Text>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('CategoryScreen', {
-                  mainCategory: 'New Arrival',
-                  displayTitle: 'New Arrivals',
-                })
-              }
-            >
+            <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { mainCategory: 'New Arrival', displayTitle: 'New Arrivals' })}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -1166,18 +926,10 @@ export default function Dashboard() {
             />
           )}
         </View>
-
         <View style={styles.newArrivalSection}>
           <View style={styles.newArrivalHeader}>
             <Text style={styles.newArrivalTitle}>Trending</Text>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('CategoryScreen', {
-                  mainCategory: 'Trending',
-                  displayTitle: 'Trending Now',
-                })
-              }
-            >
+            <TouchableOpacity onPress={() => navigation.navigate('CategoryScreen', { mainCategory: 'Trending', displayTitle: 'Trending Now' })}>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
           </View>
@@ -1216,18 +968,12 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#FFF0F3"
-        translucent={false}
-      />
-
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       <SafeAreaView edges={['top']} style={styles.topTabsSafe} />
-
+      <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
       <View style={styles.searchRow}>
         <View style={styles.searchBarWrap}>
           <SansaLogo width={24} height={24} style={styles.searchLogo} />
-
           <TextInput
             style={styles.searchInput}
             placeholder="Search for Sarees..."
@@ -1238,11 +984,7 @@ export default function Dashboard() {
             onSubmitEditing={handleSearch}
           />
           {searchText.length > 0 && (
-            <TouchableOpacity
-              onPress={clearSearch}
-              hitSlop={6}
-              style={{ marginRight: 6 }}
-            >
+            <TouchableOpacity onPress={clearSearch} hitSlop={6} style={{ marginRight: 6 }}>
               <MaterialIcons name="close" size={18} color="#888" />
             </TouchableOpacity>
           )}
@@ -1250,7 +992,6 @@ export default function Dashboard() {
             <MaterialIcons name="search" size={22} color="#111" />
           </TouchableOpacity>
         </View>
-
         <TouchableOpacity
           style={styles.topIconBtn}
           onPress={() => navigation.navigate('FavoritesPage')}
@@ -1265,25 +1006,17 @@ export default function Dashboard() {
             )}
           </View>
         </TouchableOpacity>
-
         <NotificationBadge size={26} color="#111" style={styles.topIconBtn} />
       </View>
-
       <FlatList
         data={[]}
         keyExtractor={() => 'main-scroll'}
         renderItem={null}
-        ListHeaderComponent={
-          activeTab === 'home' ? HomeContent : PremiumContent
-        }
+        ListHeaderComponent={activeTab === 'home' ? HomeContent : PremiumContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.mainScrollContent,
-          { paddingBottom: 70 + insets.bottom },
-        ]}
+        contentContainerStyle={[styles.mainScrollContent, { paddingBottom: 70 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       />
-
       <Modal
         animationType="slide"
         transparent
@@ -1291,12 +1024,7 @@ export default function Dashboard() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View
-            style={[
-              styles.modalContent,
-              { paddingBottom: Math.max(insets.bottom, 20) + 10 },
-            ]}
-          >
+          <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={clearFilters}>
                 <Text style={styles.clearText}>Clear</Text>
@@ -1306,65 +1034,29 @@ export default function Dashboard() {
                 <MaterialIcons name="close" size={24} color="black" />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.filterSectionTitle}>Category</Text>
             <View style={styles.categoryFilter}>
               {categories.map(cat => (
                 <TouchableOpacity
                   key={cat._id || 'cat'}
-                  style={[
-                    styles.categoryFilterButton,
-                    selectedCategory === cat._id &&
-                      styles.categoryFilterButtonActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedCategory(cat._id);
-                    setModalVisible(false);
-                    applyFilter();
-                  }}
+                  style={[styles.categoryFilterButton, selectedCategory === cat._id && styles.categoryFilterButtonActive]}
+                  onPress={() => { setSelectedCategory(cat._id); setModalVisible(false); applyFilter(); }}
                 >
-                  <Text
-                    style={[
-                      styles.categoryFilterText,
-                      selectedCategory === cat._id &&
-                        styles.categoryFilterTextActive,
-                    ]}
-                  >
+                  <Text style={[styles.categoryFilterText, selectedCategory === cat._id && styles.categoryFilterTextActive]}>
                     {cat.name}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-
             <Text style={styles.filterSectionTitle}>Price Range</Text>
-
             <View style={styles.priceHeader}>
               <Text style={styles.priceText}>Min: ₹{priceRange[0]}</Text>
               <Text style={styles.priceText}>Max: ₹{priceRange[1]}</Text>
             </View>
-
             <Text style={styles.sliderTitle}>Minimum Price</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={50}
-              maximumValue={10000}
-              value={priceRange[0]}
-              onValueChange={value =>
-                setPriceRange([Math.round(value), priceRange[1]])
-              }
-            />
-
+            <Slider style={styles.slider} minimumValue={50} maximumValue={10000} value={priceRange[0]} onValueChange={value => setPriceRange([Math.round(value), priceRange[1]])} />
             <Text style={styles.sliderTitle}>Maximum Price</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={50}
-              maximumValue={10000}
-              value={priceRange[1]}
-              onValueChange={value =>
-                setPriceRange([value, priceRange[1]])
-              }
-            />
-
+            <Slider style={styles.slider} minimumValue={50} maximumValue={10000} value={priceRange[1]} onValueChange={value => setPriceRange([value, priceRange[1]])} />
             <TouchableOpacity style={styles.applyButton} onPress={applyFilter}>
               <Text style={styles.applyButtonText}>Apply Filter</Text>
             </TouchableOpacity>
@@ -1376,87 +1068,80 @@ export default function Dashboard() {
 }
 
 // ============================================
-// STYLES — unchanged from your original
+// STYLES
 // ============================================
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  mainScrollContent: {
-    paddingHorizontal: 15,
-    paddingTop: 0,
-  },
+  mainScrollContent: { paddingHorizontal: 15, paddingTop: 0 },
   columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
-  topTabsSafe: { backgroundColor: '#FFFF' },
-  topTabsBar: { backgroundColor: '#FFFF', paddingTop: 0, paddingBottom: 0 },
-  topTabsRow: {
+  // ============================================
+  // TOP TABS — no full background color
+  // ============================================
+  topTabsSafe: { backgroundColor: '#FFFFFF' },
+
+  tabBarContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 0,
-    gap: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 0,
+    gap: 8,
   },
-  topTab: {
+
+  tab: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#FFF0F3',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  topTabLeft: {
+    paddingVertical: 12,
     borderTopLeftRadius: 14,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderLeftWidth: 1,
-    borderTopWidth: 1,
-    borderBottomWidth: 0,
-    borderRightWidth: 1,
-    borderColor: '#F2D5DC',
-  },
-  topTabRight: {
-    borderTopLeftRadius: 0,
     borderTopRightRadius: 14,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 1,
-    borderBottomWidth: 0,
-    borderRightWidth: 1,
-    borderColor: '#F2D5DC',
   },
-  topTabActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F2D5DC',
-    borderBottomWidth: 0,
-  },
-  topTabInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topTabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#9E0E26',
-    letterSpacing: 0.3,
-  },
-  topTabTextActive: { fontWeight: '700', color: '#9E0E26' },
 
+  // ACTIVE tab: white, merges into search row below
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+    marginBottom: -1, // overlap the search row's top border
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#E8D5D9',
+    borderBottomWidth: 0,
+    zIndex: 2,
+  },
+
+  // INACTIVE tab: no visible block, no bg
+  tabInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+
+  tabText: { fontSize: 15, letterSpacing: 0.5 },
+  tabTextActive: { fontWeight: '700', color: '#9E0E26' },
+  tabTextInactive: { fontWeight: '600', color: '#888' },
+
+  // Search row — ONLY top border now (no bottom line)
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 12,
+    paddingBottom: 8,
     backgroundColor: '#FFFFFF',
     gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E8D5D9',
+    // ❌ REMOVED: borderBottomWidth
+    // ❌ REMOVED: borderBottomColor
   },
   searchBarWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     height: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
@@ -1495,12 +1180,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   categoryItemActive: { backgroundColor: '#9E0E26', borderColor: '#9E0E26' },
-  categoryName: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
+  categoryName: { fontSize: 10, fontWeight: '500', color: '#FFFFFF', textAlign: 'center' },
   categoryNameActive: { color: '#FFFFFF', fontWeight: '600' },
 
   featuresContainer: {
@@ -1517,13 +1197,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  featureItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-  },
+  featureItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 0 },
   featureIconWrapper: {
     width: 22,
     height: 22,
@@ -1533,26 +1207,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 2,
   },
-  featureDivider: {
-    width: 1,
-    height: 22,
-    backgroundColor: '#D0D0D0',
-    alignSelf: 'center',
-    marginHorizontal: 0,
-  },
+  featureDivider: { width: 1, height: 22, backgroundColor: '#D0D0D0', alignSelf: 'center', marginHorizontal: 0 },
   featureTextWrapper: { flexShrink: 1, justifyContent: 'center' },
-  featureTitle: {
-    fontSize: 9,
-    color: '#9E0E26',
-    fontWeight: '700',
-    lineHeight: 11,
-  },
-  featureSubtext: {
-    fontSize: 6,
-    color: '#888',
-    fontWeight: '400',
-    lineHeight: 9,
-  },
+  featureTitle: { fontSize: 9, color: '#9E0E26', fontWeight: '700', lineHeight: 11 },
+  featureSubtext: { fontSize: 6, color: '#888', fontWeight: '400', lineHeight: 9 },
 
   productCard: {
     width: '48%',
@@ -1564,19 +1222,10 @@ const styles = StyleSheet.create({
     borderColor: '#F0F0F0',
   },
   megaDropRow: { flexDirection: 'row', marginBottom: 6 },
-  megaDropBadge: {
-    backgroundColor: '#E9445A',
-    borderRadius: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
+  megaDropBadge: { backgroundColor: '#E9445A', borderRadius: 3, paddingHorizontal: 8, paddingVertical: 3 },
   megaDropText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   imageWrapper: { position: 'relative' },
-  productImage: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  productImage: { width: '100%', aspectRatio: 1, backgroundColor: '#FFFFFF' },
   favoriteBtn: { position: 'absolute', top: 8, right: 8, padding: 2 },
   ratingPill: {
     position: 'absolute',
@@ -1591,12 +1240,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   ratingPillText: { color: '#111', fontSize: 11, fontWeight: '700' },
-  ratingDivider: {
-    width: 1,
-    height: 10,
-    backgroundColor: '#D0D0D0',
-    marginHorizontal: 2,
-  },
+  ratingDivider: { width: 1, height: 10, backgroundColor: '#D0D0D0', marginHorizontal: 2 },
   productInfo: { paddingTop: 8, paddingHorizontal: 8, paddingBottom: 10 },
   productTitle: { fontSize: 13, color: '#111', marginBottom: 6 },
   productTitleBold: { fontWeight: '700', color: '#111' },
@@ -1610,28 +1254,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   megaDropInlineText: { color: '#E9445A', fontSize: 10, fontWeight: '700' },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  strikePrice: {
-    fontSize: 12,
-    color: '#999',
-    textDecorationLine: 'line-through',
-  },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  strikePrice: { fontSize: 12, color: '#999', textDecorationLine: 'line-through' },
   finalPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
   discountText: { fontSize: 13, color: '#9E0E26', fontWeight: '700' },
 
   premiumSectionWrapper: { marginTop: 12, marginBottom: 12 },
-  premiumHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 0,
-    marginBottom: 10,
-  },
+  premiumHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 0, marginBottom: 10 },
   premiumHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
   premiumHeaderIcon: {
     width: 28,
@@ -1642,19 +1271,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
   },
-  premiumTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    letterSpacing: 0.3,
-  },
+  premiumTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', letterSpacing: 0.3 },
   premiumSeeAll: { flexDirection: 'row', alignItems: 'center' },
-  premiumSeeAllText: {
-    fontSize: 13,
-    color: '#9E0E26',
-    fontWeight: '600',
-    marginRight: 2,
-  },
+  premiumSeeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600', marginRight: 2 },
   premiumTag: {
     position: 'absolute',
     top: 8,
@@ -1665,69 +1284,24 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     zIndex: 2,
   },
-  premiumTagText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
+  premiumTagText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 
   newArrivalSection: { marginTop: 4, marginBottom: 10 },
-  newArrivalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
+  newArrivalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
   newArrivalTitle: { fontSize: 13, fontWeight: 'bold' },
   seeAllText: { fontSize: 13, color: '#9E0E26', fontWeight: '600' },
-  noRecordsText: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 20,
-  },
+  noRecordsText: { fontSize: 12, color: '#999', textAlign: 'center', marginTop: 20 },
 
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
+  modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+  modalContent: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   clearText: { fontSize: 16, color: '#151515' },
   modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginVertical: 10,
-  },
-  priceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
+  filterSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', marginVertical: 10 },
+  priceHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   priceText: { fontSize: 16, fontWeight: '600' },
   sliderTitle: { fontSize: 14, marginTop: 10, marginBottom: 5, color: '#555' },
-  categoryFilter: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    marginBottom: 20,
-    gap: 10,
-  },
+  categoryFilter: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 20, gap: 10 },
   categoryFilterButton: {
     backgroundColor: '#f2f2f2',
     paddingVertical: 10,
@@ -1742,39 +1316,12 @@ const styles = StyleSheet.create({
   categoryFilterText: { color: '#333', fontSize: 14, fontWeight: '500' },
   categoryFilterTextActive: { color: '#fff' },
   slider: { flex: 1, marginHorizontal: 20 },
-  applyButton: {
-    backgroundColor: '#9E0E26',
-    borderRadius: 35,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 10,
-  },
+  applyButton: { backgroundColor: '#9E0E26', borderRadius: 35, paddingVertical: 15, alignItems: 'center', marginTop: 10 },
   applyButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  bannerWrapper: {
-    marginTop: 12,
-    marginBottom: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
-  },
-  bannerItem: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
-  },
-  dotsContainer: {
-    position: 'absolute',
-    bottom: 10,
-    flexDirection: 'row',
-    alignSelf: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
+  bannerWrapper: { marginTop: 12, marginBottom: 12, borderRadius: 12, overflow: 'hidden', backgroundColor: 'transparent' },
+  bannerItem: { borderRadius: 12, overflow: 'hidden', backgroundColor: '#FCEBED' },
+  dotsContainer: { position: 'absolute', bottom: 10, flexDirection: 'row', alignSelf: 'center', gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)' },
   activeDot: { backgroundColor: '#9E0E26', width: 20 },
 });
