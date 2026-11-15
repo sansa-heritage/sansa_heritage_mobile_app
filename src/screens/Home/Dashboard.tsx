@@ -53,7 +53,7 @@ const splitTitle = (fullName: string, boldWords = 2) => {
 };
 
 // ============================================
-// TOP TABS — no full background, floating tabs
+// TOP TABS — Corrected Folder Merge
 // ============================================
 interface TopTabsProps {
   activeTab: 'home' | 'premium';
@@ -69,6 +69,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
         activeOpacity={0.85}
         style={[
           styles.tab,
+          styles.tabLeft,
           activeTab === 'home' ? styles.tabActive : styles.tabInactive,
         ]}
       >
@@ -94,6 +95,7 @@ const TopTabs: React.FC<TopTabsProps> = ({ activeTab, onTabChange }) => {
         activeOpacity={0.85}
         style={[
           styles.tab,
+          styles.tabRight,
           activeTab === 'premium' ? styles.tabActive : styles.tabInactive,
         ]}
       >
@@ -160,7 +162,6 @@ const BannerSlider: React.FC<BannerSliderProps> = ({
 }) => {
   const flatListRef = useRef<FlatList>(null);
   const bannerWidth = width - 30;
-
   const BANNER_RATIO = 9 / 16;
   const bannerHeight = Math.round(bannerWidth * BANNER_RATIO);
 
@@ -610,7 +611,7 @@ export default function Dashboard() {
   const [bannerImages, setBannerImages] = useState<any[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'premium'>('home');
+  // const [activeTab, setActiveTab] = useState<'home' | 'premium'>('home');
   const [showAllNew] = useState(false);
   const [showAllTrending] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -970,53 +971,64 @@ export default function Dashboard() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
       <SafeAreaView edges={['top']} style={styles.topTabsSafe} />
-      <TopTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      <View style={styles.searchRow}>
-        <View style={styles.searchBarWrap}>
-          <SansaLogo width={24} height={24} style={styles.searchLogo} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for Sarees..."
-            placeholderTextColor="#9CA3AF"
-            value={searchText}
-            onChangeText={setSearchText}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} hitSlop={6} style={{ marginRight: 6 }}>
-              <MaterialIcons name="close" size={18} color="#888" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={handleSearch} hitSlop={6}>
-            <MaterialIcons name="search" size={22} color="#111" />
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity
-          style={styles.topIconBtn}
-          onPress={() => navigation.navigate('FavoritesPage')}
-          hitSlop={6}
-        >
-          <View style={{ position: 'relative' }}>
-            <Ionicons name="heart-outline" size={26} color="#111" />
-            {favoriteCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{favoriteCount}</Text>
-              </View>
+
+      {/* Tabs and search bar wrapped in one block that creates the folder illusion */}
+      <View style={styles.headerWrapper}>
+        {/* Tabs — top corners rounded, no bottom border */}
+        {/* <TopTabs activeTab={activeTab} onTabChange={setActiveTab} /> */}
+
+        {/* Search bar — no top border (the tabs above provide the visual break) */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBarWrap}>
+            <SansaLogo width={24} height={24} style={styles.searchLogo} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for Sarees..."
+              placeholderTextColor="#9CA3AF"
+              value={searchText}
+              onChangeText={setSearchText}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={clearSearch} hitSlop={6} style={{ marginRight: 6 }}>
+                <MaterialIcons name="close" size={18} color="#888" />
+              </TouchableOpacity>
             )}
+            <TouchableOpacity onPress={handleSearch} hitSlop={6}>
+              <MaterialIcons name="search" size={22} color="#111" />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-        <NotificationBadge size={26} color="#111" style={styles.topIconBtn} />
+          <TouchableOpacity
+            style={styles.topIconBtn}
+            onPress={() => navigation.navigate('FavoritesPage')}
+            hitSlop={6}
+          >
+            <View style={{ position: 'relative' }}>
+              <Ionicons name="heart-outline" size={26} color="#111" />
+              {favoriteCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{favoriteCount}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+          <NotificationBadge size={26} color="#111" style={styles.topIconBtn} />
+        </View>
       </View>
+
       <FlatList
         data={[]}
         keyExtractor={() => 'main-scroll'}
         renderItem={null}
-        ListHeaderComponent={activeTab === 'home' ? HomeContent : PremiumContent}
+        // ListHeaderComponent={activeTab === 'home' ? HomeContent : PremiumContent}
+        ListHeaderComponent={HomeContent}
+
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.mainScrollContent, { paddingBottom: 70 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       />
+
       <Modal
         animationType="slide"
         transparent
@@ -1076,17 +1088,19 @@ const styles = StyleSheet.create({
   columnWrapper: { justifyContent: 'space-between', marginBottom: 12 },
 
   // ============================================
-  // TOP TABS — no full background color
+  // TOP TABS + SEARCH — the folder illusion
   // ============================================
   topTabsSafe: { backgroundColor: '#FFFFFF' },
 
-  tabBarContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
+  headerWrapper: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 0,
-    gap: 8,
+  },
+
+  tabBarContainer: {
+    flexDirection: 'row',
+    // No bottom margin — tabs touch the search row
   },
 
   tab: {
@@ -1094,47 +1108,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopLeftRadius: 14,
     borderTopRightRadius: 14,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderTopWidth: 1,
+    borderColor: '#E8D5D9',
+    // NO BOTTOM BORDER — this is the merge
   },
 
-  // ACTIVE tab: white, merges into search row below
+  tabLeft: {
+    borderRightWidth: 1,
+  },
+
+  tabRight: {
+    borderLeftWidth: 1,
+  },
+
+  // Active tab: white, pulled down by 1px to cover the search row's top
   tabActive: {
     backgroundColor: '#FFFFFF',
-    marginBottom: -1, // overlap the search row's top border
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E8D5D9',
-    borderBottomWidth: 0,
+    marginBottom: -1,
     zIndex: 2,
   },
 
-  // INACTIVE tab: no visible block, no bg
+  // Inactive tab: rose tint, flat bottom
   tabInactive: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
+    backgroundColor: '#FCF1F3',
   },
 
   tabText: { fontSize: 15, letterSpacing: 0.5 },
   tabTextActive: { fontWeight: '700', color: '#9E0E26' },
   tabTextInactive: { fontWeight: '600', color: '#888' },
 
-  // Search row — ONLY top border now (no bottom line)
+  // Search row — NO TOP BORDER. Tabs merge into it directly
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
     paddingTop: 12,
     paddingBottom: 8,
     backgroundColor: '#FFFFFF',
     gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E8D5D9',
-    // ❌ REMOVED: borderBottomWidth
-    // ❌ REMOVED: borderBottomColor
+    // NO BORDERS AT ALL
   },
   searchBarWrap: {
     flex: 1,
