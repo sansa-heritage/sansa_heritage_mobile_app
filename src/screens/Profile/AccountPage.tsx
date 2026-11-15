@@ -22,12 +22,30 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
 
   const APP_VERSION = `Version ${DeviceInfo.getVersion()}`;
 
+  // useEffect(() => {
+  //   const loadUserData = async () => {
+  //     try {
+  //       const user = await getUserDetails();
+  //       setUsername(user?.username || 'Guest');
+  //       setEmail(user?.email || '');
+  //     } catch (error) {
+  //       console.log('Failed to load user:', error);
+  //     }
+  //   };
+
+  //   loadUserData();
+  // }, []);
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const user = await getUserDetails();
-        setUsername(user?.username || 'Guest');
-        setEmail(user?.email || '');
+        const res = await getUserDetails();
+        console.log('📦 getUserDetails raw:', res);
+
+        // Backend shape: { success, user: { username, email, ... }, stats, ... }
+        const userObj = res?.user || {};
+
+        setUsername(userObj.username || userObj.name || 'Guest');
+        setEmail(userObj.email || '');
       } catch (error) {
         console.log('Failed to load user:', error);
       }
@@ -35,7 +53,6 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
 
     loadUserData();
   }, []);
-
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -64,8 +81,8 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F6F6F6" />
-      <ScrollView 
-        style={styles.container} 
+      <ScrollView
+        style={styles.container}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         bounces={true}
