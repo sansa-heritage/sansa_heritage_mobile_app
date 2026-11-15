@@ -13,30 +13,23 @@ import { StackActions, useNavigation } from '@react-navigation/native';
 import { authService } from '../../services/AuthService';
 import { getUserDetails } from '../../api/profileApi';
 import DeviceInfo from 'react-native-device-info';
+import LoadingService from '../../services/LoadingService';   // ✅ ADDED
 
 const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
   const navigation = useNavigation<any>();
 
-  const [username, setUsername] = useState<string>('Guest');
+  // ✅ Start empty — we'll gate the UI on `loaded`
+  const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [loaded, setLoaded] = useState<boolean>(false);   // ✅ ADDED
 
   const APP_VERSION = `Version ${DeviceInfo.getVersion()}`;
 
-  // useEffect(() => {
-  //   const loadUserData = async () => {
-  //     try {
-  //       const user = await getUserDetails();
-  //       setUsername(user?.username || 'Guest');
-  //       setEmail(user?.email || '');
-  //     } catch (error) {
-  //       console.log('Failed to load user:', error);
-  //     }
-  //   };
-
-  //   loadUserData();
-  // }, []);
   useEffect(() => {
     const loadUserData = async () => {
+      // ✅ Show the SAME animated logo loader Dashboard uses
+      LoadingService.show('Loading profile...');
+
       try {
         const res = await getUserDetails();
         console.log('📦 getUserDetails raw:', res);
@@ -44,15 +37,19 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
         // Backend shape: { success, user: { username, email, ... }, stats, ... }
         const userObj = res?.user || {};
 
-        setUsername(userObj.username || userObj.name || 'Guest');
+        setUsername((userObj.username || userObj.name || 'Guest').trim());
         setEmail(userObj.email || '');
       } catch (error) {
         console.log('Failed to load user:', error);
+      } finally {
+        LoadingService.hide();     // ✅ Hide the loader
+        setLoaded(true);           // ✅ Unblock UI
       }
     };
 
     loadUserData();
   }, []);
+
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -63,7 +60,6 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
     }
   };
 
-  // Split menu items into two groups
   const firstMenuItems = [
     { label: 'Orders', icon: 'receipt-outline', screen: 'OrdersPage' },
     { label: 'Address', icon: 'location-outline', screen: 'AddressScreen' },
@@ -77,6 +73,16 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
     { label: 'About Us', icon: 'information-circle-outline', screen: 'AboutUs' },
     { label: 'Help & Support', icon: 'help-circle-outline', screen: 'HelpSupport' },
   ];
+
+  // ✅ Don't render until data is fetched — the LoadingService overlay
+  //    (AnimatedLogoLoader) is visible during this gap, so nothing flashes.
+  if (!loaded) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F6F6F6" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -105,18 +111,17 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
             onPress={() => navigation.navigate('UpdateProfileScreen')}
           >
             <Ionicons name="create-outline" size={18} color="#000" />
-            {/* <Text style={styles.editBtnText}>Edit Profile</Text> */}
           </TouchableOpacity>
         </View>
 
-        {/* FIRST MENU CARD - Orders, Address, Settings */}
+        {/* FIRST MENU CARD */}
         <View style={styles.menuCard}>
           {firstMenuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={[
                 styles.menuItem,
-                index === firstMenuItems.length - 1 && styles.menuItemLast
+                index === firstMenuItems.length - 1 && styles.menuItemLast,
               ]}
               onPress={() => navigation.navigate(item.screen)}
             >
@@ -129,14 +134,14 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
           ))}
         </View>
 
-        {/* SECOND MENU CARD - Privacy Policy, Terms, Returns, About Us, Help & Support */}
+        {/* SECOND MENU CARD */}
         <View style={styles.menuCard}>
           {secondMenuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={[
                 styles.menuItem,
-                index === secondMenuItems.length - 1 && styles.menuItemLast
+                index === secondMenuItems.length - 1 && styles.menuItemLast,
               ]}
               onPress={() => navigation.navigate(item.screen)}
             >
@@ -149,13 +154,12 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
           ))}
         </View>
 
-        {/* LOGOUT BUTTON - Outlined style with red border */}
+        {/* LOGOUT */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={22} color="#9E0E26" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        {/* VERSION - Below logout button */}
         <Text style={styles.version}>{APP_VERSION}</Text>
       </ScrollView>
     </SafeAreaView>
@@ -164,23 +168,18 @@ const AccountPage = ({ onLogout }: { onLogout: () => void }) => {
 
 export default AccountPage;
 
+// ─────────────────────────────────────────────
+// Styles — unchanged from your original
+// ─────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F6F6F6',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#F6F6F6',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F6F6F6' },
+  container: { flex: 1, backgroundColor: '#F6F6F6' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: 40,
     flexGrow: 1,
   },
-
-  // Profile Card
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,25 +202,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    color: '#FFF',
-    fontSize: 26,
-    fontWeight: '700',
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#151515',
-  },
-  email: {
-    fontSize: 14,
-    color: '#777',
-    marginTop: 4,
-  },
+  avatarText: { color: '#FFF', fontSize: 26, fontWeight: '700' },
+  profileInfo: { flex: 1, marginLeft: 14 },
+  name: { fontSize: 17, fontWeight: '700', color: '#151515' },
+  email: { fontSize: 14, color: '#777', marginTop: 4 },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -236,8 +220,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
   },
-
-  // Menu Cards
   menuCard: {
     backgroundColor: '#FFF',
     borderRadius: 14,
@@ -257,13 +239,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
-  menuIconWrapper: {
-    width: 28,
-    alignItems: 'center',
-  },
+  menuItemLast: { borderBottomWidth: 0 },
+  menuIconWrapper: { width: 28, alignItems: 'center' },
   menuLabel: {
     flex: 1,
     fontSize: 15,
@@ -271,8 +248,6 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-
-  // Logout Button - Outlined with red border (matching image)
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -296,8 +271,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 10,
   },
-
-  // Version - Now visible below logout button
   version: {
     textAlign: 'center',
     fontSize: 12,
