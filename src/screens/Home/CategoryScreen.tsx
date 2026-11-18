@@ -127,8 +127,6 @@ export default function CategoryScreen() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -148,11 +146,10 @@ export default function CategoryScreen() {
   });
 
   const [openSection, setOpenSection] = useState<{
-    category: boolean;
     price: boolean;
     size: boolean;
     color: boolean;
-  }>({ category: true, price: true, size: true, color: true });
+  }>({ price: true, size: true, color: true });
 
   const [favorites, setFavorites] = useState<string[]>([]);
 
@@ -170,12 +167,6 @@ export default function CategoryScreen() {
   useEffect(() => {
     loadFavorites();
   }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setSelectedCategory("");
-    }, [mainCategory])
-  );
 
   const loadFavorites = async () => {
     try {
@@ -215,8 +206,7 @@ export default function CategoryScreen() {
         return;
       }
       LoadingService.show("Adding to cart...");
-      const colorValue =
-        item.colors?.[0]?._id || item.colors?.[0]?.name || null;
+      const colorValue = item.colors?.[0]?._id || item.colors?.[0]?.name || null;
       const sizeValue = item.sizes?.[0]?._id || item.sizes?.[0]?.label || null;
       await addToCart(item._id, 1, colorValue, sizeValue);
       eventBus.emit("CART_UPDATED", {});
@@ -232,40 +222,12 @@ export default function CategoryScreen() {
     navigation.navigate("ProductDetails", { itemId: id });
   };
 
-  /* ================= FETCH CATEGORIES ================= */
-  const fetchCategories = async () => {
-    try {
-      const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${config.baseURL}api/master/category`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await response.json();
-      const activeCategories = data.filter((cat: any) => cat.isActive === true);
-      setCategories([
-        { _id: "", name: "All", isActive: true },
-        ...activeCategories,
-      ]);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setCategories([
-        { _id: "", name: "All" },
-        { _id: "1", name: "Sarees" },
-        { _id: "2", name: "Kurtis" },
-        { _id: "3", name: "Lehengas" },
-        { _id: "4", name: "Ethnic Sets" },
-        { _id: "5", name: "Dupattas" },
-      ]);
-    }
-  };
-
   /* ================= FETCH PRODUCTS ================= */
   const fetchProductsWith = async ({
     search,
-    category,
     overridePriceRange,
   }: {
     search?: string;
-    category?: string;
     overridePriceRange?: boolean;
   } = {}) => {
     try {
@@ -277,33 +239,16 @@ export default function CategoryScreen() {
 
       const params: any = {};
 
-      const effectiveCategory =
-        category !== undefined ? category : selectedCategory;
-
-      let categoryToSend = "";
-      if (
-        effectiveCategory &&
-        effectiveCategory !== "All" &&
-        effectiveCategory !== ""
-      ) {
-        categoryToSend = effectiveCategory;
-      } else if (
-        mainCategory &&
-        mainCategory !== "New Arrival" &&
-        mainCategory !== "Trending" &&
-        mainCategory !== "Premium"
-      ) {
-        categoryToSend = mainCategory;
-      }
-
+      // Logic for fetching based on Main Category (Trending, Premium, or specific Category)
       if (mainCategory === "Trending") {
         params.isTrending = true;
       } else if (mainCategory === "New Arrival") {
         params.isNewArrival = true;
       } else if (mainCategory === "Premium") {
         params.isPremium = true;
-      } else if (categoryToSend) {
-        params.category = categoryToSend;
+      } else if (mainCategory && mainCategory !== "All") {
+        // Pass the category ID or name. Backend should handle either.
+        params.category = mainCategory;
       }
 
       const effectiveSearch = search !== undefined ? search : searchText;
@@ -318,16 +263,33 @@ export default function CategoryScreen() {
         )
         .join("&");
 
-      const url = `${config.baseURL}api/products${queryString ? "?" + queryString : ""
-        }`;
+      const url = `${config.baseURL}api/products${queryString ? "?" + queryString : ""}`;
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
-      setAllProducts(data || []);
-      setProducts(data || []);
+      // ✅ CLIENT-SIDE FALLBACK: 
+      // If we are inside a category page (e.g., "Dupatta") but the backend returns products 
+      // from all categories (because it didn't recognize the string name), we manually filter them here.
+      let finalProducts = data || [];
+      if (mainCategory && mainCategory !== "New Arrival" && mainCategory !== "Trending" && mainCategory !== "Premium" && mainCategory !== "All") {
+        const filteredByCat = finalProducts.filter((p: any) => {
+          const catName = typeof p.category === 'object' ? p.category?.name : p.category;
+          const catId = typeof p.category === 'object' ? p.category?._id : p.category;
+          return (catName && catName.toLowerCase() === mainCategory.toLowerCase()) || (catId === mainCategory);
+        });
+        
+        // Only apply the filter if it actually found something. 
+        // If it found 0, it might be because the backend ALREADY filtered it correctly.
+        if (filteredByCat.length > 0) {
+          finalProducts = filteredByCat;
+        }
+      }
 
-      extractDynamicFilters(data || [], overridePriceRange);
+      setAllProducts(finalProducts);
+      setProducts(finalProducts);
+
+      extractDynamicFilters(finalProducts, overridePriceRange);
     } catch (err) {
       console.error(err);
       setAllProducts([]);
@@ -407,7 +369,7 @@ export default function CategoryScreen() {
       const roundedMin = Math.floor(minPrice / 100) * 100;
       const roundedMax = Math.ceil(maxPrice / 100) * 100;
       setPriceBounds({ min: roundedMin, max: roundedMax });
-      if (overridePriceRange || priceStart === MIN_PRICE) {
+      if (overridePriceRange) {
         setPriceStart(roundedMin);
         setPriceEnd(roundedMax);
       }
@@ -415,7 +377,6 @@ export default function CategoryScreen() {
   };
 
   useEffect(() => {
-    fetchCategories();
     fetchProductsWith({ overridePriceRange: true });
   }, [mainCategory]);
 
@@ -426,34 +387,16 @@ export default function CategoryScreen() {
 
   const handleClearSearch = async () => {
     setSearchText("");
-    setSelectedCategory("");
     setSelectedRating("all");
     setSelectedSort("default");
     setSelectedSizeIds([]);
     setSelectedColorIds([]);
-
-    await fetchProductsWith({
-      search: "",
-      category: "",
-      overridePriceRange: true,
-    });
+    await fetchProductsWith({ search: "", overridePriceRange: true });
   };
 
   /* ================= LIVE FILTER PREVIEW ================= */
   const filteredPreview = useMemo(() => {
     let filtered = [...allProducts];
-
-    if (
-      selectedCategory &&
-      selectedCategory !== "" &&
-      selectedCategory !== "All"
-    ) {
-      filtered = filtered.filter((p) => {
-        const catId =
-          typeof p.category === "object" ? p.category?._id : p.category;
-        return String(catId) === String(selectedCategory);
-      });
-    }
 
     if (priceStart > priceBounds.min || priceEnd < priceBounds.max) {
       filtered = filtered.filter((p) => {
@@ -493,7 +436,6 @@ export default function CategoryScreen() {
     return filtered;
   }, [
     allProducts,
-    selectedCategory,
     priceStart,
     priceEnd,
     priceBounds,
@@ -530,7 +472,6 @@ export default function CategoryScreen() {
   };
 
   const resetFilters = () => {
-    setSelectedCategory("");
     setSelectedRating("all");
     setSelectedSort("default");
     setSelectedSizeIds([]);
@@ -552,14 +493,14 @@ export default function CategoryScreen() {
     );
   };
 
-  const toggleSection = (key: "category" | "price" | "size" | "color") => {
+  const toggleSection = (key: "price" | "size" | "color") => {
     setOpenSection((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   /* ============================================================
      PRICE SLIDER — TWO INDEPENDENT PAN RESPONDERS
      ============================================================ */
-  const SLIDER_PADDING = 10;
+  const SLIDER_PADDING = 14; 
   const [sliderWidth, setSliderWidth] = useState(0);
 
   const sliderWidthRef = React.useRef(0);
@@ -608,7 +549,7 @@ export default function CategoryScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => { },
+      onPanResponderGrant: () => {},
       onPanResponderMove: (_, g) => {
         const w = sliderWidthRef.current;
         if (w === 0) return;
@@ -628,7 +569,7 @@ export default function CategoryScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => { },
+      onPanResponderGrant: () => {},
       onPanResponderMove: (_, g) => {
         const w = sliderWidthRef.current;
         if (w === 0) return;
@@ -894,64 +835,6 @@ export default function CategoryScreen() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 8 }}
               >
-                {/* ── CATEGORY ── */}
-                <TouchableOpacity
-                  style={styles.sectionHeader}
-                  onPress={() => toggleSection("category")}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.sectionLeft}>
-                    <View style={styles.iconCircle}>
-                      <Ionicons
-                        name="shirt-outline"
-                        size={15}
-                        color={BRAND_COLOR}
-                      />
-                    </View>
-                    <Text style={styles.sectionTitle}>Category</Text>
-                  </View>
-                  <MaterialIcons
-                    name={
-                      openSection.category
-                        ? "keyboard-arrow-up"
-                        : "keyboard-arrow-down"
-                    }
-                    size={20}
-                    color="#111"
-                  />
-                </TouchableOpacity>
-
-                {openSection.category && (
-                  <View style={styles.chipsWrap}>
-                    {categories.map((cat) => {
-                      const isActive =
-                        selectedCategory === cat._id ||
-                        (cat._id === "" && !selectedCategory);
-                      return (
-                        <TouchableOpacity
-                          key={cat._id || "all"}
-                          style={[styles.chip, isActive && styles.chipActive]}
-                          onPress={() => {
-                            setSelectedCategory(cat._id || "");
-                          }}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.chipText,
-                              isActive && styles.chipTextActive,
-                            ]}
-                          >
-                            {cat.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-
-                <View style={styles.divider} />
-
                 {/* ── PRICE RANGE ── */}
                 <TouchableOpacity
                   style={styles.sectionHeader}
@@ -976,40 +859,32 @@ export default function CategoryScreen() {
                 </TouchableOpacity>
 
                 {openSection.price && (
-                  <>
+                  <View style={styles.sliderContainer}>
                     <View
                       style={styles.sliderWrap}
-                      onLayout={(e) =>
-                        setSliderWidth(e.nativeEvent.layout.width)
-                      }
+                      onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
                     >
                       <View style={styles.sliderTrack} />
-
                       <View
                         style={[
                           styles.sliderActiveTrack,
                           {
                             left: priceToX(priceStart),
-                            width: Math.max(
-                              0,
-                              priceToX(priceEnd) - priceToX(priceStart)
-                            ),
+                            width: Math.max(0, priceToX(priceEnd) - priceToX(priceStart)),
                           },
                         ]}
                       />
-
                       <View
                         style={[
                           styles.sliderThumb,
-                          { left: priceToX(priceStart) - 9 },
+                          { left: priceToX(priceStart) - 11 },
                         ]}
                         {...startThumbPan.panHandlers}
                       />
-
                       <View
                         style={[
                           styles.sliderThumb,
-                          { left: priceToX(priceEnd) - 9 },
+                          { left: priceToX(priceEnd) - 11 },
                         ]}
                         {...endThumbPan.panHandlers}
                       />
@@ -1023,7 +898,7 @@ export default function CategoryScreen() {
                         ₹ {priceEnd.toLocaleString("en-IN")}
                       </Text>
                     </View>
-                  </>
+                  </View>
                 )}
 
                 <View style={styles.divider} />
@@ -1044,17 +919,11 @@ export default function CategoryScreen() {
                     </View>
                     <Text style={styles.sectionTitle}>
                       Size
-                      {availableSizes.length > 0
-                        ? ` (${availableSizes.length})`
-                        : ""}
+                      {availableSizes.length > 0 ? ` (${availableSizes.length})` : ""}
                     </Text>
                   </View>
                   <MaterialIcons
-                    name={
-                      openSection.size
-                        ? "keyboard-arrow-up"
-                        : "keyboard-arrow-down"
-                    }
+                    name={openSection.size ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                     size={20}
                     color="#111"
                   />
@@ -1110,17 +979,11 @@ export default function CategoryScreen() {
                     </View>
                     <Text style={styles.sectionTitle}>
                       Color
-                      {availableColors.length > 0
-                        ? ` (${availableColors.length})`
-                        : ""}
+                      {availableColors.length > 0 ? ` (${availableColors.length})` : ""}
                     </Text>
                   </View>
                   <MaterialIcons
-                    name={
-                      openSection.color
-                        ? "keyboard-arrow-up"
-                        : "keyboard-arrow-down"
-                    }
+                    name={openSection.color ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                     size={20}
                     color="#111"
                   />
@@ -1459,38 +1322,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
 
-  chipsWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 6,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#F5F5F5",
-    minWidth: "auto",
-    alignItems: "center",
-  },
-  chipActive: {
-    backgroundColor: "#FCE9ED",
-    borderWidth: 1.2,
-    borderColor: BRAND_COLOR,
-  },
-  chipText: { fontSize: 9.5, color: "#333", fontWeight: "600" },
-  chipTextActive: { color: BRAND_COLOR, fontWeight: "800" },
-
-  sliderWrap: {
-    height: 40,
-    marginTop: 4,
-    justifyContent: "center",
-    position: "relative",
-  },
+  // ✅ Perfectly aligned slider
+  sliderContainer: { paddingHorizontal: 4, paddingBottom: 8 },
+  sliderWrap: { height: 40, marginTop: 4, justifyContent: "center", position: "relative" },
   sliderTrack: {
     position: "absolute",
-    left: 10,
-    right: 10,
+    left: 14,
+    right: 14,
     height: 3,
     backgroundColor: "#F2C4CE",
     borderRadius: 2,
@@ -1500,13 +1338,11 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: BRAND_COLOR,
     borderRadius: 2,
-    top: "50%",
-    marginTop: -1.5,
+    top: 18.5, 
   },
   sliderThumb: {
     position: "absolute",
-    top: "50%",
-    marginTop: -9,
+    top: 9, 
     width: 22,
     height: 22,
     borderRadius: 11,
